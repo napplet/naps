@@ -1,4 +1,4 @@
-NUB-03
+NAP-03
 ======
 
 Livestream Channel Switch
@@ -6,13 +6,13 @@ Livestream Channel Switch
 
 `draft`
 
-**NUB ID:** NUB-03
+**NAP ID:** NAP-03
 
 **Domain:** livestream context coordination
 
-**Requires:** NUB-IFC
+**Requires:** NAP-IFC
 
-**Discovery:** `shell.supports("ifc", "NUB-03")`
+**Discovery:** `shell.supports("ifc", "NAP-03")`
 
 ## Description
 
@@ -20,14 +20,14 @@ This protocol defines the `livestream:channel-switch` topic semantics for
 napplets that want to coordinate an active livestream selection with another
 napplet, such as a chat or companion view. It specifies the topic string,
 payload shape, producer behavior, and consumer behavior. It does not redefine
-NUB-IFC transport methods.
+NAP-IFC transport methods.
 
 ## Message Protocol
 
-Napplets coordinate through NUB-IFC. The IFC event topic is carried by the
+Napplets coordinate through NAP-IFC. The IFC event topic is carried by the
 event's `t` tag and the payload is carried as JSON in the event content. This
-NUB defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
-`ifc.unsubscribe`, and `ifc.event` remain generic NUB-IFC transport.
+NAP defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
+`ifc.unsubscribe`, and `ifc.event` remain generic NAP-IFC transport.
 
 ### `livestream:channel-switch`
 
@@ -87,7 +87,7 @@ Consumer requirements:
 Napplets discover support for this protocol with:
 
 ```ts
-window.napplet.shell.supports("ifc", "NUB-03");
+window.napplet.shell.supports("ifc", "NAP-03");
 ```
 
 A napplet that requires IFC transport declares the interface dependency in its
