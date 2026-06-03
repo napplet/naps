@@ -1,4 +1,4 @@
-NUB-02
+NAP-02
 ======
 
 Chat Direct Message Open
@@ -6,27 +6,27 @@ Chat Direct Message Open
 
 `draft`
 
-**NUB ID:** NUB-02
+**NAP ID:** NAP-02
 
 **Domain:** chat navigation
 
-**Requires:** NUB-IFC
+**Requires:** NAP-IFC
 
-**Discovery:** `shell.supports("ifc", "NUB-02")`
+**Discovery:** `shell.supports("ifc", "NAP-02")`
 
 ## Description
 
 This protocol defines the `chat:open-dm` topic semantics for napplets that want
 to request that another napplet open or focus a direct-message conversation with
 a Nostr public key. It specifies the topic string, payload shape, producer
-behavior, and consumer behavior. It does not redefine NUB-IFC transport methods.
+behavior, and consumer behavior. It does not redefine NAP-IFC transport methods.
 
 ## Message Protocol
 
-Napplets coordinate through NUB-IFC. The IFC event topic is carried by the
+Napplets coordinate through NAP-IFC. The IFC event topic is carried by the
 event's `t` tag and the payload is carried as JSON in the event content. This
-NUB defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
-`ifc.unsubscribe`, and `ifc.event` remain generic NUB-IFC transport.
+NAP defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
+`ifc.unsubscribe`, and `ifc.event` remain generic NAP-IFC transport.
 
 ### `chat:open-dm`
 
@@ -75,7 +75,7 @@ Consumer requirements:
 Napplets discover support for this protocol with:
 
 ```ts
-window.napplet.shell.supports("ifc", "NUB-02");
+window.napplet.shell.supports("ifc", "NAP-02");
 ```
 
 A napplet that requires IFC transport declares the interface dependency in its
