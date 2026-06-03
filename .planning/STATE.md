@@ -6,10 +6,10 @@ milestone:
   name: Rename legacy acronym to NAP
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 7
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -19,21 +19,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Every public protocol reference must consistently use NAP: Nostr Applet Protocol, with no remaining legacy acronym or legacy expanded phrase mentions.
-**Current focus:** Phase 1: Inventory and Safety Boundaries
+**Current focus:** Phase 2: Local Default-Branch Rename
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 2 of 4 (Local Default-Branch Rename)
 Plan: -
 Status: Ready to plan
-Last activity: 2026-06-03 - Milestone v0.1 started
+Last activity: 2026-06-03 - Phase 1 inventory completed
 
-Progress: [----------] 0%
+Progress: [##--------] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+- Total plans completed: 1
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -41,10 +41,10 @@ Progress: [----------] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. Inventory and Safety Boundaries | 1 | 1 | - |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 01-01
 - Trend: -
 
 ## Accumulated Context
@@ -57,6 +57,7 @@ Recent decisions affecting current work:
 - Use NAP: Nostr Applet Protocol as the replacement terminology.
 - Treat issues as verification-only because GitHub reports issues disabled.
 - Skip research because the milestone is a terminology migration.
+- Phase 1 classified the legacy runtime capability prefix as in scope for NAP migration.
 
 ### Pending Todos
 
@@ -65,7 +66,6 @@ None yet.
 ### Blockers/Concerns
 
 - Open PR branch updates may require checking out and pushing multiple branches.
-- Runtime compatibility strings such as the legacy runtime capability prefix need explicit classification before replacement.
 
 ## Deferred Items
 
@@ -77,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-03
-Stopped at: Milestone planning initialized
+Stopped at: Phase 1 complete; ready for Phase 2
 Resume file: None

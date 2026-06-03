@@ -10,7 +10,7 @@ This milestone converts the public specs repository and its active GitHub review
 - Integer phases are planned milestone work.
 - This repository had no prior `.planning` state, so numbering starts at Phase 1.
 
-- [ ] **Phase 1: Inventory and Safety Boundaries** - Build the exact local, issue, and open-PR stale-term inventory before editing.
+- [x] **Phase 1: Inventory and Safety Boundaries** - Build the exact local, issue, and open-PR stale-term inventory before editing.
 - [ ] **Phase 2: Local Default-Branch Rename** - Rename repository documents, templates, and filenames on `master`.
 - [ ] **Phase 3: Open Pull Request Surface Cleanup** - Update open PR titles, bodies, and changed branch documents.
 - [ ] **Phase 4: Final Audit and Handoff** - Prove zero stale terminology remains in milestone scope and document any explicit exceptions.
@@ -84,7 +84,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Inventory and Safety Boundaries | 0/1 | Not started | - |
+| 1. Inventory and Safety Boundaries | 1/1 | Complete | 2026-06-03 |
 | 2. Local Default-Branch Rename | 0/2 | Not started | - |
 | 3. Open Pull Request Surface Cleanup | 0/3 | Not started | - |
 | 4. Final Audit and Handoff | 0/1 | Not started | - |
