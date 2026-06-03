@@ -6,10 +6,10 @@ milestone:
   name: Rename legacy acronym to NAP
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 3
-  percent: 50
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -19,21 +19,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Every public protocol reference must consistently use NAP: Nostr Applet Protocol, with no remaining legacy acronym or legacy expanded phrase mentions.
-**Current focus:** Phase 3: Open Pull Request Surface Cleanup
+**Current focus:** Phase 4: Final Audit and Handoff
 
 ## Current Position
 
-Phase: 3 of 4 (Open Pull Request Surface Cleanup)
+Phase: 4 of 4 (Final Audit and Handoff)
 Plan: -
 Status: Ready to plan
-Last activity: 2026-06-03 - Phase 2 local rename completed
+Last activity: 2026-06-03 - Phase 3 open PR cleanup completed
 
-Progress: [#####-----] 50%
+Progress: [#######---] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 6
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -43,9 +43,10 @@ Progress: [#####-----] 50%
 |-------|-------|-------|----------|
 | 1. Inventory and Safety Boundaries | 1 | 1 | - |
 | 2. Local Default-Branch Rename | 2 | 2 | - |
+| 3. Open Pull Request Surface Cleanup | 3 | 3 | - |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 02-01, 02-02
+- Last 5 plans: 02-01, 02-02, 03-01, 03-02, 03-03
 - Trend: -
 
 ## Accumulated Context
@@ -78,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-03
-Stopped at: Phase 2 complete; ready for Phase 3
+Stopped at: Phase 3 complete; ready for Phase 4
 Resume file: None

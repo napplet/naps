@@ -12,7 +12,7 @@ This milestone converts the public specs repository and its active GitHub review
 
 - [x] **Phase 1: Inventory and Safety Boundaries** - Build the exact local, issue, and open-PR stale-term inventory before editing.
 - [x] **Phase 2: Local Default-Branch Rename** - Rename repository documents, templates, and filenames on `master`.
-- [ ] **Phase 3: Open Pull Request Surface Cleanup** - Update open PR titles, bodies, and changed branch documents.
+- [x] **Phase 3: Open Pull Request Surface Cleanup** - Update open PR titles, bodies, and changed branch documents.
 - [ ] **Phase 4: Final Audit and Handoff** - Prove zero stale terminology remains in milestone scope and document any explicit exceptions.
 
 ## Phase Details
@@ -86,5 +86,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Inventory and Safety Boundaries | 1/1 | Complete | 2026-06-03 |
 | 2. Local Default-Branch Rename | 2/2 | Complete | 2026-06-03 |
-| 3. Open Pull Request Surface Cleanup | 0/3 | Not started | - |
+| 3. Open Pull Request Surface Cleanup | 3/3 | Complete | 2026-06-03 |
 | 4. Final Audit and Handoff | 0/1 | Not started | - |
