@@ -1,4 +1,4 @@
-NUB-NOSTRDB
+NAP-NOSTRDB
 ============
 
 Local Event Database
@@ -6,7 +6,7 @@ Local Event Database
 
 `draft`
 
-**NUB ID:** NUB-NOSTRDB
+**NAP ID:** NAP-NOSTRDB
 **Namespace:** `window.nostrdb`
 **Discovery:** `shell.supports("nostrdb")`
 
@@ -14,7 +14,7 @@ Local Event Database
 
 ## Description
 
-NUB-NOSTRDB provides napplets with access to a local Nostr event database maintained by the shell. Napplets can query cached events, add externally-authored events, look up events by ID, retrieve replaceable events, count matches, and subscribe to live updates. The shell typically backs this with an OPFS-based worker relay or IndexedDB store. Because napplet iframes run without `allow-same-origin`, they cannot access IndexedDB or OPFS directly — all database access is proxied through the shell via postMessage.
+NAP-NOSTRDB provides napplets with access to a local Nostr event database maintained by the shell. Napplets can query cached events, add externally-authored events, look up events by ID, retrieve replaceable events, count matches, and subscribe to live updates. The shell typically backs this with an OPFS-based worker relay or IndexedDB store. Because napplet iframes run without `allow-same-origin`, they cannot access IndexedDB or OPFS directly — all database access is proxied through the shell via postMessage.
 
 ## API Surface
 

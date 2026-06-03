@@ -1,4 +1,4 @@
-NUB-{NN}
+NAP-{NN}
 ========
 
 {Title}
@@ -6,10 +6,10 @@ NUB-{NN}
 
 `draft`
 
-**NUB ID:** NUB-{NN}
+**NAP ID:** NAP-{NN}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
-**Requires:** {NUB-WORD interfaces needed, e.g., NUB-RELAY, NUB-IPC}
-**Discovery:** `shell.supports("NUB-{WORD}", "NUB-{NN}")`
+**Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-IPC}
+**Discovery:** `shell.supports("NAP-{WORD}", "NAP-{NN}")`
 
 ## Description
 
