@@ -1,0 +1,14 @@
+{
+  "workflow": {
+    "research": false,
+    "text_mode": true
+  },
+  "planning": {
+    "phase_numbering": "continuous",
+    "granularity": "standard"
+  },
+  "project": {
+    "code": "NAP",
+    "title": "Nostr Applet Protocol"
+  }
+}

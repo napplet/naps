@@ -1,4 +1,4 @@
-NUB-{NN}
+NAP-{NN}
 ========
 
 {Title}
@@ -6,9 +6,9 @@ NUB-{NN}
 
 `draft`
 
-**NUB ID:** NUB-{NN}
+**NAP ID:** NAP-{NN}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
-**Requires:** {NUB-WORD interfaces needed, e.g., NUB-RELAY, NUB-IFC}
+**Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-IFC}
 **Discovery:** `shell.supports("{word}", "{nn}")`
 
 ## Description
@@ -17,13 +17,13 @@ NUB-{NN}
 
 ## Message Protocol
 
-Napplets coordinate using messages published and received via NUB-RELAY or NUB-IFC. Messages follow the NIP-5D wire format (`{ "type": "domain.action", ...payload }`). The protocol defines the semantic meaning of message content -- what napplets agree on when they exchange data.
+Napplets coordinate using messages published and received via NAP-RELAY or NAP-IFC. Messages follow the NIP-5D wire format (`{ "type": "domain.action", ...payload }`). The protocol defines the semantic meaning of message content -- what napplets agree on when they exchange data.
 
 ### {Message Name}
 
 {Description of this message type: when it is sent, what it means, who produces and consumes it.}
 
-When published via NUB-RELAY, the event carries a NIP-01 kind, content, and tags as defined by this protocol. The payload fields and their semantics are defined here.
+When published via NAP-RELAY, the event carries a NIP-01 kind, content, and tags as defined by this protocol. The payload fields and their semantics are defined here.
 
 {Behavioral requirements for producers and consumers.}
 
