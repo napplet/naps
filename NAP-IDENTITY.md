@@ -1,4 +1,4 @@
-NUB-IDENTITY
+NAP-IDENTITY
 ============
 
 Read-Only User Identity Queries
@@ -6,15 +6,15 @@ Read-Only User Identity Queries
 
 `draft`
 
-**NUB ID:** NUB-IDENTITY
+**NAP ID:** NAP-IDENTITY
 **Namespace:** `window.napplet.identity`
 **Discovery:** `shell.supports("identity")`
 
 ## Description
 
-NUB-IDENTITY provides read-only access to the current user's public identity information. Napplets that need to display the user's profile, check their follow list, or read their relay preferences query the shell for this data. The shell resolves these queries against its local cache or connected relays and returns the results.
+NAP-IDENTITY provides read-only access to the current user's public identity information. Napplets that need to display the user's profile, check their follow list, or read their relay preferences query the shell for this data. The shell resolves these queries against its local cache or connected relays and returns the results.
 
-Napplets do not have direct access to the user's private key. They cannot sign events, encrypt, or decrypt. Identity queries are strictly read-only -- napplets learn *about* the user but cannot act *as* the user. Signing is delegated to the shell via `relay.publish()` (NUB-RELAY). Encryption is delegated via `relay.publishEncrypted()`.
+Napplets do not have direct access to the user's private key. They cannot sign events, encrypt, or decrypt. Identity queries are strictly read-only -- napplets learn *about* the user but cannot act *as* the user. Signing is delegated to the shell via `relay.publish()` (NAP-RELAY). Encryption is delegated via `relay.publishEncrypted()`.
 
 ## API Surface
 
@@ -43,7 +43,7 @@ interface ProfileData {
 }
 ```
 
-**Resource resolution.** The `picture` and `banner` fields are URL strings. Napplets that need the bytes (for example, to render an `<img>` via an object URL) MUST fetch them through NUB-RESOURCE: `window.napplet.resource.bytes(url)`. Napplets MUST NOT attempt direct `<img src="https://...">` loads — sandboxed napplets cannot make direct network requests under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`). Conformant shells expose every external byte resource through NUB-RESOURCE, including profile pictures and banners. The shell applies the standard NUB-RESOURCE policy to these fetches (private-IP block list at DNS-resolution time, MIME byte-sniffing, optional SVG rasterization, etc.).
+**Resource resolution.** The `picture` and `banner` fields are URL strings. Napplets that need the bytes (for example, to render an `<img>` via an object URL) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. Napplets MUST NOT attempt direct `<img src="https://...">` loads — sandboxed napplets cannot make direct network requests under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`). Conformant shells expose every external byte resource through NAP-RESOURCE, including profile pictures and banners. The shell applies the standard NAP-RESOURCE policy to these fetches (private-IP block list at DNS-resolution time, MIME byte-sniffing, optional SVG rasterization, etc.).
 
 ```typescript
 
@@ -68,7 +68,7 @@ interface Subscription {
 }
 ```
 
-**`getPublicKey()`** -- Returns the user's hex-encoded public key. This is the most basic identity query. Every shell that implements NUB-IDENTITY MUST support this method.
+**`getPublicKey()`** -- Returns the user's hex-encoded public key. This is the most basic identity query. Every shell that implements NAP-IDENTITY MUST support this method.
 
 **`getRelays()`** -- Returns the user's relay list as a record mapping relay URLs to read/write permissions (NIP-65 relay list metadata).
 
@@ -200,11 +200,11 @@ Result messages include an `error` field (string) when the shell cannot fulfill 
 
 ## Security Considerations
 
-- NUB-IDENTITY is strictly read-only. No method modifies user state, signs events, or performs cryptographic operations.
+- NAP-IDENTITY is strictly read-only. No method modifies user state, signs events, or performs cryptographic operations.
 - The user's public key is not secret, but follow lists, mute lists, and block lists reveal social graph information. Shells MAY restrict access to sensitive lists based on napplet trust level.
 - Zap receipts reveal financial information. Shells SHOULD consider whether to expose zap data to all napplets or restrict it to trusted napplets.
 - Profile data may contain URLs (picture, banner, website). Napplets that render these URLs should sanitize them. The shell is not responsible for sanitizing profile content.
-- This interface intentionally excludes signing, encryption, and decryption. These operations are security-critical and belong to the shell. See NUB-RELAY for shell-mediated publish and encrypted publish.
+- This interface intentionally excludes signing, encryption, and decryption. These operations are security-critical and belong to the shell. See NAP-RELAY for shell-mediated publish and encrypted publish.
 - Block lists and mute lists are sensitive. A malicious napplet could use this data to target blocked users through side channels. Shells MAY redact or restrict access to these lists.
 
 ## Implementations
