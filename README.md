@@ -1,40 +1,40 @@
-NUB: Napplet Unified Blueprints
+NAP: Nostr Applet Protocol
 ===============================
 
-NUBs extend [NIP-5D](../NIP-5D.md) with interface and protocol specifications
+NAPs extend [NIP-5D](../NIP-5D.md) with interface and protocol specifications
 for the napplet ecosystem. The core NIP defines transport, authentication, and
 security. Everything else -- relay access, storage, signing, IPC, pipes, message
-protocols -- is a NUB.
+protocols -- is a NAP.
 
 ## Two Tracks
 
-### NUB-WORD (Interface Specs)
+### NAP-WORD (Interface Specs)
 
 Named by a single uppercase word. One canonical spec per name. Defines
 shell-provided API contracts -- what shows up on `window.napplet.*` or
 `window.nostr` or `window.nostrdb`. The shell implements these; napplets
-consume them. Discovery: `shell.supports("NUB-RELAY")`.
+consume them. Discovery: `shell.supports("NAP-RELAY")`.
 
-| NUB ID | Namespace | Description | Status |
+| NAP ID | Namespace | Description | Status |
 |--------|-----------|-------------|--------|
-| [NUB-RELAY](https://github.com/napplet/nubs/pull/2) | `window.napplet.relay` | NIP-01 relay proxy | Draft |
-| [NUB-STORAGE](https://github.com/napplet/nubs/pull/3) | `window.napplet.storage` | Scoped key-value storage | Draft |
-| [NUB-SIGNER](https://github.com/napplet/nubs/pull/1) | `window.nostr` | NIP-07 signer proxy | Draft |
-| [NUB-NOSTRDB](https://github.com/napplet/nubs/pull/4) | `window.nostrdb` | Local event database | Draft |
-| [NUB-IFC](https://github.com/napplet/nubs/pull/5) | `window.napplet.ifc` | Inter-frame communication | Draft |
-| [NUB-PIPES](https://github.com/napplet/nubs/pull/6) | `window.napplet.pipes` | Authenticated point-to-point connections | Draft |
+| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `window.napplet.relay` | NIP-01 relay proxy | Draft |
+| [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `window.napplet.storage` | Scoped key-value storage | Draft |
+| [NAP-SIGNER](https://github.com/napplet/naps/pull/1) | `window.nostr` | NIP-07 signer proxy | Draft |
+| [NAP-NOSTRDB](https://github.com/napplet/naps/pull/4) | `window.nostrdb` | Local event database | Draft |
+| [NAP-IFC](https://github.com/napplet/naps/pull/5) | `window.napplet.ifc` | Inter-frame communication | Draft |
+| [NAP-PIPES](https://github.com/napplet/naps/pull/6) | `window.napplet.pipes` | Authenticated point-to-point connections | Draft |
 
-### NUB-NN (Message Protocol Specs)
+### NAP-NN (Message Protocol Specs)
 
-Numbered sequentially (NUB-01, NUB-02, etc.). Multiple competing specs allowed
+Numbered sequentially (NAP-01, NAP-02, etc.). Multiple competing specs allowed
 per domain. Defines event semantics -- what napplets agree on with each other.
-Napplets negotiate via `shell.supports("NUB-RELAY", "NUB-02")`. Example domains:
+Napplets negotiate via `shell.supports("NAP-RELAY", "NAP-02")`. Example domains:
 feed rendering, chat, collaborative editing.
 
 ## Boundary Rule
 
-An interface (NUB-WORD) is **shell-provided** AND defines an **API surface**. A
-protocol (NUB-NN) is **napplet-agreed** AND defines **event semantics**. Both
+An interface (NAP-WORD) is **shell-provided** AND defines an **API surface**. A
+protocol (NAP-NN) is **napplet-agreed** AND defines **event semantics**. Both
 criteria must apply. Edge cases are judged pragmatically by the maintainer.
 
 ## Governance
@@ -47,9 +47,9 @@ NIP-style informal process:
 - Maintainer (dskvr) merges when the spec makes sense and has at least one
   implementation.
 - No formal stages, review committees, or voting.
-- NUB-WORD names are first-come-first-served but must be approved by the
+- NAP-WORD names are first-come-first-served but must be approved by the
   maintainer.
-- NUB-NN numbers are assigned sequentially on merge.
+- NAP-NN numbers are assigned sequentially on merge.
 
 ## Templates
 

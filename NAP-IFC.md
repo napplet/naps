@@ -1,4 +1,4 @@
-NUB-IFC
+NAP-IFC
 =======
 
 Inter-Frame Communication
@@ -6,13 +6,13 @@ Inter-Frame Communication
 
 `draft`
 
-**NUB ID:** NUB-IFC
+**NAP ID:** NAP-IFC
 **Namespace:** `window.napplet.ifc`
 **Discovery:** `shell.supports("ifc")`
 
 ## Description
 
-NUB-IFC provides topic-based publish/subscribe and point-to-point channels for communication between napplets. Sandboxed iframes cannot communicate directly because the `allow-same-origin` sandbox token is absent — they have opaque origins with no shared context. The shell routes messages between napplets using typed `ifc.*` messages over the NIP-5D wire format. Topic-based IFC is loose coupling: the sender does not know who (if anyone) receives the message. Channel-based IFC is tight coupling: a napplet opens a named connection to a specific peer and the shell validates the target once on open. The shell also uses IFC topics for internal coordination (state operations, service commands, configuration).
+NAP-IFC provides topic-based publish/subscribe and point-to-point channels for communication between napplets. Sandboxed iframes cannot communicate directly because the `allow-same-origin` sandbox token is absent — they have opaque origins with no shared context. The shell routes messages between napplets using typed `ifc.*` messages over the NIP-5D wire format. Topic-based IFC is loose coupling: the sender does not know who (if anyone) receives the message. Channel-based IFC is tight coupling: a napplet opens a named connection to a specific peer and the shell validates the target once on open. The shell also uses IFC topics for internal coordination (state operations, service commands, configuration).
 
 ## API Surface
 
@@ -239,7 +239,7 @@ These conventions are advisory. The shell routes by topic match, not by prefix p
 
 ## Channels vs Topics
 
-Topics and channels serve different communication patterns within NUB-IFC:
+Topics and channels serve different communication patterns within NAP-IFC:
 
 **Topics** are loose-coupled publish/subscribe. Any napplet can subscribe to any topic; the sender does not know who (if anyone) will receive the message. There is no persistent connection. Topics are well-suited for infrequent coordination — UI commands, state sync, configuration events, and notifications.
 
