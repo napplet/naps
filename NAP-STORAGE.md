@@ -1,4 +1,4 @@
-NUB-STORAGE
+NAP-STORAGE
 ===========
 
 Scoped Key-Value Storage
@@ -6,13 +6,13 @@ Scoped Key-Value Storage
 
 `draft`
 
-**NUB ID:** NUB-STORAGE
+**NAP ID:** NAP-STORAGE
 **Namespace:** `window.napplet.storage`
 **Discovery:** `shell.supports("storage")`
 
 ## Description
 
-NUB-STORAGE provides napplets with an async localStorage-like API. Without `allow-same-origin`, iframes have opaque origins and cannot access localStorage directly. This interface routes storage operations through the shell via postMessage, which scopes data by napplet identity — a composite key of `(dTag, aggregateHash)` — to enforce isolation between napplets. Different napplet types and different versions of the same napplet have completely separate storage namespaces.
+NAP-STORAGE provides napplets with an async localStorage-like API. Without `allow-same-origin`, iframes have opaque origins and cannot access localStorage directly. This interface routes storage operations through the shell via postMessage, which scopes data by napplet identity — a composite key of `(dTag, aggregateHash)` — to enforce isolation between napplets. Different napplet types and different versions of the same napplet have completely separate storage namespaces.
 
 ## API Surface
 

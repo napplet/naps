@@ -1,4 +1,4 @@
-NUB-{NAME}
+NAP-{NAME}
 ==========
 
 {Title}
@@ -6,9 +6,9 @@ NUB-{NAME}
 
 `draft`
 
-**NUB ID:** NUB-{NAME}
+**NAP ID:** NAP-{NAME}
 **Namespace:** `window.napplet.{name}` (or `window.nostr`, `window.nostrdb`)
-**Discovery:** `shell.supports("NUB-{NAME}")`
+**Discovery:** `shell.supports("NAP-{NAME}")`
 
 ## Description
 
