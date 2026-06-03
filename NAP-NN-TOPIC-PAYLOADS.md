@@ -1,4 +1,4 @@
-NUB-NN-TOPIC-PAYLOADS
+NAP-NN-TOPIC-PAYLOADS
 =====================
 
 Topic Payload Semantics
@@ -6,35 +6,35 @@ Topic Payload Semantics
 
 `draft`
 
-**NUB ID:** NUB-NN-TOPIC-PAYLOADS (final number assigned on merge)
+**NAP ID:** NAP-NN-TOPIC-PAYLOADS (final number assigned on merge)
 **Domain:** Napplet-to-napplet navigation and context topics
-**Requires:** NUB-IFC
-**Discovery:** `shell.supports("ifc", "NUB-NN-TOPIC-PAYLOADS")`
+**Requires:** NAP-IFC
+**Discovery:** `shell.supports("ifc", "NAP-NN-TOPIC-PAYLOADS")`
 
 ## Description
 
-This NUB defines a small set of topic payload semantics for napplets that
-coordinate navigation and contextual views through NUB-IFC topic pub/sub. NUB-IFC
-defines how topic messages move between napplets; this NUB defines what selected
+This NAP defines a small set of topic payload semantics for napplets that
+coordinate navigation and contextual views through NAP-IFC topic pub/sub. NAP-IFC
+defines how topic messages move between napplets; this NAP defines what selected
 topic names mean and what payloads producers and consumers agree to exchange.
 
 ## Boundary
 
-NUB-IFC owns the generic transport messages:
+NAP-IFC owns the generic transport messages:
 
 - `ifc.emit`
 - `ifc.subscribe`
 - `ifc.unsubscribe`
 - `ifc.event`
 
-This NUB does not redefine those envelopes. It defines semantic contracts for
-specific `topic` values carried by NUB-IFC. A shell can support NUB-IFC without
-supporting this protocol, and a napplet can use NUB-IFC topics not listed here
+This NAP does not redefine those envelopes. It defines semantic contracts for
+specific `topic` values carried by NAP-IFC. A shell can support NAP-IFC without
+supporting this protocol, and a napplet can use NAP-IFC topics not listed here
 for private or application-specific behavior.
 
 ## Message Protocol
 
-Napplets coordinate through NUB-IFC topic messages. The transport envelope is:
+Napplets coordinate through NAP-IFC topic messages. The transport envelope is:
 
 ```json
 { "type": "ifc.emit", "topic": "<topic>", "payload": { "...": "..." } }
@@ -182,7 +182,7 @@ Consumer behavior:
 
 ## Non-Goals
 
-This NUB does not define:
+This NAP does not define:
 
 - Shell window management, workspace placement, or focus policy.
 - `wm:*` shell telemetry topics.
@@ -190,11 +190,11 @@ This NUB does not define:
 - Deprecated identity topics such as `auth:identity-changed`.
 - The stale `stream:channel-switch` alias. New implementations SHOULD use
   `livestream:channel-switch` for the channel-switch behavior above.
-- Media playback handoff. Use NUB-MEDIA or NUB-PLAYER as appropriate.
+- Media playback handoff. Use NAP-MEDIA or NAP-PLAYER as appropriate.
 
 ## Negotiation
 
-A napplet that requires these topic semantics declares NUB-IFC in its manifest:
+A napplet that requires these topic semantics declares NAP-IFC in its manifest:
 
 ```
 ["requires", "ifc"]
@@ -203,7 +203,7 @@ A napplet that requires these topic semantics declares NUB-IFC in its manifest:
 At runtime it checks for this protocol:
 
 ```js
-window.napplet.shell.supports("ifc", "NUB-NN-TOPIC-PAYLOADS")
+window.napplet.shell.supports("ifc", "NAP-NN-TOPIC-PAYLOADS")
 ```
 
 After this draft receives a final number, implementations should check that
