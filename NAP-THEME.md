@@ -1,4 +1,4 @@
-NUB-THEME
+NAP-THEME
 =========
 
 Shell-Provided Theming
@@ -6,13 +6,13 @@ Shell-Provided Theming
 
 `draft`
 
-**NUB ID:** NUB-THEME
+**NAP ID:** NAP-THEME
 **Namespace:** `window.napplet.theme`
 **Discovery:** `shell.supports("theme")`
 
 ## Description
 
-NUB-THEME provides napplets with read-only access to the shell's active theme. The shell owns the theme and delivers it as a typed payload — napplets have no knowledge of where the theme originates or how it is stored. The theme includes colors (required), as well as optional fonts, background media, and a human-readable title. Napplets can query the current theme on demand and receive automatic notifications when the shell's active theme changes.
+NAP-THEME provides napplets with read-only access to the shell's active theme. The shell owns the theme and delivers it as a typed payload — napplets have no knowledge of where the theme originates or how it is stored. The theme includes colors (required), as well as optional fonts, background media, and a human-readable title. Napplets can query the current theme on demand and receive automatic notifications when the shell's active theme changes.
 
 ## API Surface
 
@@ -49,7 +49,7 @@ interface NappletTheme {
 }
 ```
 
-`theme.changed` is received as a message event, not via a method call. Napplets listen for it via the standard `postMessage` listener. There is no subscribe or unsubscribe mechanism — change notifications are automatic for all napplets that support NUB-THEME.
+`theme.changed` is received as a message event, not via a method call. Napplets listen for it via the standard `postMessage` listener. There is no subscribe or unsubscribe mechanism — change notifications are automatic for all napplets that support NAP-THEME.
 
 ## Wire Protocol
 
