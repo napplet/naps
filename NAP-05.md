@@ -1,4 +1,4 @@
-NUB-05
+NAP-05
 ======
 
 Stream Current Context
@@ -6,27 +6,27 @@ Stream Current Context
 
 `draft`
 
-**NUB ID:** NUB-05
+**NAP ID:** NAP-05
 
 **Domain:** stream context reporting
 
-**Requires:** NUB-IFC
+**Requires:** NAP-IFC
 
-**Discovery:** `shell.supports("ifc", "NUB-05")`
+**Discovery:** `shell.supports("ifc", "NAP-05")`
 
 ## Description
 
 This protocol defines the `stream:current-context` topic semantics for napplets
 that report an active stream context to other napplets. It specifies the topic
 string, payload shape, producer behavior, and consumer behavior. It does not
-redefine NUB-IFC transport methods.
+redefine NAP-IFC transport methods.
 
 ## Message Protocol
 
-Napplets coordinate through NUB-IFC. The IFC event topic is carried by the
+Napplets coordinate through NAP-IFC. The IFC event topic is carried by the
 event's `t` tag and the payload is carried as JSON in the event content. This
-NUB defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
-`ifc.unsubscribe`, and `ifc.event` remain generic NUB-IFC transport.
+NAP defines the meaning of one IFC topic; `ifc.emit`, `ifc.subscribe`,
+`ifc.unsubscribe`, and `ifc.event` remain generic NAP-IFC transport.
 
 ### `stream:current-context`
 
@@ -95,7 +95,7 @@ Consumer requirements:
 Napplets discover support for this protocol with:
 
 ```ts
-window.napplet.shell.supports("ifc", "NUB-05");
+window.napplet.shell.supports("ifc", "NAP-05");
 ```
 
 A napplet that requires IFC transport declares the interface dependency in its
