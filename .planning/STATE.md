@@ -6,10 +6,10 @@ milestone:
   name: Rename legacy acronym to NAP
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 1
-  percent: 25
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -19,21 +19,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Every public protocol reference must consistently use NAP: Nostr Applet Protocol, with no remaining legacy acronym or legacy expanded phrase mentions.
-**Current focus:** Phase 2: Local Default-Branch Rename
+**Current focus:** Phase 3: Open Pull Request Surface Cleanup
 
 ## Current Position
 
-Phase: 2 of 4 (Local Default-Branch Rename)
+Phase: 3 of 4 (Open Pull Request Surface Cleanup)
 Plan: -
 Status: Ready to plan
-Last activity: 2026-06-03 - Phase 1 inventory completed
+Last activity: 2026-06-03 - Phase 2 local rename completed
 
-Progress: [##--------] 25%
+Progress: [#####-----] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 3
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -42,9 +42,10 @@ Progress: [##--------] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Inventory and Safety Boundaries | 1 | 1 | - |
+| 2. Local Default-Branch Rename | 2 | 2 | - |
 
 **Recent Trend:**
-- Last 5 plans: 01-01
+- Last 5 plans: 01-01, 02-01, 02-02
 - Trend: -
 
 ## Accumulated Context
@@ -72,10 +73,10 @@ None yet.
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
 | Archive hygiene | Closed and merged PR metadata rewrite | Future requirement | v0.1 planning |
-| Compatibility | Runtime the legacy runtime capability prefix prefix migration | Future requirement | v0.1 planning |
+| Compatibility | Runtime prefix migration in implementation repositories | Future requirement | v0.1 planning |
 
 ## Session Continuity
 
 Last session: 2026-06-03
-Stopped at: Phase 1 complete; ready for Phase 2
+Stopped at: Phase 2 complete; ready for Phase 3
 Resume file: None
