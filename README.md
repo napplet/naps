@@ -20,7 +20,6 @@ Discovery: `shell.supports("relay")`.
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `window.napplet.relay` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
 | [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `window.napplet.identity` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `window.napplet.storage` | Scoped key-value storage | Draft |
-| [NAP-NOSTRDB](https://github.com/napplet/naps/pull/4) | `window.nostrdb` | Local event database | Draft |
 | [NAP-IFC](https://github.com/napplet/naps/pull/5) | `window.napplet.ifc` | Inter-frame communication | Draft |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `window.napplet.theme` | Shell-provided theming | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `window.napplet.keys` | Keyboard forwarding and action keybindings | Draft |
@@ -56,8 +55,8 @@ NIP-style informal process:
 
 ## Templates
 
-- Interface proposals: Use [TEMPLATE-WORD.md](TEMPLATE-WORD.md)
-- Protocol proposals: Use [TEMPLATE-NN.md](TEMPLATE-NN.md)
+- Interface proposals: Use [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
+- Protocol proposals: Use [NAP-NN-TEMPLATE.md](NAP-NN-TEMPLATE.md)
 
 ## References
 
