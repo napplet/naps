@@ -12,15 +12,18 @@ Read-Only User Identity Queries
 
 ## Description
 
-NAP-IDENTITY provides read-only access to the current user's public identity information. Napplets that need to display the user's profile, check their follow list, or read their relay preferences query the shell for this data. The shell resolves these queries against its local cache or connected relays and returns the results.
+NAP-IDENTITY provides read-only access to the shell-user identity: the currently connected user/signer pubkey and related public identity data. Napplets that need to display the user's profile, check their follow list, or read their relay preferences query the shell for this data. The shell resolves these queries against its local cache or connected relays and returns the results.
 
 Napplets do not have direct access to the user's private key. They cannot sign events, encrypt, or decrypt. Identity queries are strictly read-only -- napplets learn *about* the user but cannot act *as* the user. Signing is delegated to the shell via `relay.publish()` (NAP-RELAY). Encryption is delegated via `relay.publishEncrypted()`.
+
+This shell-user identity is distinct from the NIP-5D napplet session identity. The session identity is assigned by the shell at iframe creation from the NIP-5A `(dTag, aggregateHash)` / `MessageEvent.source` binding and is never negotiated by the napplet. NAP-IDENTITY only reports the user's connected signer identity.
 
 ## API Surface
 
 ```typescript
 interface NappletIdentity {
   getPublicKey(): Promise<string>;
+  onChanged(handler: (pubkey: string) => void): Subscription;
   getRelays(): Promise<Record<string, { read: boolean; write: boolean }>>;
   getProfile(): Promise<ProfileData | null>;
   getFollows(): Promise<string[]>;
@@ -68,7 +71,9 @@ interface Subscription {
 }
 ```
 
-**`getPublicKey()`** -- Returns the user's hex-encoded public key. This is the most basic identity query. Every shell that implements NAP-IDENTITY MUST support this method.
+**`getPublicKey()`** -- Returns the user's hex-encoded public key, or the empty string when no user/signer is connected. This is the most basic identity query. Every shell that implements NAP-IDENTITY MUST support this method.
+
+**`onChanged(handler)`** -- Registers a handler for shell-pushed user identity changes. The handler receives the same public-key string shape as `getPublicKey()`: a non-empty hex pubkey when a user/signer is connected, or `""` when the shell signs out or disconnects the signer.
 
 **`getRelays()`** -- Returns the user's relay list as a record mapping relay URLs to read/write permissions (NIP-65 relay list metadata).
 
@@ -94,6 +99,7 @@ interface Subscription {
 |------|-----------|----------------|
 | `identity.getPublicKey` | napplet -> shell | `id` |
 | `identity.getPublicKey.result` | shell -> napplet | `id`, `pubkey` |
+| `identity.changed` | shell -> napplet | `pubkey` |
 | `identity.getRelays` | napplet -> shell | `id` |
 | `identity.getRelays.result` | shell -> napplet | `id`, `relays`, `error?` |
 | `identity.getProfile` | napplet -> shell | `id` |
@@ -113,10 +119,19 @@ interface Subscription {
 
 Key design notes:
 - All methods are request/result pairs using `id` for correlation.
+- `identity.changed` is a push message. It has no `id` and is not a response to a request.
 - All results include an optional `error` field for failure cases.
-- `getPublicKey` is the simplest query and MUST always succeed (no `error` field).
+- `getPublicKey` is the simplest query and MUST always succeed (no `error` field). It returns `pubkey: ""` when no shell-user identity is currently connected.
 - `getProfile` returns `profile: null` if no kind 0 is found -- this is not an error.
 - `getList` includes a `listType` field to specify which categorized list to query.
+
+Recommended handshake:
+
+1. A napplet that needs user identity calls `identity.getPublicKey` once on startup to get a snapshot.
+2. The shell returns `identity.getPublicKey.result` with `pubkey` set to either a hex pubkey or `""`.
+3. The napplet then listens for `identity.changed` and re-runs identity-dependent work when the pushed pubkey changes.
+
+Napplets SHOULD NOT poll `identity.getPublicKey` waiting for a signer to appear. Shells MUST use `identity.changed` to notify already-loaded napplets when the shell-user identity changes.
 
 ### Examples
 
@@ -124,6 +139,18 @@ Key design notes:
 ```
 -> { "type": "identity.getPublicKey", "id": "q1" }
 <- { "type": "identity.getPublicKey.result", "id": "q1", "pubkey": "ab12cd..." }
+```
+
+**No user connected:**
+```
+-> { "type": "identity.getPublicKey", "id": "q1b" }
+<- { "type": "identity.getPublicKey.result", "id": "q1b", "pubkey": "" }
+```
+
+**User identity changed:**
+```
+<- { "type": "identity.changed", "pubkey": "ab12cd..." }
+<- { "type": "identity.changed", "pubkey": "" }
 ```
 
 **Get profile:**
@@ -184,12 +211,15 @@ Key design notes:
 
 Result messages include an `error` field (string) when the shell cannot fulfill the request. Common errors: `"relay timeout"`, `"not found"`, `"unsupported list type"`. When `error` is present, the primary result field contains a sensible default (empty array, null, etc.).
 
-`identity.getPublicKey.result` MUST NOT include an `error` field -- the user's public key is always known to the shell.
+`identity.getPublicKey.result` MUST NOT include an `error` field. The shell returns `pubkey: ""` when no user/signer is connected.
 
 ## Shell Behavior
 
 - The shell MUST respond to every `identity.*` request with the corresponding `*.result` message carrying the same `id`.
-- The shell MUST return the user's public key for `identity.getPublicKey` without error.
+- The shell MUST return `pubkey` for `identity.getPublicKey` without error. If no user/signer is connected, `pubkey` MUST be the empty string.
+- The shell MUST emit `identity.changed` to loaded napplets whenever the shell-user identity changes.
+- The shell MUST emit `identity.changed` with `pubkey: ""` when the shell-user identity is cleared, the signer disconnects, or the user signs out.
+- The shell MAY emit an initial `identity.changed` after napplet load, but napplets MUST NOT depend on that initial push and SHOULD use `identity.getPublicKey` for the startup snapshot.
 - The shell SHOULD resolve identity queries from its local cache when available.
 - The shell MAY fetch data from relays if not cached.
 - The shell MAY return stale data with a best-effort freshness policy.
@@ -201,6 +231,7 @@ Result messages include an `error` field (string) when the shell cannot fulfill 
 ## Security Considerations
 
 - NAP-IDENTITY is strictly read-only. No method modifies user state, signs events, or performs cryptographic operations.
+- `identity.changed` reports only the shell-user identity. It does not change or renegotiate the napplet's NIP-5D session identity.
 - The user's public key is not secret, but follow lists, mute lists, and block lists reveal social graph information. Shells MAY restrict access to sensitive lists based on napplet trust level.
 - Zap receipts reveal financial information. Shells SHOULD consider whether to expose zap data to all napplets or restrict it to trusted napplets.
 - Profile data may contain URLs (picture, banner, website). Napplets that render these URLs should sanitize them. The shell is not responsible for sanitizing profile content.
