@@ -12,15 +12,15 @@ NIP-5D defines the core: transport (`postMessage`), authentication (`REGISTER` �
 
 ```
 README.md           — Governance doc, dual-track overview, interface registry table
-TEMPLATE-WORD.md    — Template for interface proposals (NAP-WORD)
-TEMPLATE-NN.md      — Template for message protocol proposals (NAP-NN)
+NAP-WORD-TEMPLATE.md — Template for interface proposals (NAP-WORD)
+NAP-NN-TEMPLATE.md   — Template for message protocol proposals (NAP-NN)
 ```
 
 ### What gets committed directly
 
 - `README.md` — governance, registry table, track descriptions
-- `TEMPLATE-WORD.md` — interface proposal template
-- `TEMPLATE-NN.md` — message protocol proposal template
+- `NAP-WORD-TEMPLATE.md` — interface proposal template
+- `NAP-NN-TEMPLATE.md` — message protocol proposal template
 
 ### What gets submitted as PRs
 
@@ -35,7 +35,7 @@ TEMPLATE-NN.md      — Template for message protocol proposals (NAP-NN)
 - One canonical spec per name — no competing interface specs
 - Defines shell-provided API contracts on `window.napplet.*` namespaces
 - Discovery: `shell.supports("NAP-RELAY")`
-- Use `TEMPLATE-WORD.md` as the starting point
+- Use `NAP-WORD-TEMPLATE.md` as the starting point
 
 ### NAP-NN (Message Protocol Specs)
 
@@ -43,7 +43,7 @@ TEMPLATE-NN.md      — Template for message protocol proposals (NAP-NN)
 - Multiple competing specs allowed per domain (e.g., two different feed protocols)
 - Defines event semantics napplets agree on with each other
 - Napplets negotiate via `shell.supports("NAP-RELAY", "NAP-02")`
-- Use `TEMPLATE-NN.md` as the starting point
+- Use `NAP-NN-TEMPLATE.md` as the starting point
 
 ## Governance
 
@@ -69,8 +69,16 @@ The 6 initial interface specs to submit as PRs (source files in `~/Develop/nappl
 | NAP-IFC | `~/Develop/napplet/specs/naps/NAP-IFC.md` | `nap-ifc` |
 | NAP-PIPES | `~/Develop/napplet/specs/naps/NAP-PIPES.md` | `nap-pipes` |
 
+## Checklist: When Modifying a NAP
+
+Every time you create or modify a NAP spec, you MUST:
+
+1. **Update README.md registry table** — add new NAPs, update descriptions for modified ones
+2. **Update the PR body** — if the NAP already has an open PR, update its body to reflect changes (use `gh pr edit <number> --body`)
+3. **No private references** — NEVER mention `@napplet/*` packages, the napplet/napplet repo, or any private implementation in specs, commits, or PR bodies. This repo is PUBLIC.
+4. **Implementations section** — always `- (none yet)` until a public implementation exists
+5. **Commit messages** — describe the protocol change only, never reference private packages
+
 ## Related Repos
 
-- [`napplet/napplet`](https://github.com/sandwichfarm/napplet) — SDK monorepo (`@napplet/shim`, `@napplet/shell`, etc.)
-- [`sandwichfarm/hyprgate`](https://github.com/sandwichfarm/hyprgate) — Reference shell implementation
 - [`nostr-protocol/nips`](https://github.com/nostr-protocol/nips) — NIP-5D lives here

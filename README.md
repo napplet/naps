@@ -2,9 +2,9 @@ NAP: Nostr Applet Protocol
 ===============================
 
 NAPs extend [NIP-5D](../NIP-5D.md) with interface and protocol specifications
-for the napplet ecosystem. The core NIP defines transport, authentication, and
-security. Everything else -- relay access, storage, signing, IFC, message
-protocols -- is a NAP.
+for the napplet ecosystem. The core NIP defines transport, identity, and
+security. Everything else -- relay access, storage, identity queries, IFC,
+message protocols -- is a NAP.
 
 ## Two Tracks
 
@@ -12,16 +12,19 @@ protocols -- is a NAP.
 
 Named by a single uppercase word. One canonical spec per name. Defines
 shell-provided API contracts, what shows up on `window.napplet.*` or
-`window.nostr` or `window.nostrdb`. The shell implements these; napplets
-consume them. Discovery: `shell.supports("relay")`.
+`window.nostrdb`. The shell implements these; napplets consume them.
+Discovery: `shell.supports("relay")`.
 
 | NAP ID | Namespace | Description | Status |
 |--------|-----------|-------------|--------|
-| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `window.napplet.relay` | Relay proxy | Draft |
+| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `window.napplet.relay` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
+| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `window.napplet.identity` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `window.napplet.storage` | Scoped key-value storage | Draft |
-| [NAP-NOSTRDB](https://github.com/napplet/naps/pull/4) | `window.nostrdb` | Local event database | Draft |
 | [NAP-IFC](https://github.com/napplet/naps/pull/5) | `window.napplet.ifc` | Inter-frame communication | Draft |
-| [NAP-THEME](https://github.com/napplet/naps/pull/7) | `window.napplet.theme` | Shell-provided theming | Draft |
+| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `window.napplet.theme` | Shell-provided theming | Draft |
+| [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `window.napplet.keys` | Keyboard forwarding and action keybindings | Draft |
+| [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `window.napplet.media` | Media session control and playback | Draft |
+| [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `window.napplet.notify` | Shell-rendered notifications | Draft |
 
 ### NAP-NN (Message Protocol Specs)
 
@@ -52,8 +55,8 @@ NIP-style informal process:
 
 ## Templates
 
-- Interface proposals: Use [TEMPLATE-WORD.md](TEMPLATE-WORD.md)
-- Protocol proposals: Use [TEMPLATE-NN.md](TEMPLATE-NN.md)
+- Interface proposals: Use [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
+- Protocol proposals: Use [NAP-NN-TEMPLATE.md](NAP-NN-TEMPLATE.md)
 
 ## References
 
