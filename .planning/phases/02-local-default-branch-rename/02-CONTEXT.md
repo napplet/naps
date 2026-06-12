@@ -38,7 +38,7 @@ This phase updates the default branch documents and filenames so the repository 
 - Templates define proposal skeletons.
 
 ### Integration Points
-- `README.md`, `SPEC.md`, `CLAUDE.md`, `NAP-WORD-TEMPLATE.md`, and `NAP-NN-TEMPLATE.md`.
+- `README.md`, `SPEC.md`, `CLAUDE.md`, `NAP-WORD-TEMPLATE.md`, and `NAP-N-TEMPLATE.md`.
 
 </code_context>
 
