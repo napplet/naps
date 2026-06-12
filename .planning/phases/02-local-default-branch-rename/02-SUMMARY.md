@@ -18,7 +18,7 @@ Phase 2 is complete.
 - `SPEC.md`
 - `CLAUDE.md`
 - `NAP-WORD-TEMPLATE.md`
-- `NAP-NN-TEMPLATE.md`
+- `NAP-N-TEMPLATE.md`
 
 ## Next Phase
 

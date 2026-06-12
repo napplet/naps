@@ -1,4 +1,4 @@
-NAP-{NN}
+NAP-{N}
 ========
 
 {Title}
@@ -6,10 +6,10 @@ NAP-{NN}
 
 `draft`
 
-**NAP ID:** NAP-{NN}
+**NAP ID:** NAP-{N}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
 **Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-INC}
-**Discovery:** `shell.supports("{word}", "{nn}")`
+**Discovery:** `shell.supports("{word}", "{n}")`
 
 ## Description
 
@@ -29,7 +29,7 @@ When published via NAP-RELAY, the event carries a NIP-01 kind, content, and tags
 
 ## Negotiation
 
-Napplets discover peers supporting this protocol via `shell.supports("{word}", "{nn}")`. A napplet requiring this protocol declares it in its manifest:
+Napplets discover peers supporting this protocol via `shell.supports("{word}", "{n}")`. A napplet requiring this protocol declares it in its manifest:
 
 ```
 ["requires", "{word}"]
