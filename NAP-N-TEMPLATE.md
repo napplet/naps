@@ -1,4 +1,4 @@
-NAP-{NN}
+NAP-{N}
 ========
 
 {Title}
@@ -6,10 +6,10 @@ NAP-{NN}
 
 `draft`
 
-**NAP ID:** NAP-{NN}
+**NAP ID:** NAP-{N}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
 **Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-IPC}
-**Discovery:** `shell.supports("NAP-{WORD}", "NAP-{NN}")`
+**Discovery:** `shell.supports("NAP-{WORD}", "NAP-{N}")`
 
 ## Description
 

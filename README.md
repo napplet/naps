@@ -24,17 +24,17 @@ consume them. Discovery: `shell.supports("NAP-RELAY")`.
 | [NAP-IPC](NAP-IPC.md) | `window.napplet.ipc` | Inter-napplet pub/sub | Draft |
 | [NAP-PIPES](NAP-PIPES.md) | `window.napplet.pipes` | Authenticated point-to-point connections | Draft |
 
-### NAP-NN (Message Protocol Specs)
+### NAP-N (Message Protocol Specs)
 
-Numbered sequentially (NAP-01, NAP-02, etc.). Multiple competing specs allowed
+Numbered sequentially (NAP-1, NAP-2, etc.). Multiple competing specs allowed
 per domain. Defines event semantics -- what napplets agree on with each other.
-Napplets negotiate via `shell.supports("NAP-RELAY", "NAP-02")`. Example domains:
+Napplets negotiate via `shell.supports("NAP-RELAY", "NAP-2")`. Example domains:
 feed rendering, chat, collaborative editing.
 
 ## Boundary Rule
 
 An interface (NAP-WORD) is **shell-provided** AND defines an **API surface**. A
-protocol (NAP-NN) is **napplet-agreed** AND defines **event semantics**. Both
+protocol (NAP-N) is **napplet-agreed** AND defines **event semantics**. Both
 criteria must apply. Edge cases are judged pragmatically by the maintainer.
 
 ## Governance
@@ -49,7 +49,7 @@ NIP-style informal process:
 - No formal stages, review committees, or voting.
 - NAP-WORD names are first-come-first-served but must be approved by the
   maintainer.
-- NAP-NN numbers are assigned sequentially on merge.
+- NAP-N numbers are assigned sequentially on merge.
 
 ## Templates
 
