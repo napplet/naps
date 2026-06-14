@@ -57,5 +57,5 @@ Same informal process as the NAP tracks: open a PR that adds a row to the regist
 | [NAAT-NOTE](naat/note.md) | `note` | Displays a single Nostr event in focused detail | NAP-4 (`note:open`) | Draft |
 | [NAAT-PROFILE](naat/profile.md) | `profile` | Displays a user's profile and activity | NAP-1 (`profile:open`) | Draft |
 | [NAAT-DM](naat/dm.md) | `dm` | Opens a direct-message conversation with a person | NAP-3 (`chat:open-dm`) | Draft |
-| [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | *(none yet)* | Draft |
+| [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | NAP-5 (`feed:open`) | Draft |
 | [NAAT-COMPOSER](naat/composer.md) | `composer` | Creates and publishes a new Nostr event | *(none yet)* | Draft |
