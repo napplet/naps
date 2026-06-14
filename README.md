@@ -137,7 +137,7 @@ shell-provided API contract — a capability domain a napplet can call. Discover
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` | Shell-rendered notifications | Draft |
-| [NAP-INTENT](NAP-INTENT.md) | `intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
+| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 
 ### NAP-N — wire formats (*what napplets say to each other*)
 
@@ -158,7 +158,7 @@ Canonical napplet *roles* — `note`, `feed`, `profile`, `emoji-list`. A NAAT is
 Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
 to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
 with a `["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets invoke
-each other by role through [NAP-INTENT](NAP-INTENT.md). A napplet with no
+each other by role through [NAP-INTENT](naps/NAP-INTENT.md). A napplet with no
 archetype tag is fully valid — it simply isn't invokable by role.
 
 ## Boundary rule
@@ -174,8 +174,10 @@ maintainer.
 
 NIP-style informal process:
 
-- Fork this repo, add a markdown file following the appropriate template, open a
-  PR.
+- Fork this repo, add a markdown file under [`naps/`](naps/) following the
+  appropriate template, open a PR. Every NAP spec — both NAP-WORD interfaces and
+  numbered NAP-N wire formats — lives in the `naps/` directory; the templates
+  and registries (`README.md`, `ARCHETYPES.md`) stay at the repo root.
 - Community discusses via PR comments.
 - Maintainer (dskvr) merges when the spec makes sense and has at least one
   implementation.

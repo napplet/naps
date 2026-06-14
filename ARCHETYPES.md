@@ -19,7 +19,7 @@ This file is the **registry** — the index of every archetype. Each archetype's
    ```
    A napplet may declare several archetype tags. A napplet with **no** archetype tag is fully valid — it simply cannot be opened *by role*. "Weird" single-purpose napplets are first-class.
 
-2. A napplet **opens another by role** via [NAP-INTENT](NAP-INTENT.md):
+2. A napplet **opens another by role** via [NAP-INTENT](naps/NAP-INTENT.md):
    ```js
    if (napplet.shell.supports("intent")) {
      const { available } = await napplet.intent.available("emoji-list");

@@ -12,9 +12,16 @@ NIP-5D *realizes* the seam for the web: the carrier (`postMessage`), the iframe 
 
 ```
 README.md           — Governance doc, dual-track overview, interface registry table
+ARCHETYPES.md       — NAAT archetype registry
 NAP-WORD-TEMPLATE.md — Template for interface proposals (NAP-WORD)
 NAP-N-TEMPLATE.md   — Template for message protocol proposals (NAP-N)
+naps/               — All NAP spec definitions (NAP-WORD interfaces + NAP-N wire formats)
+naps/NAP-INTENT.md  — e.g. the archetype intent dispatcher interface
+naat/               — Per-archetype thin files (NAAT track)
 ```
+
+All NAP spec definitions live under `naps/`. The templates and the registries
+(`README.md`, `ARCHETYPES.md`) stay at the repo root.
 
 ### What gets committed directly
 
@@ -24,8 +31,8 @@ NAP-N-TEMPLATE.md   — Template for message protocol proposals (NAP-N)
 
 ### What gets submitted as PRs
 
-- `NAP-RELAY.md`, `NAP-STORAGE.md`, `NAP-IFC.md`, etc. — interface specs are **opened as PRs**, not committed to `master` directly. They follow the NIP-style informal process: fork, add spec, open PR, community reviews, maintainer merges.
-- `NAP-1.md`, `NAP-2.md`, etc. — message protocol specs, same PR process.
+- `naps/NAP-RELAY.md`, `naps/NAP-STORAGE.md`, `naps/NAP-INC.md`, etc. — interface specs are **opened as PRs**, not committed to `master` directly. They follow the NIP-style informal process: fork, add spec under `naps/`, open PR, community reviews, maintainer merges.
+- `naps/NAP-1.md`, `naps/NAP-2.md`, etc. — message protocol specs, same PR process.
 
 ## Two Tracks
 
@@ -54,7 +61,7 @@ NIP-style informal. Fork repo, add markdown spec, open PR. Community comments on
 Each NAP spec should be opened as its own PR:
 
 1. Create a branch: `nap-relay`, `nap-storage`, etc.
-2. Add the spec file: `NAP-RELAY.md`
+2. Add the spec file under `naps/`: `naps/NAP-RELAY.md`
 3. Update the registry table in `README.md` (add the row with link to the spec)
 4. Open PR with title: `NAP-RELAY: NIP-01 relay proxy interface`
 5. PR body should include: one-line summary, namespace (`window.napplet.relay`), status (`draft`), and link to NIP-5D
