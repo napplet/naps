@@ -7,8 +7,8 @@ Scoped Key-Value Storage
 `draft`
 
 **NAP ID:** NAP-STORAGE
-**Namespace:** `window.napplet.storage`
-**Discovery:** `shell.supports("storage")`
+**Domain:** `storage`
+**Web binding (NIP-5D):** `window.napplet.storage` · `shell.supports("storage")`
 
 ## Description
 
