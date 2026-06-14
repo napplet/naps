@@ -7,8 +7,8 @@ NAP-{NAME}
 `draft`
 
 **NAP ID:** NAP-{NAME}
-**Namespace:** `window.napplet.{name}`
-**Discovery:** `shell.supports("{name}")`
+**Domain:** `{name}`
+**Web binding (NIP-5D):** `window.napplet.{name}` · `shell.supports("{name}")`
 
 ## Description
 

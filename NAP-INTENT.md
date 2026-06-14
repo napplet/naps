@@ -7,8 +7,8 @@ Archetype Intent Dispatcher
 `draft`
 
 **NAP ID:** NAP-INTENT
-**Namespace:** `window.napplet.intent`
-**Discovery:** `shell.supports("intent")`
+**Domain:** `intent`
+**Web binding (NIP-5D):** `window.napplet.intent` · `shell.supports("intent")`
 
 ## Description
 
@@ -101,7 +101,7 @@ Key design notes:
 - Request/result pairs use `id` for correlation.
 - The **action is a field** (`request.action`), never part of the message type. `intent.invoke` is the single dispatch verb for `open`, `edit`, `pick`, `share`, and any future action.
 - `intent.changed` is a shell push message and has no `id`.
-- The shell delivers `payload` to the resolved handler using the named `protocol`'s own delivery mechanism — typically a NAP-N IFC topic event (e.g., `note:open`), or initial state passed at instantiation for a cold-started handler. NAP-INTENT governs resolution, default handling, and window lifecycle; the NAP-N protocol governs the payload wire and its delivery.
+- The shell delivers `payload` to the resolved handler using the named `protocol`'s own delivery mechanism — typically a NAP-N INC topic event (e.g., `note:open`), or initial state passed at instantiation for a cold-started handler. NAP-INTENT governs resolution, default handling, and window lifecycle; the NAP-N protocol governs the payload wire and its delivery.
 - `protocol` and `archetype` are independent. The shell MUST NOT assume a one-to-one mapping between them.
 
 ### Examples
