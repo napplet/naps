@@ -30,7 +30,7 @@ Discovery: `shell.supports("relay")`.
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `window.napplet.keys` | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `window.napplet.media` | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `window.napplet.notify` | Shell-rendered notifications | Draft |
-| [NAP-OPEN](NAP-OPEN.md) | `window.napplet.open` | Open a napplet by archetype (default-handler dispatch) | Draft |
+| [NAP-INTENT](NAP-INTENT.md) | `window.napplet.intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 
 ### NAP-N (Message Protocol Specs)
 
@@ -47,8 +47,8 @@ Canonical napplet *roles* — `note`, `feed`, `profile`, `emoji-list`. Not a NAP
 neither an interface nor a wire format, just a name and a boundary. Archetypes
 are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking to a thin
 file under [`naat/`](naat/). A napplet declares the roles it fulfills with a
-`["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets open each other
-by role through [NAP-OPEN](NAP-OPEN.md). Slugs are first-come-first-served.
+`["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets invoke each other
+by role through [NAP-INTENT](NAP-INTENT.md). Slugs are first-come-first-served.
 
 ## Boundary Rule
 

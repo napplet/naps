@@ -19,17 +19,17 @@ This file is the **registry** — the index of every archetype. Each archetype's
    ```
    A napplet may declare several archetype tags. A napplet with **no** archetype tag is fully valid — it simply cannot be opened *by role*. "Weird" single-purpose napplets are first-class.
 
-2. A napplet **opens another by role** via [NAP-OPEN](NAP-OPEN.md):
+2. A napplet **opens another by role** via [NAP-INTENT](NAP-INTENT.md):
    ```js
-   if (napplet.shell.supports("open")) {
-     const { available } = await napplet.open.available("emoji-list");
+   if (napplet.shell.supports("intent")) {
+     const { available } = await napplet.intent.available("emoji-list");
      if (available) showButton();
    }
-   napplet.open.open({ archetype: "emoji-list", payload: { /* per the recommended NAP-N */ } });
+   napplet.intent.open("emoji-list", { /* payload, per the recommended NAP-N */ });
    ```
    The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
 
-3. The **slug** (`note`) is the identifier used everywhere — in the manifest tag, in `open({archetype})`, and in a NAP-N's `Serves:` field. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
+3. The **slug** (`note`) is the identifier used everywhere — in the manifest tag, in `intent.open(archetype)`, and in a NAP-N's `Serves:` field. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
 
 ## Archetype vs. wire format
 
