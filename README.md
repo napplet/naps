@@ -6,7 +6,12 @@ for the napplet ecosystem. The core NIP defines transport, identity, and
 security. Everything else -- relay access, storage, identity queries, IFC,
 message protocols -- is a NAP.
 
-## Two Tracks
+The ecosystem has three orthogonal axes: **NAP-WORD** interfaces (what the runtime
+offers), **NAP-N** wire formats (what napplets say to each other), and **NAAT**
+archetypes (what kind of napplet this is). The first two are NAPs; the third is a
+role registry, documented in [ARCHETYPES.md](ARCHETYPES.md).
+
+## Tracks
 
 ### NAP-WORD (Interface Specs)
 
@@ -25,19 +30,34 @@ Discovery: `shell.supports("relay")`.
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `window.napplet.keys` | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `window.napplet.media` | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `window.napplet.notify` | Shell-rendered notifications | Draft |
+| [NAP-INTENT](NAP-INTENT.md) | `window.napplet.intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 
 ### NAP-N (Message Protocol Specs)
 
 Numbered sequentially (NAP-1, NAP-2, etc.). Multiple competing specs allowed
 per domain. Defines event semantics - what napplets agree on with each other.
 Napplets negotiate via `shell.supports("relay", "NAP-2")`. Example domains:
-feed rendering, chat, collaborative editing.
+feed rendering, chat, collaborative editing. A NAP-N that shapes an archetype
+open payload declares `Serves: <slug>/<action>` so it self-registers against a
+[NAAT](ARCHETYPES.md) without editing the registry.
+
+### NAAT (Archetypes)
+
+Canonical napplet *roles* — `note`, `feed`, `profile`, `emoji-list`. Not a NAP:
+neither an interface nor a wire format, just a name and a boundary. Archetypes
+are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking to a thin
+file under [`naat/`](naat/). A napplet declares the roles it fulfills with a
+`["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets invoke each other
+by role through [NAP-INTENT](NAP-INTENT.md). Slugs are first-come-first-served.
 
 ## Boundary Rule
 
 An interface (NAP-WORD) is **shell-provided** AND defines an **API surface**. A
-protocol (NAP-N) is **napplet-agreed** AND defines **message semantics**. Both
-criteria must apply. Edge cases are judged pragmatically by the maintainer.
+protocol (NAP-N) is **napplet-agreed** AND defines **message semantics**. An
+archetype (NAAT) is a **canonical role name** with a **boundary**, owning neither
+an API nor a payload — it only *recommends* a NAP-N as its default open contract.
+Both NAP criteria must apply for a NAP; edge cases are judged pragmatically by the
+maintainer.
 
 ## Governance
 
@@ -57,6 +77,7 @@ NIP-style informal process:
 
 - Interface proposals: Use [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
 - Protocol proposals: Use [NAP-N-TEMPLATE.md](NAP-N-TEMPLATE.md)
+- Archetype proposals: Use [naat/TEMPLATE.md](naat/TEMPLATE.md) and add a row to [ARCHETYPES.md](ARCHETYPES.md)
 
 ## References
 

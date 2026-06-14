@@ -9,6 +9,7 @@ NAP-{N}
 **NAP ID:** NAP-{N}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
 **Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-IFC}
+**Serves:** {optional — if this is an archetype open contract, the role + verb it serves, e.g. `note/open`. See ARCHETYPES.md. Omit for pure peer-coordination protocols.}
 **Discovery:** `shell.supports("{word}", "{n}")`
 
 ## Description
