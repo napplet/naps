@@ -7,8 +7,8 @@ Inter-Napplet Communication
 `draft`
 
 **NAP ID:** NAP-INC
-**Namespace:** `window.napplet.inc`
-**Discovery:** `shell.supports("inc")`
+**Domain:** `inc`
+**Web binding (NIP-5D):** `window.napplet.inc` · `shell.supports("inc")`
 
 ## Description
 
