@@ -29,7 +29,7 @@ Discovery: `shell.supports("relay")`.
 ### NAP-N (Message Protocol Specs)
 
 Numbered sequentially (NAP-1, NAP-2, etc.). Multiple competing specs allowed
-per domain. Defines message semantics - what napplets agree on with each other.
+per domain. Defines event semantics - what napplets agree on with each other.
 Napplets negotiate via `shell.supports("relay", "NAP-2")`. Example domains:
 feed rendering, chat, collaborative editing.
 
