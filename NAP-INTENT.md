@@ -7,8 +7,8 @@ Archetype Intent Dispatcher
 `draft`
 
 **NAP ID:** NAP-INTENT
-**Namespace:** `window.napplet.intent`
-**Discovery:** `shell.supports("intent")`
+**Domain:** `intent`
+**Web binding (NIP-5D):** `window.napplet.intent` · `shell.supports("intent")`
 
 ## Description
 
