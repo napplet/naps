@@ -2,9 +2,9 @@
 
 ## What This Is
 
-**NAPs** (Nostr Applet Protocol) — the extension proposal system for the napplet protocol. This repo hosts interface and message protocol specs that extend [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) (Nostr Web Applets).
+**NAPs** (Nostr Applet Protocol) — the proposal system for the napplet **capability seam**. A NAP is a transport-agnostic contract for what a runtime provides to a napplet and how the napplet requests it. [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) (Nostr Web Applets) is the seam's **web binding**, not what NAPs extend — the same contracts can be implemented by other runtimes (native, WASM, …).
 
-NIP-5D defines the core: transport (`postMessage`), authentication (`REGISTER` → `IDENTITY` → `AUTH`), extension discovery (`shell.supports()`), and security model. Everything else — relay proxy, storage, signing, IFC, pipes, message protocols — is a NAP.
+NIP-5D *realizes* the seam for the web: the carrier (`postMessage`), the iframe sandbox model, napplet identity assigned at iframe creation from the NIP-5A manifest, capability discovery (`shell.supports()`), and the security/mediation model. The capabilities themselves — relay proxy, storage, signing, IFC, intents, message protocols — are NAPs, defined independent of any single binding. Napplets are Nostr-native: the seam is transport-agnostic, not Nostr-agnostic.
 
 **Remote:** `git@github.com:napplet/naps.git`
 
