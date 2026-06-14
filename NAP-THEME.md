@@ -7,8 +7,8 @@ Shell-Provided Theming
 `draft`
 
 **NAP ID:** NAP-THEME
-**Namespace:** `window.napplet.theme`
-**Discovery:** `shell.supports("theme")`
+**Domain:** `theme`
+**Web binding (NIP-5D):** `window.napplet.theme` · `shell.supports("theme")`
 
 ## Description
 
