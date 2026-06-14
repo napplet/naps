@@ -7,8 +7,8 @@ Read-Only User Identity Queries
 `draft`
 
 **NAP ID:** NAP-IDENTITY
-**Namespace:** `window.napplet.identity`
-**Discovery:** `shell.supports("identity")`
+**Domain:** `identity`
+**Web binding (NIP-5D):** `window.napplet.identity` · `shell.supports("identity")`
 
 ## Description
 
