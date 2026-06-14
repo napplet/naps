@@ -1,6 +1,6 @@
 # NAAT-FEED · `feed`
 
-**Recommended open contract:** [NAP-5](../NAP-5.md) (`feed:open`)
+**Recommended open contract:** [NAP-5](../naps/NAP-5.md) (`feed:open`)
 **Actions:** open
 
 A napplet that displays a scrolling list of many Nostr events selected by some criteria (follows, hashtag, relay, search).

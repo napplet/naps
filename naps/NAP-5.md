@@ -25,7 +25,7 @@ revision defines:
 
 - `feed:open`
 
-`feed:open` is the recommended open contract for the [`feed`](naat/feed.md)
+`feed:open` is the recommended open contract for the [`feed`](../naat/feed.md)
 archetype: a producer (a profile view, a search box, a hashtag chip, a relay
 browser, a saved-search list, …) describes a feed by its **filter**, and a feed
 napplet renders the matching stream of events. Future compatible revisions may
@@ -161,7 +161,7 @@ napplet.intent.open("feed", {
 ```
 
 The `Serves: feed/open` header self-registers this protocol as the recommended
-open contract for the [`feed`](naat/feed.md) archetype, without editing the
+open contract for the [`feed`](../naat/feed.md) archetype, without editing the
 ARCHETYPES registry. NAP-INTENT governs role resolution, default-handler
 selection, and window lifecycle; this NAP governs only the payload and its
 delivery over NAP-INC.
