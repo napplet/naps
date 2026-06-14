@@ -18,7 +18,7 @@ consume them. Discovery: `shell.supports("NAP-RELAY")`.
 | NAP ID | Namespace | Description | Status |
 |--------|-----------|-------------|--------|
 | [NAP-RELAY](NAP-RELAY.md) | `window.napplet.relay` | NIP-01 relay proxy | Draft |
-| [NAP-STORAGE](NAP-STORAGE.md) | `window.napplet.storage` | Scoped key-value storage | Draft |
+| [NAP-STORAGE](naps/NAP-STORAGE.md) | `window.napplet.storage` | Scoped key-value storage | Draft |
 | [NAP-SIGNER](NAP-SIGNER.md) | `window.nostr` | NIP-07 signer proxy | Draft |
 | [NAP-NOSTRDB](NAP-NOSTRDB.md) | `window.nostrdb` | Local event database | Draft |
 | [NAP-IPC](NAP-IPC.md) | `window.napplet.ipc` | Inter-napplet pub/sub | Draft |
