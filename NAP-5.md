@@ -62,6 +62,20 @@ Transport:
 inc.emit("feed:open", payload)
 ```
 
+`feed:open` may reach a consumer two ways, both carrying the identical payload:
+
+1. **Directly over NAP-INC** — a running producer emits the topic to any
+   subscribed feed napplet (peer-to-peer, no shell routing). Use this when the
+   producer already knows a feed surface is listening.
+2. **Via [NAP-INTENT](NAP-INTENT.md)** — a caller invokes the `feed` archetype
+   (`intent.open("feed", payload)`); the shell resolves the user's default
+   handler, creates or focuses its window, and delivers the same payload — as a
+   `feed:open` INC event to a running handler, or as initial state to a
+   cold-started one.
+
+Consumers MUST accept the payload identically regardless of which path delivered
+it; this NAP defines the payload, not the choice of delivery path.
+
 Payload:
 
 ```ts
