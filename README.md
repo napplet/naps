@@ -90,7 +90,7 @@ checks for one before using it — by domain, optionally with a numbered protoco
 
 ```
 shell.supports("relay")          // is the relay capability available?
-shell.supports("ifc", "NAP-2")   // …and does it speak the NAP-2 wire format?
+shell.supports("inc", "NAP-2")   // …and does it speak the NAP-2 wire format?
 ```
 
 A napplet also declares the capabilities it needs in its NIP-5A manifest
@@ -132,7 +132,7 @@ shell-provided API contract — a capability domain a napplet can call. Discover
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
 | [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` | Scoped key-value storage | Draft |
-| [NAP-IFC](https://github.com/napplet/naps/pull/5) | `ifc` | Inter-frame communication | Draft |
+| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` | Inter-napplet communication | Draft |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` | Shell-provided theming | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` | Media session control and playback | Draft |

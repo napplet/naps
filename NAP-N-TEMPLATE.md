@@ -8,7 +8,7 @@ NAP-{N}
 
 **NAP ID:** NAP-{N}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
-**Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-IFC}
+**Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-INC}
 **Serves:** {optional — if this is an archetype open contract, the role + verb it serves, e.g. `note/open`. See ARCHETYPES.md. Omit for pure peer-coordination protocols.}
 **Discovery:** `shell.supports("{word}", "{n}")`
 
@@ -18,7 +18,7 @@ NAP-{N}
 
 ## Message Protocol
 
-Napplets coordinate using messages published and received via NAP-RELAY or NAP-IFC. Messages follow the NIP-5D wire format (`{ "type": "domain.action", ...payload }`). The protocol defines the semantic meaning of message content -- what napplets agree on when they exchange data.
+Napplets coordinate using messages published and received via NAP-RELAY or NAP-INC. Messages follow the NIP-5D wire format (`{ "type": "domain.action", ...payload }`). The protocol defines the semantic meaning of message content -- what napplets agree on when they exchange data.
 
 ### {Message Name}
 
