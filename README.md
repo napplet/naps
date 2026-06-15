@@ -137,6 +137,16 @@ shell-provided API contract — a capability domain a napplet can call. Discover
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` | Shell-rendered notifications | Draft |
+| [NAP-RESOURCE](https://github.com/napplet/naps/pull/13) | `resource` | Sandboxed resource fetching (https / blossom / nostr / data) | Draft |
+| [NAP-CONFIG](https://github.com/napplet/naps/pull/14) | `config` | Per-napplet declarative configuration (JSON Schema-driven) | Draft |
+| [NAP-CONNECT](https://github.com/napplet/naps/pull/19) | `connect` | User-gated direct network access | Draft |
+| [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
+| [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` | Shell-mediated value transfer and zaps | Draft |
+| [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` | Outbox-aware relay routing and queries | Draft |
+| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` | Native ContextVM / MCP-over-Nostr bridge | Draft |
+| [NAP-CLASS](https://github.com/napplet/naps/pull/16) | `class` | Napplet class authority (sub-track root) | Draft |
+| [NAP-CLASS-1](https://github.com/napplet/naps/pull/17) | `class` | Strict baseline posture (sub-track) | Draft |
+| [NAP-CLASS-2](https://github.com/napplet/naps/pull/18) | `class` | User-approved explicit-origin posture (sub-track) | Draft |
 | [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 
 ### NAP-N — wire formats (*what napplets say to each other*)
@@ -150,6 +160,17 @@ domains include feed rendering, chat, and collaborative editing.
 
 A NAP-N that shapes an archetype open payload declares `Serves: <slug>/<action>`,
 so it self-registers against a [NAAT](ARCHETYPES.md) without editing the registry.
+
+| NAP ID | Topics | Description | Status |
+|--------|--------|-------------|--------|
+| [NAP-1](https://github.com/napplet/naps/pull/21) | `profile:*` | Profile topic family (`profile:open`) | Draft |
+| [NAP-2](https://github.com/napplet/naps/pull/26) | `stream:*` | Stream topic family (channel switch, context sync) | Draft |
+| [NAP-3](https://github.com/napplet/naps/pull/27) | `chat:*` | Chat topic family (`chat:open-dm`) | Draft |
+| [NAP-4](https://github.com/napplet/naps/pull/28) | `note:open` | Note viewer open protocol | Draft |
+| [NAP-5](https://github.com/napplet/naps/pull/36) | `feed:*` | Feed topic family (`feed:open`) | Draft |
+
+All NAP-N protocols ride [NAP-INC](https://github.com/napplet/naps/pull/5); a
+napplet negotiates one at runtime with `shell.supports("inc", "NAP-N")`.
 
 ### NAAT — archetypes (*what kind of napplet this is*)
 
