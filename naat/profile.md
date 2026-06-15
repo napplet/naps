@@ -11,4 +11,4 @@ A napplet that displays a user's profile — metadata, and a view of their activ
 
 > A NAAT file is this fixed schema and nothing else. Anything that wants to grow —
 > payload detail, lifecycle, action-specific wire — belongs in a NAP-N spec, not here.
-> See [../ARCHETYPES.md](../ARCHETYPES.md) for the registry and [../NAP-INTENT.md](../NAP-INTENT.md) for how roles are opened.
+> See [../ARCHETYPES.md](../ARCHETYPES.md) for the registry and [../naps/NAP-INTENT.md](../naps/NAP-INTENT.md) for how roles are opened.
