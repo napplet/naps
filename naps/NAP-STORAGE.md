@@ -14,6 +14,8 @@ Scoped Key-Value Storage
 
 NAP-STORAGE provides napplets with an async localStorage-like API. Without `allow-same-origin`, iframes have opaque origins and cannot access localStorage directly. This interface routes storage operations through the shell via postMessage, which scopes data by napplet identity — a composite key of `(dTag, aggregateHash)` — to enforce isolation between napplets. Different napplet types and different versions of the same napplet have completely separate storage namespaces.
 
+When the runtime runs the napplet in `isolated` instancing mode (see [NIP-5D](../SPEC.md#instancing)), storage is **additionally** partitioned per instance by an opaque discriminator the napplet never sees, so each window gets an independent namespace. The default mode (`shared`) keeps one namespace across all windows. Either way the napplet uses the same `storage.*` calls — instancing is transparent, and a napplet never reads its own instance id.
+
 ## API Surface
 
 ```typescript
@@ -93,6 +95,7 @@ Any result message MAY include an `error` field (string). When `error` is presen
 ## Shell Behavior
 
 - The shell MUST scope storage by composite key `(dTag, aggregateHash)`. Different napplet types and different versions of the same napplet MUST have isolated storage. The shell maps each napplet's `(dTag, aggregateHash)` identity to an isolated storage namespace.
+- When the napplet's instancing mode ([NIP-5D](../SPEC.md#instancing)) is `isolated`, the shell MUST further partition this namespace per instance by the opaque per-instance discriminator, and that per-instance data MUST survive reload/restore of the same logical window. A shell that does not implement per-instance scoping MUST degrade to a single shared namespace. The discriminator MUST NOT be exposed to the napplet. Per-instance keys count against the same per-napplet quota.
 - The shell MUST enforce a per-napplet storage quota. A recommended default is 512 KB measured in UTF-8 byte count.
 - The shell MUST persist storage so data survives page reloads. How the shell stores data (localStorage, IndexedDB, etc.) is an implementation detail.
 - The shell MUST respond to every request with a result message carrying the same `id`.
