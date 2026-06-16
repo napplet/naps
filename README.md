@@ -1,25 +1,46 @@
 NAP: Nostr Applet Protocol
 ==========================
 
-NAPs define the **capability seam** between a napplet and its runtime — the
-contract for what a runtime provides (relay access, storage, intents, …) and how
-a napplet asks for it. The seam is **transport-agnostic**:
-[NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) is its
-*binding* for the web — napplets as sandboxed iframes communicating over
-`postMessage` — but the same NAP contracts can be implemented by other runtimes.
-What's fixed is the contract; what varies per binding is the host environment and
-the message carrier.
+NAPs define the **capability seam** between a napplet and its runtime: the
+contract for what a runtime offers (relay access, storage, intents, …) and how a
+napplet asks for it. The contract is fixed; how it is delivered varies by
+**projection**. This repository is the registry and governance home for those
+contracts.
 
-This repository is the registry and governance home for those contracts. By the
-end of this document you should understand what a napplet is, what a NAP is (and
-is not), how the pieces layer together, and how to read or propose a spec.
+## Contents
+
+- [Glossary](#glossary)
+- [What is a napplet?](#what-is-a-napplet)
+- [What is a NAP?](#what-is-a-nap)
+- [Layering](#layering)
+- [Projections](#projections)
+- [How it works](#how-it-works)
+- [The three axes](#the-three-axes)
+- [Boundary rule](#boundary-rule)
+- [Governance](#governance)
+- [Templates](#templates)
+- [References](#references)
+
+## Glossary
+
+| Term | Meaning |
+|------|---------|
+| **Seam** | The boundary between a napplet and its runtime — what's offered, and how it's asked for. Transport-agnostic. |
+| **Napplet** | A Nostr applet: a small, single-purpose app. Described by a [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) manifest. |
+| **Runtime** (shell) | The host that composes napplets and provides their capabilities. |
+| **NAP** | One capability contract in the seam — operations, message schema, error model, and trust boundary. Never the delivery mechanism. |
+| **Domain** | A capability's short name (`relay`, `intent`); how a NAP is referenced and discovered. |
+| **Projection** (binding) | A mapping of the seam onto one concrete host (web, native, WASM, …). |
+| **NAP-WORD** | An interface spec — an API the runtime offers. One canonical spec per name. |
+| **NAP-N** | A wire-format spec — message semantics napplets agree on. Multiple competing specs allowed. |
+| **NAAT** | A *Napplet Archetype*: a canonical role name (`note`, `feed`) with a boundary. Not a NAP. |
 
 ## What is a napplet?
 
-A napplet is a Nostr applet — a small, single-purpose application that does one
-thing well. A chat widget, a feed viewer, a profile editor, and a relay manager
-are four napplets, not one app with four tabs. The **runtime composes napplets;
-napplets do not compose themselves.**
+A napplet is a Nostr applet — a small app that does one thing well. A chat
+widget, a feed viewer, a profile editor, and a relay manager are four napplets,
+not one app with four tabs. **The runtime composes napplets; napplets do not
+compose themselves.**
 
 A napplet is described and distributed as a
 [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) manifest (a
@@ -29,63 +50,54 @@ independent of how or where it runs.
 
 ## What is a NAP?
 
-A NAP is one capability contract in that seam. `NAP-RELAY` says *a runtime can
+A NAP is one capability contract in the seam. `NAP-RELAY` says *a runtime can
 proxy relay reads and writes, and here is exactly how a napplet requests them.*
 `NAP-INTENT` says *a runtime can open another napplet by role, and here is the
-request/result shape.* Each NAP standardizes the **operations, their semantics,
-the message schema, the error model, and the trust boundary** — never the
-delivery mechanism.
+request/result shape.*
 
-A NAP is therefore **not**:
+A NAP is **not**:
 
-- **the transport.** `postMessage`, iframes, and the `window.napplet.*` object
-  are web-*binding* details defined by NIP-5D, not by the NAP. The same
-  `NAP-RELAY` contract could be carried by IPC, an FFI call, or WASM host
-  imports.
-- **Nostr itself.** Napplets are Nostr-native — identities are pubkeys,
-  manifests are events, payloads carry Nostr data. NAPs standardize the *runtime
-  contract* around that data; they do not redefine Nostr. The seam is
-  transport-agnostic, not Nostr-agnostic.
+- **the transport.** `postMessage`, iframes, and `window.napplet.*` are
+  *projection* details (see [Projections](#projections)), not the NAP. The same
+  `NAP-RELAY` contract could be carried by IPC, an FFI call, or WASM imports.
+- **Nostr itself.** Napplets are Nostr-native — identities are pubkeys, manifests
+  are events, payloads carry Nostr data. NAPs standardize the *runtime contract*
+  around that data; they do not redefine Nostr. The seam is transport-agnostic,
+  not Nostr-agnostic.
 
 ## Layering
 
 ```
-NIP-5A   what a napplet IS / how it's described      manifest, identity   (substrate)
-  NAP    what a runtime offers a napplet             the capability seam  (this repo)
-   └─ binding: NIP-5D — web (iframe + postMessage)   the only binding today
-   └─ binding: native, WASM, …                       same contracts, different host
+NIP-5A   what a napplet IS / how it's described    manifest, identity   (substrate)
+  NAP    what a runtime offers a napplet           the capability seam  (this repo)
+   └─ projection: web, native, WASM, …             same contracts, different host
 ```
 
 NIP-5A defines the napplet. A NAP defines a capability the napplet can ask a
-runtime for. A *binding* implements that seam for a concrete host.
+runtime for. A *projection* implements that seam for a concrete host.
 
-## Bindings
+## Projections
 
-A **binding** implements the NAP seam for a host environment: it provides
-capability discovery, napplet identity binding, a request/result channel, and
-mediation of sensitive operations.
+A **projection** maps the seam onto a host environment: where napplets run, the
+message carrier, identity binding, and how each domain is surfaced. The contracts
+are transport-neutral by design — a domain named `relay` in this registry is the
+same contract everywhere; only the host idiom changes.
 
-- **Web — [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md)**,
-  the binding in use today. Napplets run as `sandbox="allow-scripts"` iframes;
-  messages travel over `postMessage`; capabilities surface on a
-  `window.napplet.*` object. The local copy of this spec is [SPEC.md](SPEC.md).
+| Projection | Status | Spec |
+|------------|--------|------|
+| **Web** — iframes + `postMessage`, capabilities on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md)) |
+| Native (OS process + IPC/FFI) | Possible | — |
+| WASM (host imports) | Possible | — |
 
-The contracts are transport-neutral by design, so a native host (OS process +
-IPC/FFI) or a WASM runtime (host imports) could provide the same seam. None exist
-yet — the web binding is the only implementation, and the specs are written
+The web projection is the only implementation today, and the specs are written
 against it — but the contracts are shaped so they need not stay web-only.
-
-**Web projection.** Throughout the registry a NAP is named by its **domain**
-(`relay`, `intent`). In the web binding, domain `X` surfaces as
-`window.napplet.X` and is discovered via `shell.supports("X")`. Other bindings
-project the same domains into their own host idiom.
 
 ## How it works
 
-The mechanics below are described at the seam (binding-neutral); the web
-projection is shown inline.
+The mechanics below live at the seam and are described projection-neutrally; the
+[web projection](projections/web.md) shows how each is realized in the browser.
 
-**Discovery.** A runtime advertises the capabilities it provides. A napplet
+**Discovery.** A runtime advertises the capabilities it provides; a napplet
 checks for one before using it — by domain, optionally with a numbered protocol:
 
 ```
@@ -105,21 +117,17 @@ messages omit it; runtimes may push unsolicited messages.
 <- { "type": "relay.publish.result", "id": "a1", "ok": true } // runtime → napplet
 ```
 
-In the web binding these objects are delivered by `postMessage`, and the runtime
-verifies `MessageEvent.source` to bind every message to a napplet identity.
-
 **Mediation & trust.** The runtime is the policy boundary. Napplets are
 untrusted: they never receive signing keys, wallet credentials, or raw network
-access; security-critical operations (signing, payments, uploads) are performed
+access. Security-critical operations (signing, payments, uploads) are performed
 by the runtime on the napplet's behalf, gated by per-napplet capability policy.
 Napplet identity — the `(dTag, aggregateHash)` tuple — is assigned by the runtime
 from the manifest, not negotiated by the napplet.
 
 ## The three axes
 
-A complete picture of a napplet ecosystem needs three orthogonal things: what the
-runtime *offers*, what napplets *say to each other*, and what kind of napplet
-each *is*.
+A complete napplet ecosystem needs three orthogonal things: what the runtime
+*offers*, what napplets *say to each other*, and what kind of napplet each *is*.
 
 ### NAP-WORD — interfaces (*what the runtime offers*)
 
@@ -148,6 +156,7 @@ shell-provided API contract — a capability domain a napplet can call. Discover
 | [NAP-CLASS-1](https://github.com/napplet/naps/pull/17) | `class` | Strict baseline posture (sub-track) | Draft |
 | [NAP-CLASS-2](https://github.com/napplet/naps/pull/18) | `class` | User-approved explicit-origin posture (sub-track) | Draft |
 | [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
+| [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 
 ### NAP-N — wire formats (*what napplets say to each other*)
 
@@ -196,9 +205,9 @@ maintainer.
 NIP-style informal process:
 
 - Fork this repo, add a markdown file under [`naps/`](naps/) following the
-  appropriate template, open a PR. Every NAP spec — both NAP-WORD interfaces and
-  numbered NAP-N wire formats — lives in the `naps/` directory; the templates
-  and registries (`README.md`, `ARCHETYPES.md`) stay at the repo root.
+  appropriate template, open a PR. Every NAP spec — NAP-WORD interfaces and
+  numbered NAP-N wire formats — lives in `naps/`; templates and registries
+  (`README.md`, `ARCHETYPES.md`) stay at the repo root.
 - Community discusses via PR comments.
 - Maintainer (dskvr) merges when the spec makes sense and has at least one
   implementation.
@@ -215,6 +224,6 @@ NIP-style informal process:
 
 ## References
 
-- Web binding: [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) — local mirror [SPEC.md](SPEC.md)
+- Web projection: [projections/web.md](projections/web.md) — [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) (local mirror [SPEC.md](SPEC.md))
 - Napplet manifest / identity: [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md)
 - Archetype registry: [ARCHETYPES.md](ARCHETYPES.md)
