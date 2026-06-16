@@ -137,6 +137,7 @@ shell-provided API contract — a capability domain a napplet can call. Discover
 
 | NAP ID | Domain | Description | Status |
 |--------|--------|-------------|--------|
+| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Draft |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
 | [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` | Scoped key-value storage | Draft |
