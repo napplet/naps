@@ -167,6 +167,8 @@ API the runtime provides. Napplets negotiate them at runtime via
 navigation (opening a profile, a note, a DM) and stream coordination; example
 domains include feed rendering, chat, and collaborative editing.
 
+In a NAP-N exchange the **producer** is the napplet that emits a topic and the **consumer** is the napplet that receives and acts on it — reached directly or, by archetype, via the runtime.
+
 A NAP-N that shapes an archetype open payload declares `Serves: <slug>/<action>`,
 so it self-registers against a [NAAT](ARCHETYPES.md) without editing the registry.
 
