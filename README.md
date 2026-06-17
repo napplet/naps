@@ -85,7 +85,7 @@ same contract everywhere; only the host idiom changes.
 
 | Projection | Status | Spec |
 |------------|--------|------|
-| **Web** — iframes + `postMessage`, capabilities on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md)) |
+| **Web** — iframes + `postMessage`, capabilities on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
 | WASM (host imports) | Possible | — |
 
@@ -233,6 +233,6 @@ NIP-style informal process:
 
 ## References
 
-- Web projection: [projections/web.md](projections/web.md) — [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) (local mirror [SPEC.md](SPEC.md))
+- Web projection: [projections/web.md](projections/web.md) — [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) (living, upstream document)
 - Napplet manifest / identity: [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md)
 - Archetype registry: [ARCHETYPES.md](ARCHETYPES.md)

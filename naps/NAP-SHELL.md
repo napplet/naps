@@ -26,8 +26,8 @@ cannot deliver that list until the napplet's receiver is live. NAP-SHELL is the
 two-message handshake that resolves this bootstrap dependency.
 
 The napplet signals readiness (`shell.ready`). The runtime replies once with the
-**environment** (`shell.init`): the set of capabilities it offers, the named
-services it exposes, and the napplet's assigned class. The napplet caches that
+**environment** (`shell.init`): the set of capabilities it offers and the named
+services it exposes. The napplet caches that
 environment, which is what makes `shell.supports()` answerable **synchronously
 and locally** thereafter — no round-trip per query. Receipt of the readiness
 signal is also the point at which the runtime considers the napplet's **session
@@ -51,9 +51,6 @@ interface NappletShell {
   // The named services the runtime exposes for this napplet.
   readonly services: readonly string[];
 
-  // The class assigned to this napplet, or null when the runtime assigns none.
-  readonly class: number | null;
-
   // Resolves once the environment has been delivered. Repeated calls after
   // delivery resolve immediately with the same environment.
   ready(): Promise<ShellEnvironment>;
@@ -66,7 +63,6 @@ interface NappletShell {
 interface ShellEnvironment {
   capabilities: ShellCapabilities;   // sufficient to answer supports(domain, protocol?)
   services: string[];
-  class: number | null;
 }
 ```
 
@@ -76,9 +72,8 @@ Synchronous: it reads the cached environment and never blocks. Returns `false`
 before the environment has been delivered, and `false` for any unknown domain or
 protocol.
 
-**`services`** / **`class`** — Read-only views onto the delivered environment.
-`class` is an opaque integer the runtime assigns; NAP-SHELL carries it but does
-not define its meaning.
+**`services`** — A read-only view onto the delivered environment: the named
+services the runtime exposes for this napplet.
 
 **`ready()`** — Resolves with the environment once the handshake completes. The
 readiness signal is normally emitted automatically by the runtime-provided shim
@@ -96,7 +91,7 @@ per napplet lifecycle.
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
 | `shell.ready` | napplet -> runtime | *(none)* |
-| `shell.init` | runtime -> napplet | `capabilities`, `services`, `class` |
+| `shell.init` | runtime -> napplet | `capabilities`, `services` |
 
 Key design notes:
 - `shell.ready` carries **no payload**. It is a liveness signal only — "my
@@ -120,8 +115,7 @@ Key design notes:
        "domains": ["<domain>", "<domain>"],
        "protocols": { "<domain>": ["NAP-N", "NAP-N"] }
      },
-     "services": [],
-     "class": 1
+     "services": []
    }
 ```
 
@@ -168,14 +162,14 @@ expressed by **absence**:
 - `shell.ready` originates from **untrusted napplet content**. It is a bare
   liveness ping by design: it carries no identity, no capability request, and no
   payload the runtime could be tricked into trusting. A runtime MUST derive the
-  napplet's identity and class from creation-time assignment (NIP-5A), not from
+  napplet's identity from creation-time assignment (NIP-5A), not from
   the handshake channel.
 - Session establishment is a privileged side effect. Because a second
   `shell.ready` MUST NOT create a second session or mutate the first, a napplet
   cannot replay the signal to escalate, re-key, or re-scope its session.
 - The capability set in `shell.init` is the runtime's **authoritative statement**
   of what this napplet may use. A runtime MUST scope it per napplet and MUST NOT
-  leak the capabilities, services, or class granted to other napplets.
+  leak the capabilities or services granted to other napplets.
 - The handshake gates all other capability traffic: by withholding
   `shell.init`, a runtime denies a napplet every capability at once, giving the
   runtime a single, total enforcement point.

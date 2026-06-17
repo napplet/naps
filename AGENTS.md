@@ -13,7 +13,7 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 | [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP-WORD / NAP-N registries |
 | [naps/](naps/) | All spec definitions — `NAP-<WORD>.md` interfaces, `NAP-<N>.md` wire formats |
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
-| [SPEC.md](SPEC.md) | Local mirror of [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) — the web projection, normative |
+| [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
 | [ARCHETYPES.md](ARCHETYPES.md) + [naat/](naat/) | Archetype roles |
 | `*-TEMPLATE.md` | Start here for a new spec |
 
@@ -43,6 +43,25 @@ however useful it seems.
   **projection**, never in a NAP.
 - Manifests reference bare **domains** (`relay`), never spec ids (`NAP-RELAY`).
 - Cannot place a change cleanly on one side? **Stop and surface it.** Do not guess.
+
+### Two leaks to catch on sight
+
+These recur. When you touch a spec, grep for them and rip them out — they are
+always wrong, never "useful for now."
+
+- **A deferred spec has zero live surface.** `Deferred` means dormant: the spec
+  keeps **only** its italic registry row. It MUST NOT be wired into any active
+  spec — no field, no wire-payload key, no parameter, no prose that treats it as
+  real. A mandatory NAP (e.g. NAP-SHELL) carrying a `class` field for the
+  deferred NAP-CLASS track is exactly this leak. **Test:** `grep -ri <domain>`
+  across `naps/`, `projections/`, `README.md` should hit only the deferred row.
+  Anything else, delete it.
+- **A living external document is linked, never mirrored.** Upstream NIPs (NIP-5D,
+  NIP-5A, …) are the source of truth and they move. Copying one into this repo
+  forks it: the copy drifts, then silently contradicts its source. There MUST be
+  **no local mirror file** of an external spec — reference the upstream link
+  directly. **Test:** no repo file reproduces a NIP's body; every NIP mention is a
+  link to its canonical/PR URL.
 
 ## Terminology
 
@@ -77,7 +96,7 @@ One concern per branch, commit, and PR. Never tangle.
 |--------|-------------|
 | a NAP spec | README registry row + status |
 | an archetype | ARCHETYPES.md · `naat/<slug>.md` · README |
-| projection semantics | `projections/<host>.md` · README Projections table · `SPEC.md` mirror |
+| projection semantics | `projections/<host>.md` · README Projections table |
 | terminology | README glossary, then all references |
 
 ## PR format — identical every time
