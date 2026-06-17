@@ -160,6 +160,10 @@ through it; it is assumed present.
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` | Optional | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Optional | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` | Optional | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
+| *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* | *Optional* | *Napplet class authority (sub-track root)* | *Deferred* |
+| *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* | *Optional* | *Strict baseline posture (sub-track)* | *Deferred* |
+| *[NAP-CLASS-2](https://github.com/napplet/naps/pull/18)* | *`class`* | *Optional* | *User-approved explicit-origin posture (sub-track)* | *Deferred* |
+| *[NAP-CONNECT](https://github.com/napplet/naps/pull/19)* | *`connect`* | *Optional* | *User-gated direct network access* | *Deferred* |
 
 ### NAP-N — wire formats (*what napplets say to each other*)
 
