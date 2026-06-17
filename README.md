@@ -151,7 +151,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
-| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` `relay` | Read-only user identity queries | Draft |
+| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` |  | — | Scoped key-value storage | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` |  | — | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` |  | `resource` | Media session control and playback | Draft |
@@ -161,7 +161,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` |  | `relay` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
 | [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` |  | `relay` | Shell-mediated value transfer and zaps | Draft |
 | [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` |  | `relay` | Outbox-aware relay routing and queries | Draft |
-| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` `relay` | Native ContextVM / MCP-over-Nostr bridge | Draft |
+| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* |  | *—* | *Strict baseline posture (sub-track)* | *Deferred* |
