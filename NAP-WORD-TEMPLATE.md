@@ -8,6 +8,8 @@ NAP-{NAME}
 
 **NAP ID:** NAP-{NAME}
 **Domain:** `{name}`
+**Depends:** {omit this line entirely if this NAP depends on no other; otherwise a bulleted list directly beneath it — see AGENTS.md → Dependencies}
+- `<domain>` — wire|capability|layering · required|optional — the concrete field or method this rests on
 **Web binding (NIP-5D):** `window.napplet.{name}` · `shell.supports("{name}")`
 
 ## Description

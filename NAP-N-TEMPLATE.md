@@ -8,7 +8,9 @@ NAP-{N}
 
 **NAP ID:** NAP-{N}
 **Domain:** {e.g., feed rendering, chat, collaborative editing}
-**Requires:** {NAP-WORD interfaces needed, e.g., NAP-RELAY, NAP-INC}
+**Depends:** {by domain — see AGENTS.md → Dependencies}
+- `inc` — capability · required — rides NAP-INC transport (`inc.subscribe` / `inc.event`)
+- {any further domains, e.g. `relay` for protocols that also publish to relays}
 **Serves:** {optional — if this is an archetype open contract, the role + verb it serves, e.g. `note/open`. See ARCHETYPES.md. Omit for pure peer-coordination protocols.}
 **Discovery:** `shell.supports("{word}", "{n}")`
 
