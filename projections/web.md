@@ -3,8 +3,8 @@ Web Projection — NIP-5D
 
 The **web projection** of the NAP capability seam. It maps the binding-neutral
 contracts in the [registry](../README.md) onto the browser, and is defined
-normatively by [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md)
-(local mirror: [SPEC.md](../SPEC.md)).
+normatively by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — the
+living, upstream document.
 
 A *projection* answers four binding-specific questions for one host environment:
 where napplets run, how messages travel, how a napplet's identity is bound, and
@@ -56,6 +56,6 @@ policy.
 
 ## References
 
-- [NIP-5D](https://github.com/nostr-protocol/nips/blob/master/5D.md) — normative web binding (local mirror: [SPEC.md](../SPEC.md))
+- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding (living, upstream document)
 - [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) — napplet manifest / identity
 - [Registry & governance](../README.md)
