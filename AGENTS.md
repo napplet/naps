@@ -63,6 +63,42 @@ always wrong, never "useful for now."
   directly. **Test:** no repo file reproduces a NIP's body; every NIP mention is a
   link to its canonical/PR URL.
 
+## Dependencies — declare, don't imply
+
+NAPs legitimately rest on other NAPs: a miner publishes through `relay`; an
+identity surface points its byte fields at `resource`. These edges are fine — but
+they MUST be **declared**, never left implicit in prose. Every NAP names its
+dependencies in a **`Depends:`** preamble block (alongside `NAP ID` / `Domain`),
+**by domain** — lined up with `shell.supports("<domain>")` and the manifest
+`["requires", …]` tag, never a bare spec id buried mid-paragraph. Each entry
+carries a **kind** and a **strength**:
+
+    **Depends:**
+    - `resource` — wire · optional — `relay.event.resources?` carries
+      `ResourceSidecarEntry`, a type owned by the `resource` domain.
+    - `relay` — capability · required — publishes mined events via `relay.publish`.
+
+**Kind** — what the edge couples:
+
+| Kind | Means | Obligation |
+|------|-------|------------|
+| **wire** | this NAP's wire format embeds a type **owned by** another domain | one **owner** defines the type; **importers** reference it and MUST NOT redefine it; both specs cross-link |
+| **capability** | this NAP's behavior calls another domain's surface (`resource.bytes`, `relay.publish`) — no shared type | name the method; the other domain owns its own contract |
+| **layering** | shell-internal composition, invisible to the napplet (`outbox` builds on `relay`) | declared for transparency; imposes nothing on the napplet |
+
+**Strength** — `required` (the dep domain MUST be present; a napplet SHOULD gate
+on `shell.supports("<dep>")`) or `optional` (only some features need it; degrade
+gracefully when absent).
+
+**The owner/importer rule kills wire entanglement.** A `wire` dependency is
+**directional**: exactly one domain owns the shared type, every other spec imports
+it by reference. Two specs that *mutually amend* each other are a bug — collapse
+them to one owner + one importer (`resource` owns `ResourceSidecarEntry`; `relay`
+imports it — not the reverse, never both).
+
+A dependency never moves the boundary. A NAP still owns only its own surface;
+`Depends:` documents the edge, it does not license reaching across the seam.
+
 ## Terminology
 
 Use [glossary](README.md#glossary) terms verbatim — *seam, napplet, runtime/shell,
@@ -94,7 +130,9 @@ One concern per branch, commit, and PR. Never tangle.
 
 | Change | Also update |
 |--------|-------------|
-| a NAP spec | README registry row + status |
+| a NAP spec | README registry row + status + **Deps column** |
+| a NAP's `Depends:` block | README **Deps column** for that row |
+| a **wire** dependency | both specs — owner defines the type, importer references it (never redefines) — plus each `Depends:` block |
 | an archetype | ARCHETYPES.md · `naat/<slug>.md` · README |
 | projection semantics | `projections/<host>.md` · README Projections table |
 | terminology | README glossary, then all references |
