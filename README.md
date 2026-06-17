@@ -135,29 +135,31 @@ Named by a single uppercase word, one canonical spec per name. Defines a
 shell-provided API contract — a capability domain a napplet can call. Discovery:
 `shell.supports("<domain>")`.
 
-| NAP ID | Domain | Description | Status |
-|--------|--------|-------------|--------|
-| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Draft |
-| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
-| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` | Read-only user identity queries | Draft |
-| [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` | Scoped key-value storage | Draft |
-| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` | Inter-napplet communication | Draft |
-| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` | Shell-provided theming | Draft |
-| [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` | Keyboard forwarding and action keybindings | Draft |
-| [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` | Media session control and playback | Draft |
-| [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` | Shell-rendered notifications | Draft |
-| [NAP-RESOURCE](https://github.com/napplet/naps/pull/13) | `resource` | Sandboxed resource fetching (https / blossom / nostr / data) | Draft |
-| [NAP-CONFIG](https://github.com/napplet/naps/pull/14) | `config` | Per-napplet declarative configuration (JSON Schema-driven) | Draft |
-| [NAP-CONNECT](https://github.com/napplet/naps/pull/19) | `connect` | User-gated direct network access | Draft |
-| [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
-| [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` | Shell-mediated value transfer and zaps | Draft |
-| [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` | Outbox-aware relay routing and queries | Draft |
-| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` | Native ContextVM / MCP-over-Nostr bridge | Draft |
-| [NAP-CLASS](https://github.com/napplet/naps/pull/16) | `class` | Napplet class authority (sub-track root) | Draft |
-| [NAP-CLASS-1](https://github.com/napplet/naps/pull/17) | `class` | Strict baseline posture (sub-track) | Draft |
-| [NAP-CLASS-2](https://github.com/napplet/naps/pull/18) | `class` | User-approved explicit-origin posture (sub-track) | Draft |
-| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Invoke a napplet by archetype (default-handler dispatch) | Draft |
-| [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
+Every NAP-WORD is **optional** — a runtime offers it or it doesn't, and a napplet
+checks before using it — except **NAP-SHELL**, which every conformant runtime
+MUST implement. NAP-SHELL is the foundational handshake that defines
+`shell.supports()` itself, so it is the one capability that cannot be discovered
+through it; it is assumed present.
+
+| NAP ID | Domain | Required | Description | Status |
+|--------|--------|----------|-------------|--------|
+| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | **Mandatory** | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Draft |
+| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` | Optional | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
+| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` | Optional | Read-only user identity queries | Draft |
+| [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` | Optional | Scoped key-value storage | Draft |
+| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` | Optional | Inter-napplet communication | Draft |
+| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` | Optional | Shell-provided theming | Draft |
+| [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` | Optional | Keyboard forwarding and action keybindings | Draft |
+| [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` | Optional | Media session control and playback | Draft |
+| [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` | Optional | Shell-rendered notifications | Draft |
+| [NAP-RESOURCE](https://github.com/napplet/naps/pull/13) | `resource` | Optional | Sandboxed resource fetching (https / blossom / nostr / data) | Draft |
+| [NAP-CONFIG](https://github.com/napplet/naps/pull/14) | `config` | Optional | Per-napplet declarative configuration (JSON Schema-driven) | Draft |
+| [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` | Optional | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
+| [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` | Optional | Shell-mediated value transfer and zaps | Draft |
+| [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` | Optional | Outbox-aware relay routing and queries | Draft |
+| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` | Optional | Native ContextVM / MCP-over-Nostr bridge | Draft |
+| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` | Optional | Invoke a napplet by archetype (default-handler dispatch) | Draft |
+| [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` | Optional | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 
 ### NAP-N — wire formats (*what napplets say to each other*)
 
