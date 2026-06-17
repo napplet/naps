@@ -80,12 +80,6 @@ One concern per branch, commit, and PR. Never tangle.
 | projection semantics | `projections/<host>.md` · README Projections table · `SPEC.md` mirror |
 | terminology | README glossary, then all references |
 
-## Public repo — hard rule
-
-Never reference private implementations — `@napplet/*` packages, the
-`napplet/napplet` repo, internal paths or tooling — in specs, commits, or PRs. An
-*Implementations* section reads `- (none yet)` until a public one exists.
-
 ## PR format — identical every time
 
 - **Branch:** kebab of the spec — `nap-relay`, `nap-storage`.
