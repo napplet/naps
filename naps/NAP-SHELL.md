@@ -8,6 +8,7 @@ Bootstrap Handshake & Capability Negotiation
 
 **NAP ID:** NAP-SHELL
 **Domain:** `shell`
+**Required:** Mandatory — every conformant runtime MUST implement NAP-SHELL.
 **Web binding (NIP-5D):** `window.napplet.shell`
 
 > NAP-SHELL is the **foundational** capability: it defines `shell.supports()`
