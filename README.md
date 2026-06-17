@@ -143,12 +143,13 @@ through it; it is assumed present.
 
 | NAP ID | Domain | req. | Description | Status |
 |--------|--------|------|-------------|--------|
-| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Draft |
+| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Active |
+| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | Invoke a napplet by archetype (default-handler dispatch) | Active |
+| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | Inter-napplet communication | Active |
+| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | Shell-provided theming | Active |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
 | [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` |  | Scoped key-value storage | Draft |
-| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | Inter-napplet communication | Draft |
-| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | Shell-provided theming | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` |  | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` |  | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` |  | Shell-rendered notifications | Draft |
@@ -158,7 +159,6 @@ through it; it is assumed present.
 | [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` |  | Shell-mediated value transfer and zaps | Draft |
 | [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` |  | Outbox-aware relay routing and queries | Draft |
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | Native ContextVM / MCP-over-Nostr bridge | Draft |
-| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | Invoke a napplet by archetype (default-handler dispatch) | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* |  | *Strict baseline posture (sub-track)* | *Deferred* |
