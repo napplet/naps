@@ -8,6 +8,8 @@ Read-Only User Identity Queries
 
 **NAP ID:** NAP-IDENTITY
 **Domain:** `identity`
+**Depends:**
+- `resource` — capability · optional — `picture` / `banner` URL bytes are fetched via `resource.bytes`
 **Web binding (NIP-5D):** `window.napplet.identity` · `shell.supports("identity")`
 
 ## Description
