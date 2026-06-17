@@ -31,8 +31,8 @@ services it exposes, and the napplet's assigned class. The napplet caches that
 environment, which is what makes `shell.supports()` answerable **synchronously
 and locally** thereafter — no round-trip per query. Receipt of the readiness
 signal is also the point at which the runtime considers the napplet's **session
-established**, so capability calls (storage, relay, inter-napplet messaging) are
-serviceable only after the handshake completes.
+established**, so every other capability call is serviceable only after the
+handshake completes.
 
 NAP-SHELL standardizes the **handshake and the queryable capability set**, not
 the internal representation of that set. A runtime is conformant as long as it
@@ -45,7 +45,7 @@ normative.
 ```typescript
 interface NappletShell {
   // Synchronous capability query, answered from the cached environment.
-  // `protocol` narrows a NAP-WORD domain to a numbered NAP-N wire format.
+  // `protocol` narrows a domain to a specific numbered wire protocol within it.
   supports(domain: string, protocol?: string): boolean;
 
   // The named services the runtime exposes for this napplet.
@@ -70,15 +70,15 @@ interface ShellEnvironment {
 }
 ```
 
-**`supports(domain, protocol?)`** — Returns whether the runtime offers `domain`
-(e.g. `"relay"`, `"storage"`), optionally narrowed to a numbered protocol within
-that domain (e.g. `supports("inc", "NAP-2")`). Synchronous: it reads the cached
-environment and never blocks. Returns `false` before the environment has been
-delivered, and `false` for any unknown domain or protocol.
+**`supports(domain, protocol?)`** — Returns whether the runtime offers `domain`,
+optionally narrowed to a specific numbered protocol within that domain.
+Synchronous: it reads the cached environment and never blocks. Returns `false`
+before the environment has been delivered, and `false` for any unknown domain or
+protocol.
 
 **`services`** / **`class`** — Read-only views onto the delivered environment.
-`class` is the integer described by NAP-CLASS; NAP-SHELL only carries it, it does
-not define its postures.
+`class` is an opaque integer the runtime assigns; NAP-SHELL carries it but does
+not define its meaning.
 
 **`ready()`** — Resolves with the environment once the handshake completes. The
 readiness signal is normally emitted automatically by the runtime-provided shim
@@ -117,8 +117,8 @@ Key design notes:
 <- {
      "type": "shell.init",
      "capabilities": {
-       "domains": ["relay", "storage", "inc", "theme", "identity"],
-       "protocols": { "inc": ["NAP-2", "NAP-4"] }
+       "domains": ["<domain>", "<domain>"],
+       "protocols": { "<domain>": ["NAP-N", "NAP-N"] }
      },
      "services": [],
      "class": 1
@@ -127,10 +127,10 @@ Key design notes:
 
 **Subsequent local queries (no wire traffic):**
 ```
-shell.supports("relay")          // true
-shell.supports("inc", "NAP-4")   // true
-shell.supports("inc", "NAP-9")   // false — protocol not offered
-shell.supports("value")          // false — domain not offered
+shell.supports("<domain>")             // true if the runtime offers that domain
+shell.supports("<domain>", "NAP-N")    // true if it also speaks that protocol
+shell.supports("<unknown>")            // false — domain not offered
+shell.supports("<domain>", "NAP-N")    // false — protocol not offered
 ```
 
 ### Error Handling
