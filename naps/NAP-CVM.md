@@ -282,6 +282,7 @@ Registry errors add `"family not found"`, `"schema mismatch"`, `"provider unavai
 - The shell SHOULD verify common-schema hashes before treating a provider as an implementation of a registry family.
 - The shell MAY let the user choose the provider for a registry family.
 - The shell MAY cache registry discovery, verified schemas, selected providers, and tool results when local policy permits. Tool-result cache keys SHOULD include `family`, `tool`, `args`, selected server identity, and `schemaHash`.
+- The shell SHOULD treat registry discovery as candidate discovery, not provider liveness. Before `registry.call`, the shell SHOULD verify that the selected provider is recently reachable, MAY fall back to another provider with the same `schemaHash`, and SHOULD return `"provider unavailable"` when no verified provider is reachable.
 
 ## Security Considerations
 
