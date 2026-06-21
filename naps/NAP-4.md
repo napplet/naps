@@ -35,42 +35,48 @@ viewing.
 
 Transport:
 
-```ts
+```
 inc.emit("note:open", payload)
 ```
 
 Payload:
 
-```ts
-type NoteOpenPayload = {
-  target: NoteOpenTarget;
-  relays?: string[];
-  source?: {
-    napplet?: string;
-    windowId?: string;
-    requestId?: string;
-  };
-  behavior?: {
-    focus?: boolean;
-    newWindow?: boolean;
-  };
-};
+```cddl
+NoteOpenPayload = {
+  target: NoteOpenTarget,
+  ? relays: [* tstr],
+  ? source: NoteOpenSource,
+  ? behavior: NoteOpenBehavior,
+}
 
-type NoteOpenTarget =
-  | {
-      type: "event";
-      id: string;        // 32-byte lowercase hex event id
-      kind?: number;
-      pubkey?: string;   // lowercase hex pubkey when known
-      nip19?: string;    // note1/nevent1 reference when available
-    }
-  | {
-      type: "address";
-      kind: number;
-      pubkey: string;    // lowercase hex pubkey
-      identifier: string;
-      nip19?: string;    // naddr1 reference when available
-    };
+NoteOpenSource = {
+  ? napplet: tstr,
+  ? windowId: tstr,
+  ? requestId: tstr,
+}
+
+NoteOpenBehavior = {
+  ? focus: bool,
+  ? newWindow: bool,
+}
+
+NoteOpenTarget = NoteOpenEventTarget / NoteOpenAddressTarget
+
+NoteOpenEventTarget = {
+  type: "event",
+  id: tstr,      ; 32-byte lowercase hex event id
+  ? kind: uint,
+  ? pubkey: tstr, ; lowercase hex pubkey when known
+  ? nip19: tstr,  ; note1/nevent1 reference when available
+}
+
+NoteOpenAddressTarget = {
+  type: "address",
+  kind: uint,
+  pubkey: tstr, ; lowercase hex pubkey
+  identifier: tstr,
+  ? nip19: tstr, ; naddr1 reference when available
+}
 ```
 
 Requirements:
