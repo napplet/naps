@@ -164,17 +164,10 @@ The digest above can be verified independently with a one-liner such as `python3
 
 The napplet-side runtime surface is a single property `connect` mounted at `window.napplet.connect`:
 
-```typescript
-interface NappletConnect {
-  /** True if the user has granted all declared origins for this (dTag, aggregateHash). */
-  readonly granted: boolean;
-
-  /** The user-approved origins. Empty array on denial or on shells not implementing nap:connect. */
-  readonly origins: readonly string[];
-}
-
-interface NappletGlobal {
-  readonly connect: NappletConnect;
+```cddl
+NappletConnect = {
+  granted: bool, ; true when all declared origins are granted for this (dTag, aggregateHash)
+  origins: [* tstr], ; user-approved origins; empty on denial or unsupported shells
 }
 ```
 
