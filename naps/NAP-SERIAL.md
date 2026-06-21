@@ -29,59 +29,74 @@ protocols built on top of this byte channel.
 
 ## API Surface
 
-```typescript
-interface NappletSerial {
-  open(request: SerialOpenRequest): Promise<SerialOpenResult>;
-  write(sessionId: string, data: Uint8Array | number[]): Promise<void>;
-  close(sessionId: string, reason?: string): Promise<void>;
-  onEvent(handler: (event: SerialEvent) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `open` | `request` (`SerialOpenRequest`) | `SerialOpenResult` | `serial.open` / `serial.open.result` |
+| `write` | `sessionId` (`tstr`), `data` (`bstr`) | none | `serial.write` / `serial.write.result` |
+| `close` | `sessionId` (`tstr`), optional `reason` (`tstr`) | none | `serial.close` / `serial.close.result` |
+| `onEvent` | handler for `SerialEvent` | `Subscription` handle | `serial.event` |
+
+### Schemas
+
+```cddl
+SerialOpenRequest = {
+  ? filters: [* SerialPortFilter],
+  options: SerialOpenOptions,
+  ? label: tstr,
 }
 
-interface SerialOpenRequest {
-  filters?: SerialPortFilter[];
-  options: SerialOpenOptions;
-  label?: string;
+SerialPortFilter = {
+  ? usbVendorId: uint,
+  ? usbProductId: uint,
+  ? bluetoothServiceClassId: tstr / uint,
 }
 
-interface SerialPortFilter {
-  usbVendorId?: number;
-  usbProductId?: number;
-  bluetoothServiceClassId?: string | number;
+SerialOpenOptions = {
+  baudRate: uint,
+  ? dataBits: 7 / 8,
+  ? stopBits: 1 / 2,
+  ? parity: "none" / "even" / "odd",
+  ? bufferSize: uint,
+  ? flowControl: "none" / "hardware",
 }
 
-interface SerialOpenOptions {
-  baudRate: number;
-  dataBits?: 7 | 8;
-  stopBits?: 1 | 2;
-  parity?: "none" | "even" | "odd";
-  bufferSize?: number;
-  flowControl?: "none" | "hardware";
+SerialOpenResult = {
+  session: SerialSession,
 }
 
-interface SerialOpenResult {
-  session: SerialSession;
+SerialState = "opening" / "open" / "closed"
+
+SerialSession = {
+  id: tstr,
+  state: SerialState,
+  ? info: SerialPortInfo,
 }
 
-interface SerialSession {
-  id: string;
-  state: "opening" | "open" | "closed";
-  info?: SerialPortInfo;
+SerialPortInfo = {
+  ? usbVendorId: uint,
+  ? usbProductId: uint,
+  ? bluetoothServiceClassId: tstr / uint,
+  ? displayName: tstr,
 }
 
-interface SerialPortInfo {
-  usbVendorId?: number;
-  usbProductId?: number;
-  bluetoothServiceClassId?: string | number;
-  displayName?: string;
+SerialEvent = SerialStateEvent / SerialDataEvent / SerialClosedEvent
+
+SerialStateEvent = {
+  type: "state",
+  sessionId: tstr,
+  state: SerialState,
 }
 
-type SerialEvent =
-  | { type: "state"; sessionId: string; state: SerialSession["state"] }
-  | { type: "data"; sessionId: string; data: number[] }
-  | { type: "closed"; sessionId: string; reason?: string };
+SerialDataEvent = {
+  type: "data",
+  sessionId: tstr,
+  data: bstr,
+}
 
-interface Subscription {
-  close(): void;
+SerialClosedEvent = {
+  type: "closed",
+  sessionId: tstr,
+  ? reason: tstr,
 }
 ```
 
