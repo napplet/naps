@@ -61,7 +61,7 @@ or more NIP-01 filters, optionally with an `origin` naming where to source them.
 
 Transport:
 
-```ts
+```
 inc.emit("feed:open", payload)
 ```
 
@@ -81,42 +81,49 @@ it; this NAP defines the payload, not the choice of delivery path.
 
 Payload:
 
-```ts
-type FeedOpenPayload = {
-  filters: NostrFilter[];   // one or more NIP-01 filters, OR-combined (REQ semantics)
-  origin?: FeedOrigin;      // where to source events; absent = consumer policy
-  title?: string;           // optional human-readable label hint for the feed
-  source?: {
-    napplet?: string;       // dTag of the producer, advisory
-    windowId?: string;      // producer window, advisory
-    requestId?: string;     // opaque correlation id
-  };
-  behavior?: {
-    focus?: boolean;        // default true
-    newWindow?: boolean;    // default shell policy
-  };
-};
+```cddl
+FeedOpenPayload = {
+  filters: [1* NostrFilter], ; one or more NIP-01 filters, OR-combined
+  ? origin: FeedOrigin,      ; absent means consumer policy
+  ? title: tstr,             ; human-readable label hint
+  ? source: FeedSource,
+  ? behavior: FeedBehavior,
+}
 
-// Where the feed sources events — a routing *method*, not an interface.
-// Future revisions MAY add variants (e.g. "search", "dvm").
-type FeedOrigin =
-  | { type: "relay";  relays: string[] }                              // query these relays
-  | { type: "outbox"; authors?: string[];                             // outbox model: relays from authors' lists
-      strategy?: "outbox" | "inbox" | "auto" };                       // default "outbox"
+FeedSource = {
+  ? napplet: tstr,   ; producer dTag, advisory
+  ? windowId: tstr,  ; producer window, advisory
+  ? requestId: tstr, ; opaque correlation id
+}
 
-// A standard NIP-01 filter. Every member is optional; an empty filter matches
-// everything and SHOULD be narrowed by an `origin` or tighter filter terms.
-type NostrFilter = {
-  ids?: string[];           // 64-char lowercase hex event ids
-  authors?: string[];       // 64-char lowercase hex pubkeys
-  kinds?: number[];
-  since?: number;           // unix seconds, inclusive lower bound on created_at
-  until?: number;           // unix seconds, inclusive upper bound on created_at
-  limit?: number;           // advisory — the runtime owns fetch policy and MAY ignore it
-  search?: string;          // NIP-50 full-text query, where supported
-  // single-letter tag filters, e.g. "#t": ["nostr"], "#p": ["<hex>"]
-  [singleLetterTag: `#${string}`]: string[] | undefined;
-};
+FeedBehavior = {
+  ? focus: bool,     ; default true
+  ? newWindow: bool, ; default shell policy
+}
+
+FeedOrigin = FeedRelayOrigin / FeedOutboxOrigin
+
+FeedRelayOrigin = {
+  type: "relay",
+  relays: [* tstr], ; query these relays
+}
+
+FeedOutboxOrigin = {
+  type: "outbox",
+  ? authors: [* tstr],
+  ? strategy: "outbox" / "inbox" / "auto",
+}
+
+NostrFilter = {
+  ? ids: [* tstr],
+  ? authors: [* tstr],
+  ? kinds: [* uint],
+  ? since: uint,
+  ? until: uint,
+  ? limit: uint,
+  ? search: tstr,
+  * tstr => [* tstr], ; single-letter tag filters, e.g. "#t" or "#p"
+}
 ```
 
 Fields:
