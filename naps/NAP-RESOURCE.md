@@ -182,11 +182,11 @@ These caps mitigate the billion-laughs entity-expansion attack (input is bounded
 
 A shell MAY deliver resources it has already fetched as **sidecar entries** alongside a napplet-bound event, so a later `resource.bytes(url)` call resolves from cache without a `postMessage` round-trip. This NAP owns the **entry type** (`ResourceSidecarEntry`) and the **hydration contract** below. The *delivery envelope* that carries the entries — and the policy deciding whether they are sent at all — is owned by the **carrier domain**: `relay` carries them on `relay.event.resources?` (see NAP-RELAY for that field, its **default-OFF** policy, and the per-event-kind allowlist). This NAP defines the type, never the carrier's wire:
 
-```typescript
-interface ResourceSidecarEntry {
-  url: string;       // canonical URL form for this resource
-  blob: Blob;        // pre-fetched bytes
-  mime: string;      // shell-classified by byte-sniffing -- NEVER upstream Content-Type
+```cddl
+ResourceSidecarEntry = {
+  url: tstr,  ; canonical URL form for this resource
+  blob: bstr, ; pre-fetched bytes; Blob in the web projection
+  mime: tstr, ; shell-classified by byte-sniffing -- NEVER upstream Content-Type
 }
 ```
 
