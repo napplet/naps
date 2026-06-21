@@ -58,5 +58,6 @@ Same informal process as the NAP tracks: open a PR that adds a row to the regist
 | [NAAT-PROFILE](naat/profile.md) | `profile` | Displays a user's profile and activity | NAP-1 (`profile:open`) | Draft |
 | [NAAT-DM](naat/dm.md) | `dm` | Opens a direct-message conversation with a person | NAP-3 (`chat:open-dm`) | Draft |
 | [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | *(none yet)* | Draft |
+| [NAAT-FEED-MANAGER](naat/feed-manager.md) | `feed-manager` | Creates, edits, saves, imports, exports, or organizes feed definitions | *(none yet)* | Draft |
 | [NAAT-COMPOSER](naat/composer.md) | `composer` | Creates and publishes a new Nostr event | *(none yet)* | Draft |
 | [NAAT-PET](naat/pet.md) | `pet` | Presents and manages a virtual pet or companion | *(none yet)* | Draft |
