@@ -46,11 +46,18 @@ interface IntentRequest {
   };
 }
 
+interface IntentContract {
+  action: string;                    // verb this contract serves; default "open"
+  protocol: string;                  // NAP-N id shaping the payload for this contract
+  eventKinds?: number[];             // NIP-01 event kinds accepted by this contract
+}
+
 interface IntentCandidate {
   dTag: string;                      // the napplet that can fulfill the archetype
   title?: string;
   actions: string[];                 // verbs this candidate supports for the archetype
   protocols: string[];               // NAP-N ids this candidate accepts for the archetype
+  contracts: IntentContract[];       // action/protocol pairs sourced from manifest tags
   isDefault?: boolean;
 }
 
@@ -77,11 +84,49 @@ interface IntentResult {
 
 **`open(archetype, payload?, opts?)`** — Convenience sugar for `invoke({ archetype, action: "open", payload, ...opts })`, the common case.
 
-**`available(archetype)`** — Returns whether the runtime can currently satisfy `archetype`, the candidate napplets that fulfill it, and the actions and protocols each supports. This is the pre-flight guardrail: a caller checks availability before showing an affordance, so a missing handler fails loudly at the call site instead of silently at delivery. Availability is sourced from the **installed-napplet catalog** (the manifests the runtime knows about), so it reports `true` for an installed handler that is not yet running.
+**`available(archetype)`** — Returns whether the runtime can currently satisfy `archetype`, the candidate napplets that fulfill it, and the actions, protocols, and contracts each supports. This is the pre-flight guardrail: a caller checks availability before showing an affordance, so a missing handler fails loudly at the call site instead of silently at delivery. Availability is sourced from the **installed-napplet catalog** (the manifests the runtime knows about), so it reports `true` for an installed handler that is not yet running.
 
 **`handlers()`** — Returns availability for every archetype the runtime can currently satisfy. Useful for menus and capability surfaces.
 
 **`onChanged(handler)`** — Registers for shell-pushed availability updates, fired when a napplet is installed or removed, or a default handler changes.
+
+## Manifest Catalog Contract
+
+A napplet declares every accepted archetype contract in its manifest with one
+`archetype` tag per protocol:
+
+```
+["archetype", "<slug>", "<NAP-N>", "kind:<number>", ...]
+```
+
+Fields:
+
+| Position | Value | Meaning |
+|----------|-------|---------|
+| 0 | `archetype` | tag name |
+| 1 | `<slug>` | NAAT role slug, e.g. `note` |
+| 2 | `<NAP-N>` | one numbered wire protocol accepted for this role |
+| 3+ | `kind:<number>` | optional NIP-01 event-kind constraint for this protocol |
+
+Each tag declares one `IntentContract` with `action: "open"` unless the named
+NAP-N's `Serves:` metadata scopes it to a different action. A napplet that accepts
+several protocols for the same archetype repeats the tag:
+
+```
+["archetype", "note", "NAP-4", "kind:1", "kind:30023"]
+["archetype", "note", "NAP-8", "kind:30023"]
+["archetype", "note", "NAP-12"]
+```
+
+The `kind:<number>` tokens apply only to the protocol named in the same tag. A
+tag MUST NOT name several NAP-N ids, because that makes later constraints
+ambiguous. If no `kind:<number>` token is present, the contract declares no
+event-kind restriction.
+
+Runtimes MUST build `available()` / `handlers()` from these manifest tags. They
+MUST expose the parsed contracts in `IntentCandidate.contracts`, and MAY derive
+the summary `actions` and `protocols` arrays from those contracts for quick
+filtering.
 
 ## Wire Protocol
 
@@ -116,7 +161,14 @@ Key design notes:
        "archetype": "emoji-list",
        "available": true,
        "candidates": [
-         { "dTag": "emojilistr", "title": "Emoji List Maker", "actions": ["open"], "protocols": ["NAP-7"], "isDefault": true }
+         {
+           "dTag": "emojilistr",
+           "title": "Emoji List Maker",
+           "actions": ["open"],
+           "protocols": ["NAP-7"],
+           "contracts": [{ "action": "open", "protocol": "NAP-7" }],
+           "isDefault": true
+         }
        ],
        "hasDefault": true
      }
@@ -162,6 +214,33 @@ Key design notes:
      "result": { "ok": true, "archetype": "note", "action": "open", "handled": true, "handler": "noteview", "windowId": "win-13", "protocol": "NAP-4" } }
 ```
 
+**Discover note handlers by event kind:**
+```
+-> { "type": "intent.available", "id": "a2", "archetype": "note" }
+<- {
+     "type": "intent.available.result",
+     "id": "a2",
+     "availability": {
+       "archetype": "note",
+       "available": true,
+       "candidates": [
+         {
+           "dTag": "noteview",
+           "title": "Note Viewer",
+           "actions": ["open"],
+           "protocols": ["NAP-4", "NAP-8"],
+           "contracts": [
+             { "action": "open", "protocol": "NAP-4", "eventKinds": [1, 30023] },
+             { "action": "open", "protocol": "NAP-8", "eventKinds": [30023] }
+           ],
+           "isDefault": true
+         }
+       ],
+       "hasDefault": true
+     }
+   }
+```
+
 **No handler installed:**
 ```
 -> { "type": "intent.invoke", "id": "i3", "request": { "archetype": "emoji-list", "payload": {} } }
@@ -178,6 +257,7 @@ The shell SHOULD return a structured `result` with `ok: false` and `handled: fal
 ## Shell Behavior
 
 - The shell MUST resolve an `archetype` to a handler using its catalog of installed napplets and the user's default-handler preference for that archetype.
+- The shell MUST parse one `IntentContract` from each valid `archetype` manifest tag, and MUST scope `kind:<number>` constraints to the protocol named in the same tag.
 - The shell MUST keep a user-overridable default per archetype. When a default exists, `invoke` without an explicit `handler` MUST route to it.
 - The shell SHOULD offer an "open with…" chooser when `handler: "choose"`, or when no default exists and more than one candidate is available.
 - The shell MUST source `available()` / `handlers()` from the installed-napplet catalog (signed NIP-5A manifests), not from currently-running instances, so not-yet-running handlers are discoverable.

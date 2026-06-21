@@ -15,9 +15,15 @@ This file is the **registry** — the index of every archetype. Each archetype's
 
 1. A napplet **declares the roles it fulfills** in its NIP-5A manifest:
    ```
-   ["archetype", "note", "NAP-4"]      // role slug, then the NAP-N wire format(s) it accepts for that role
+   ["archetype", "note", "NAP-4", "kind:1"]
    ```
-   A napplet may declare several archetype tags. A napplet with **no** archetype tag is fully valid — it simply cannot be opened *by role*. "Weird" single-purpose napplets are first-class.
+   One tag declares one role, one NAP-N, and optional protocol-scoped
+   constraints.
+   A napplet may declare several archetype tags, including several tags for the
+   same role when it accepts several NAP-N protocols. The full tag grammar is
+   defined by [NAP-INTENT](naps/NAP-INTENT.md). A napplet with **no** archetype
+   tag is fully valid — it simply cannot be opened *by role*. "Weird"
+   single-purpose napplets are first-class.
 
 2. A napplet **opens another by role** via [NAP-INTENT](naps/NAP-INTENT.md):
    ```js
