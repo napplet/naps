@@ -23,60 +23,69 @@ The two are orthogonal (N:M): one protocol may serve several archetypes, and one
 
 ## API Surface
 
-```typescript
-interface NappletIntent {
-  invoke(request: IntentRequest): Promise<IntentResult>;        // via intent.invoke
-  open(archetype: string, payload?: unknown,
-       opts?: Omit<IntentRequest, "archetype" | "action" | "payload">): Promise<IntentResult>;  // sugar: action "open"
-  available(archetype: string): Promise<IntentAvailability>;    // via intent.available
-  handlers(): Promise<IntentAvailability[]>;                    // via intent.handlers
-  onChanged(handler: (a: IntentAvailability) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `invoke` | `request` (`IntentRequest`) | `IntentResult` | `intent.invoke` / `intent.invoke.result` |
+| `open` | `archetype` (`tstr`), optional `payload` (`any`), optional `opts` (`IntentOpenOptions`) | `IntentResult` | sugar over `intent.invoke` with action `"open"` |
+| `available` | `archetype` (`tstr`) | `IntentAvailability` | `intent.available` / `intent.available.result` |
+| `handlers` | none | list of `IntentAvailability` | `intent.handlers` / `intent.handlers.result` |
+| `onChanged` | handler for `IntentAvailability` | `Subscription` handle | `intent.changed` |
+
+### Schemas
+
+```cddl
+IntentBehavior = {
+  ? focus: bool,
+  ? newWindow: bool,
+  ? reuse: bool,
 }
 
-interface IntentRequest {
-  archetype: string;                 // role slug, e.g. "note" (see ARCHETYPES.md)
-  action?: string;                   // verb, default "open" (e.g. "open" | "edit" | "pick" | "share")
-  protocol?: string;                 // NAP-N id shaping `payload`; omit -> the archetype's recommended default
-  payload?: unknown;                 // opaque, typed by `protocol`
-  handler?: "default" | "choose" | string;  // user default | prompt "open with…" | a specific napplet dTag
-  behavior?: {
-    focus?: boolean;
-    newWindow?: boolean;
-    reuse?: boolean;
-  };
+IntentOpenOptions = {
+  ? protocol: tstr,
+  ? handler: tstr,
+  ? behavior: IntentBehavior,
 }
 
-interface IntentContract {
-  action: string;                    // verb this contract serves; default "open"
-  protocol: string;                  // NAP-N id shaping the payload for this contract
-  eventKinds?: number[];             // NIP-01 event kinds accepted by this contract
+IntentRequest = {
+  archetype: tstr, ; role slug, e.g. "note"
+  ? action: tstr,  ; default "open"
+  ? protocol: tstr, ; NAP-N id shaping payload
+  ? payload: any,   ; opaque, typed by protocol
+  ? handler: tstr,  ; "default", "choose", or a specific napplet dTag
+  ? behavior: IntentBehavior,
 }
 
-interface IntentCandidate {
-  dTag: string;                      // the napplet that can fulfill the archetype
-  title?: string;
-  actions: string[];                 // verbs this candidate supports for the archetype
-  protocols: string[];               // NAP-N ids this candidate accepts for the archetype
-  contracts: IntentContract[];       // action/protocol pairs sourced from manifest tags
-  isDefault?: boolean;
+IntentContract = {
+  action: tstr,   ; verb this contract serves; default "open"
+  protocol: tstr, ; NAP-N id shaping the payload for this contract
+  ? eventKinds: [* uint],
 }
 
-interface IntentAvailability {
-  archetype: string;
-  available: boolean;                // at least one installed napplet fulfills it
-  candidates: IntentCandidate[];     // sourced from the manifest catalog, not running instances
-  hasDefault: boolean;               // a user/runtime default is set for this archetype
+IntentCandidate = {
+  dTag: tstr, ; napplet that can fulfill the archetype
+  ? title: tstr,
+  actions: [* tstr],
+  protocols: [* tstr],
+  contracts: [* IntentContract],
+  ? isDefault: bool,
 }
 
-interface IntentResult {
-  ok: boolean;
-  archetype: string;
-  action: string;
-  handled: boolean;
-  handler?: string;                  // dTag of the napplet that handled it
-  windowId?: string;
-  protocol?: string;                 // the wire format actually used
-  error?: string;
+IntentAvailability = {
+  archetype: tstr,
+  available: bool,
+  candidates: [* IntentCandidate],
+  hasDefault: bool,
+}
+
+IntentResult = {
+  ok: bool,
+  archetype: tstr,
+  action: tstr,
+  handled: bool,
+  ? handler: tstr, ; dTag of the napplet that handled it
+  ? windowId: tstr,
+  ? protocol: tstr,
+  ? error: tstr,
 }
 ```
 
