@@ -22,78 +22,80 @@ capability it reports.
 
 ## API Surface
 
-```typescript
-interface NappletSystem {
-  naps(): Promise<SystemNapStatus[]>;
-  services(): Promise<SystemServiceStatus[]>;
-  relays(): Promise<SystemRelayStatus[]>;
-  eventCache(): Promise<SystemStorageStatus>;
-  localStorage(): Promise<SystemStorageStatus>;
-  indexedDb(): Promise<SystemStorageStatus>;
-  media(): Promise<SystemMediaStatus>;
-  nappletStorage(): Promise<SystemStorageStatus>;
-  scopes(): Promise<SystemScopeSummary[]>;
-  scope(name: string): Promise<SystemScopeStatus>;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `naps` | none | list of `SystemNapStatus` | `system.naps` / `system.naps.result` |
+| `services` | none | list of `SystemServiceStatus` | `system.services` / `system.services.result` |
+| `relays` | none | list of `SystemRelayStatus` | `system.relays` / `system.relays.result` |
+| `eventCache` | none | `SystemStorageStatus` | `system.eventCache` / `system.eventCache.result` |
+| `localStorage` | none | `SystemStorageStatus` | `system.localStorage` / `system.localStorage.result` |
+| `indexedDb` | none | `SystemStorageStatus` | `system.indexedDb` / `system.indexedDb.result` |
+| `media` | none | `SystemMediaStatus` | `system.media` / `system.media.result` |
+| `nappletStorage` | none | `SystemStorageStatus` | `system.nappletStorage` / `system.nappletStorage.result` |
+| `scopes` | none | list of `SystemScopeSummary` | `system.scopes` / `system.scopes.result` |
+| `scope` | `name` (`tstr`) | `SystemScopeStatus` | `system.scope` / `system.scope.result` |
+
+### Schemas
+
+```cddl
+SystemHealth = "ok" / "degraded" / "unavailable" / "unknown"
+
+SystemNapStatus = {
+  domain: tstr,
+  supported: bool,
+  ? required: bool,
+  ? protocols: [* tstr],
+  ? health: SystemHealth,
 }
 
-type SystemHealth = "ok" | "degraded" | "unavailable" | "unknown";
-
-interface SystemNapStatus {
-  domain: string;
-  supported: boolean;
-  required?: boolean;
-  protocols?: string[];
-  health?: SystemHealth;
+SystemServiceStatus = {
+  name: tstr,
+  available: bool,
+  health: SystemHealth,
+  ? message: tstr,
 }
 
-interface SystemServiceStatus {
-  name: string;
-  available: boolean;
-  health: SystemHealth;
-  message?: string;
+SystemRelayStatus = {
+  url: tstr,
+  read: bool,
+  write: bool,
+  connected: bool,
+  health: SystemHealth,
+  ? latencyMs: number,
 }
 
-interface SystemRelayStatus {
-  url: string;
-  read: boolean;
-  write: boolean;
-  connected: boolean;
-  health: SystemHealth;
-  latencyMs?: number;
+SystemStorageStatus = {
+  available: bool,
+  health: SystemHealth,
+  ? bytesUsed: uint,
+  ? bytesQuota: uint,
+  ? itemCount: uint,
+  ? persistent: bool,
+  ? message: tstr,
 }
 
-interface SystemStorageStatus {
-  available: boolean;
-  health: SystemHealth;
-  bytesUsed?: number;
-  bytesQuota?: number;
-  itemCount?: number;
-  persistent?: boolean;
-  message?: string;
+SystemMediaStatus = {
+  available: bool,
+  health: SystemHealth,
+  ? audioOutput: SystemHealth,
+  ? audioInput: SystemHealth,
+  ? videoInput: SystemHealth,
+  ? playback: SystemHealth,
+  ? activeSessions: uint,
+  ? message: tstr,
 }
 
-interface SystemMediaStatus {
-  available: boolean;
-  health: SystemHealth;
-  audioOutput?: SystemHealth;
-  audioInput?: SystemHealth;
-  videoInput?: SystemHealth;
-  playback?: SystemHealth;
-  activeSessions?: number;
-  message?: string;
+SystemScopeSummary = {
+  name: tstr, ; e.g. "storage", "media", "relay", "cache"
+  available: bool,
+  health: SystemHealth,
 }
 
-interface SystemScopeSummary {
-  name: string;       // e.g. "storage", "media", "relay", "cache"
-  available: boolean;
-  health: SystemHealth;
-}
-
-interface SystemScopeStatus {
-  name: string;
-  available: boolean;
-  health: SystemHealth;
-  details: Record<string, unknown>;
+SystemScopeStatus = {
+  name: tstr,
+  available: bool,
+  health: SystemHealth,
+  details: { * tstr => any },
 }
 ```
 
