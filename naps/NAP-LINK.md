@@ -18,17 +18,19 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 ## API Surface
 
-```typescript
-interface NappletLink {
-  open(url: string, options?: LinkOpenOptions): Promise<LinkOpenResult>;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `open` | `url` (`tstr`), optional `options` (`LinkOpenOptions`) | `LinkOpenResult` | `link.open` / `link.open.result` |
+
+### Schemas
+
+```cddl
+LinkOpenOptions = {
+  ? label: tstr,
 }
 
-interface LinkOpenOptions {
-  label?: string;
-}
-
-interface LinkOpenResult {
-  status: "opened" | "denied";
+LinkOpenResult = {
+  status: "opened" / "denied",
 }
 ```
 
