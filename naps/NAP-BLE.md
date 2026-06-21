@@ -26,97 +26,115 @@ command semantics belong to the napplet or to higher-level protocols.
 
 ## API Surface
 
-```typescript
-type BleUuid = string | number;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `open` | `request` (`BleOpenRequest`) | `BleOpenResult` | `ble.open` / `ble.open.result` |
+| `services` | `sessionId` (`tstr`) | list of `BleService` | `ble.services` / `ble.services.result` |
+| `read` | `sessionId` (`tstr`), `target` (`BleAttribute`) | `bstr` | `ble.read` / `ble.read.result` |
+| `write` | `sessionId` (`tstr`), `target` (`BleAttribute`), `data` (`bstr`), optional `opts` (`BleWriteOptions`) | none | `ble.write` / `ble.write.result` |
+| `subscribe` | `sessionId` (`tstr`), `target` (`BleAttribute`) | none | `ble.subscribe` / `ble.subscribe.result` |
+| `unsubscribe` | `sessionId` (`tstr`), `target` (`BleAttribute`) | none | `ble.unsubscribe` / `ble.unsubscribe.result` |
+| `close` | `sessionId` (`tstr`), optional `reason` (`tstr`) | none | `ble.close` / `ble.close.result` |
+| `onEvent` | handler for `BleEvent` | `Subscription` handle | `ble.event` |
 
-interface NappletBle {
-  open(request: BleOpenRequest): Promise<BleOpenResult>;
-  services(sessionId: string): Promise<BleService[]>;
-  read(sessionId: string, target: BleAttribute): Promise<number[]>;
-  write(sessionId: string, target: BleAttribute, data: number[],
-        opts?: BleWriteOptions): Promise<void>;
-  subscribe(sessionId: string, target: BleAttribute): Promise<void>;
-  unsubscribe(sessionId: string, target: BleAttribute): Promise<void>;
-  close(sessionId: string, reason?: string): Promise<void>;
-  onEvent(handler: (event: BleEvent) => void): Subscription;
+### Schemas
+
+```cddl
+BleUuid = tstr / uint
+BleSessionState = "opening" / "open" / "closed"
+
+BleOpenRequest = {
+  ? filters: [* BleDeviceFilter],
+  ? exclusionFilters: [* BleDeviceFilter],
+  ? acceptAllDevices: bool,
+  ? optionalServices: [* BleUuid],
+  ? label: tstr,
 }
 
-interface BleOpenRequest {
-  filters?: BleDeviceFilter[];
-  exclusionFilters?: BleDeviceFilter[];
-  acceptAllDevices?: boolean;
-  optionalServices?: BleUuid[];
-  label?: string;
+BleDeviceFilter = {
+  ? services: [* BleUuid],
+  ? name: tstr,
+  ? namePrefix: tstr,
+  ? manufacturerData: [* BleManufacturerDataFilter],
+  ? serviceData: [* BleServiceDataFilter],
 }
 
-interface BleDeviceFilter {
-  services?: BleUuid[];
-  name?: string;
-  namePrefix?: string;
-  manufacturerData?: BleManufacturerDataFilter[];
-  serviceData?: BleServiceDataFilter[];
+BleManufacturerDataFilter = {
+  companyIdentifier: uint,
+  ? dataPrefix: bstr,
+  ? mask: bstr,
 }
 
-interface BleManufacturerDataFilter {
-  companyIdentifier: number;
-  dataPrefix?: number[];
-  mask?: number[];
+BleServiceDataFilter = {
+  service: BleUuid,
+  ? dataPrefix: bstr,
+  ? mask: bstr,
 }
 
-interface BleServiceDataFilter {
-  service: BleUuid;
-  dataPrefix?: number[];
-  mask?: number[];
+BleOpenResult = {
+  session: BleSession,
 }
 
-interface BleOpenResult {
-  session: BleSession;
+BleSession = {
+  id: tstr,
+  state: BleSessionState,
+  device: BleDeviceInfo,
 }
 
-interface BleSession {
-  id: string;
-  state: "opening" | "open" | "closed";
-  device: BleDeviceInfo;
+BleDeviceInfo = {
+  id: tstr, ; runtime-scoped, opaque
+  ? name: tstr,
+  ? services: [* tstr],
 }
 
-interface BleDeviceInfo {
-  id: string;          // runtime-scoped, opaque
-  name?: string;
-  services?: string[]; // canonical service UUIDs the runtime is willing to reveal
+BleService = {
+  uuid: tstr,
+  characteristics: [* BleCharacteristic],
 }
 
-interface BleService {
-  uuid: string;
-  characteristics: BleCharacteristic[];
+BleCharacteristic = {
+  uuid: tstr,
+  properties: BleCharacteristicProperties,
 }
 
-interface BleCharacteristic {
-  uuid: string;
-  properties: BleCharacteristicProperties;
+BleCharacteristicProperties = {
+  ? read: bool,
+  ? write: bool,
+  ? writeWithoutResponse: bool,
+  ? notify: bool,
+  ? indicate: bool,
 }
 
-interface BleCharacteristicProperties {
-  read?: boolean;
-  write?: boolean;
-  writeWithoutResponse?: boolean;
-  notify?: boolean;
-  indicate?: boolean;
+BleAttribute = {
+  service: BleUuid,
+  characteristic: BleUuid,
+  ? descriptor: BleUuid,
 }
 
-interface BleAttribute {
-  service: BleUuid;
-  characteristic: BleUuid;
-  descriptor?: BleUuid;
+BleWriteOptions = {
+  ? response: "with-response" / "without-response" / "auto",
 }
 
-interface BleWriteOptions {
-  response?: "with-response" | "without-response" | "auto";
+BleEvent = BleStateEvent / BleNotificationEvent / BleClosedEvent
+
+BleStateEvent = {
+  type: "state",
+  sessionId: tstr,
+  state: BleSessionState,
 }
 
-type BleEvent =
-  | { type: "state"; sessionId: string; state: BleSession["state"] }
-  | { type: "notification"; sessionId: string; target: BleAttribute; data: number[] }
-  | { type: "closed"; sessionId: string; reason?: string };
+BleNotificationEvent = {
+  type: "notification",
+  sessionId: tstr,
+  target: BleAttribute,
+  data: bstr,
+}
+
+BleClosedEvent = {
+  type: "closed",
+  sessionId: tstr,
+  ? reason: tstr,
+}
 ```
 
 `BleUuid` values in requests may be Bluetooth assigned names, 16-bit or 32-bit
