@@ -20,64 +20,78 @@ Napplets never receive wallet credentials, NWC secrets, signing keys, or direct 
 
 ## API Surface
 
-```typescript
-interface NappletValue {
-  send(request: ValueRequest): Promise<ValueResult>;     // via value.send
-  quote(request: ValueRequest): Promise<ValueQuote>;     // via value.quote
-  status(transferId: string): Promise<ValueStatus>;      // via value.status
-  onStatus(handler: (status: ValueStatus) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `send` | `request` (`ValueRequest`) | `ValueResult` | `value.send` / `value.send.result` |
+| `quote` | `request` (`ValueRequest`) | `ValueQuote` | `value.quote` / `value.quote.result` |
+| `status` | `transferId` (`tstr`) | `ValueStatus` | `value.status` / `value.status.result` |
+| `onStatus` | handler for `ValueStatus` | `Subscription` handle | `value.status.changed` |
+
+### Schemas
+
+```cddl
+ValueRail = "zap" / "lnurl" / tstr
+ValueTransferState = "pending" / "settled" / "failed" / "cancelled"
+NostrEvent = { * tstr => any }
+
+ValueRequest = {
+  rail: ValueRail,
+  amountMsat: uint,
+  ? comment: tstr,
+  target: ValueTarget,
+  ? metadata: { * tstr => any },
 }
 
-type ValueRail = "zap" | "lnurl" | string;
+ValueTarget = ZapTarget / LnurlTarget / ValueExtensionTarget
 
-interface ValueRequest {
-  rail: ValueRail;
-  amountMsat: number;
-  comment?: string;
-  target: ValueTarget;
-  metadata?: Record<string, unknown>;
+ZapTarget = {
+  type: "zap",
+  ? pubkey: tstr,
+  ? eventId: tstr,
+  ? address: tstr,
+  ? relays: [* tstr],
 }
 
-type ValueTarget =
-  | ZapTarget
-  | LnurlTarget
-  | { type: string; [key: string]: unknown };
-
-interface ZapTarget {
-  type: "zap";
-  pubkey?: string;
-  eventId?: string;
-  address?: string;
-  relays?: string[];
+LnurlTarget = {
+  type: "lnurl",
+  lnurl: tstr,
 }
 
-interface LnurlTarget {
-  type: "lnurl";
-  lnurl: string;
+ValueExtensionTarget = {
+  type: tstr,
+  * tstr => any,
 }
 
-interface ValueQuote {
-  ok: boolean;
-  amountMsat: number;
-  rail: ValueRail;
-  feesMsat?: number;
-  expiresAt?: number;
-  error?: string;
+ValueQuote = {
+  ok: bool,
+  amountMsat: uint,
+  rail: ValueRail,
+  ? feesMsat: uint,
+  ? expiresAt: uint,
+  ? error: tstr,
 }
 
-interface ValueResult {
-  ok: boolean;
-  transferId: string;
-  status: "pending" | "settled" | "failed" | "cancelled";
-  rail: ValueRail;
-  amountMsat: number;
-  event?: NostrEvent;
-  preimage?: string;
-  error?: string;
+ValueResult = {
+  ok: bool,
+  transferId: tstr,
+  status: ValueTransferState,
+  rail: ValueRail,
+  amountMsat: uint,
+  ? event: NostrEvent,
+  ? preimage: tstr,
+  ? error: tstr,
 }
 
-interface ValueStatus extends ValueResult {
-  updatedAt: number;
+ValueStatus = {
+  ok: bool,
+  transferId: tstr,
+  status: ValueTransferState,
+  rail: ValueRail,
+  amountMsat: uint,
+  ? event: NostrEvent,
+  ? preimage: tstr,
+  ? error: tstr,
+  updatedAt: uint,
 }
 ```
 
