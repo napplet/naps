@@ -21,20 +21,9 @@ This NAP is voluntary. Napplets MUST gracefully degrade when `window.napplet.cla
 
 ## API Surface
 
-```typescript
-interface NappletGlobal {
-  /**
-   * Shell-assigned class number. `undefined` until the shell sends
-   * `class.assigned`, or permanently `undefined` when the shell does not
-   * implement `nap:class`.
-   *
-   * The integer value is an identifier into the NAP-CLASS-$N sub-track:
-   * the semantics of class `N` are defined by `NAP-CLASS-$N.md`.
-   *
-   * Once assigned, the value is stable for the lifetime of the napplet
-   * document.
-   */
-  readonly class?: number;
+```cddl
+NappletClassState = {
+  ? class: uint, ; shell-assigned class number; absent until assigned or unsupported
 }
 ```
 
