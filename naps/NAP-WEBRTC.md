@@ -25,41 +25,76 @@ channel.
 
 ## API Surface
 
-```typescript
-interface NappletWebrtc {
-  open(request: WebrtcOpenRequest): Promise<WebrtcOpenResult>;
-  send(sessionId: string, payload: unknown): Promise<void>;
-  close(sessionId: string, reason?: string): Promise<void>;
-  onEvent(handler: (event: WebrtcEvent) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `open` | `request` (`WebrtcOpenRequest`) | `WebrtcOpenResult` | `webrtc.open` / `webrtc.open.result` |
+| `send` | `sessionId` (`tstr`), `payload` (`any`) | none | `webrtc.send` / `webrtc.send.result` |
+| `close` | `sessionId` (`tstr`), optional `reason` (`tstr`) | none | `webrtc.close` / `webrtc.close.result` |
+| `onEvent` | handler for `WebrtcEvent` | `Subscription` handle | `webrtc.event` |
+
+### Schemas
+
+```cddl
+WebrtcScope = WebrtcDirectScope / WebrtcRoomScope
+
+WebrtcDirectScope = {
+  type: "direct",
+  pubkey: tstr,
 }
 
-type WebrtcScope =
-  | { type: "direct"; pubkey: string }
-  | { type: "room"; room: string; peers?: string[] };
-
-interface WebrtcOpenRequest {
-  scope: WebrtcScope;
-  channel?: string;
-  protocol?: string;
+WebrtcRoomScope = {
+  type: "room",
+  room: tstr,
+  ? peers: [* tstr],
 }
 
-interface WebrtcOpenResult {
-  session: WebrtcSession;
+WebrtcOpenRequest = {
+  scope: WebrtcScope,
+  ? channel: tstr,
+  ? protocol: tstr,
 }
 
-interface WebrtcSession {
-  id: string;
-  scope: WebrtcScope;
-  channel: string;
-  protocol?: string;
-  state: "connecting" | "open" | "closed";
+WebrtcOpenResult = {
+  session: WebrtcSession,
 }
 
-type WebrtcEvent =
-  | { type: "state"; sessionId: string; state: WebrtcSession["state"] }
-  | { type: "peer"; sessionId: string; pubkey: string; state: "joined" | "left" }
-  | { type: "message"; sessionId: string; from: string; payload: unknown }
-  | { type: "closed"; sessionId: string; reason?: string };
+WebrtcState = "connecting" / "open" / "closed"
+
+WebrtcSession = {
+  id: tstr,
+  scope: WebrtcScope,
+  channel: tstr,
+  ? protocol: tstr,
+  state: WebrtcState,
+}
+
+WebrtcEvent = WebrtcStateEvent / WebrtcPeerEvent / WebrtcMessageEvent / WebrtcClosedEvent
+
+WebrtcStateEvent = {
+  type: "state",
+  sessionId: tstr,
+  state: WebrtcState,
+}
+
+WebrtcPeerEvent = {
+  type: "peer",
+  sessionId: tstr,
+  pubkey: tstr,
+  state: "joined" / "left",
+}
+
+WebrtcMessageEvent = {
+  type: "message",
+  sessionId: tstr,
+  from: tstr,
+  payload: any,
+}
+
+WebrtcClosedEvent = {
+  type: "closed",
+  sessionId: tstr,
+  ? reason: tstr,
+}
 ```
 
 **`open(request)`** — Requests a WebRTC session. For `direct`, the shell connects
