@@ -19,47 +19,32 @@ The shell is the sole writer of configuration values. Napplets cannot mutate con
 
 ## API Surface
 
-```typescript
-interface NappletConfig {
-  /** Runtime escape hatch -- prefer manifest-declared schema. */
-  registerSchema(schema: ConfigSchema, version?: number): void;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `registerSchema` | `schema` (`ConfigSchema`), optional `version` (`uint`) | none; errors arrive through `onSchemaError` | `config.registerSchema` / `config.registerSchema.result` |
+| `get` | none | `ConfigValues` | `config.get` / `config.values` |
+| `subscribe` | handler for `ConfigValues` | `Subscription` handle | `config.subscribe` / `config.values` |
+| `onSchemaError` | handler for `ConfigSchemaError` | `Subscription` handle | `config.schemaError` |
+| `openSettings` | optional `section` (`tstr`) | none | `config.openSettings` |
+| `schema` | none | `ConfigSchema` or `null` | local read of currently registered schema |
 
-  /** One-shot snapshot of current validated + defaulted values. */
-  get(): Promise<ConfigValues>;
+### Schemas
 
-  /** Subscribe to live updates; first delivery is an immediate snapshot. */
-  subscribe(callback: (values: ConfigValues) => void): Subscription;
+```cddl
+ConfigSchema = { * tstr => any } ; JSON Schema draft-07+, restricted below
+ConfigValues = { * tstr => any } ; shell-validated JSON-serializable values
 
-  /** Listen for schema-registration errors. */
-  onSchemaError(callback: (err: ConfigSchemaError) => void): Subscription;
+ConfigSchemaErrorCode =
+  "invalid-schema" /
+  "version-conflict" /
+  "unsupported-draft" /
+  "ref-not-allowed" /
+  "pattern-not-allowed" /
+  "secret-with-default"
 
-  /** Request the shell open its settings UI, optionally deep-linking by section. */
-  openSettings(options?: { section?: string }): void;
-
-  /** Read-access to the currently-registered schema (from manifest or registerSchema). */
-  readonly schema: ConfigSchema | null;
-}
-
-/**
- * JSON Schema (draft-07+) describing a napplet's configuration surface.
- * Restricted to the Core Subset defined in Schema Contract below.
- */
-type ConfigSchema = Record<string, unknown>;
-
-/**
- * Shell-validated configuration values, shaped by the registered schema.
- * Keys correspond to schema properties; values are JSON-serializable.
- */
-type ConfigValues = Record<string, unknown>;
-
-interface ConfigSchemaError {
-  code: 'invalid-schema' | 'version-conflict' | 'unsupported-draft'
-      | 'ref-not-allowed' | 'pattern-not-allowed' | 'secret-with-default';
-  message: string;
-}
-
-interface Subscription {
-  close(): void;
+ConfigSchemaError = {
+  code: ConfigSchemaErrorCode,
+  message: tstr,
 }
 ```
 
