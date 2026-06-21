@@ -20,99 +20,108 @@ The napplet supplies the server identity and the MCP operation it wants. The she
 
 ## API Surface
 
-```typescript
-interface NappletCvm {
-  registry: CvmRegistry;
-  discover(query?: CvmDiscoverQuery): Promise<CvmServer[]>;
-  request(server: CvmServerRef, message: McpMessage, options?: CvmRequestOptions): Promise<McpMessage>;
-  listTools(server: CvmServerRef, options?: CvmRequestOptions): Promise<McpTool[]>;
-  callTool(server: CvmServerRef, name: string, args?: Record<string, unknown>, options?: CvmRequestOptions): Promise<McpToolResult>;
-  listResources(server: CvmServerRef, options?: CvmRequestOptions): Promise<McpResource[]>;
-  readResource(server: CvmServerRef, uri: string, options?: CvmRequestOptions): Promise<McpResourceContent>;
-  close(server: CvmServerRef): Promise<void>;
-  onEvent(handler: CvmEventHandler): CvmSubscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `discover` | optional `query` (`CvmDiscoverQuery`) | list of `CvmServer` | `cvm.discover` / `cvm.discover.result` |
+| `request` | `server` (`CvmServerRef`), `message` (`McpMessage`), optional `options` (`CvmRequestOptions`) | `McpMessage` | `cvm.request` / `cvm.request.result` |
+| `listTools` | `server` (`CvmServerRef`), optional `options` (`CvmRequestOptions`) | list of `McpTool` | wrapper over `request` |
+| `callTool` | `server` (`CvmServerRef`), `name` (`tstr`), optional `args` (`JsonObject`), optional `options` (`CvmRequestOptions`) | `McpToolResult` | wrapper over `request` |
+| `listResources` | `server` (`CvmServerRef`), optional `options` (`CvmRequestOptions`) | list of `McpResource` | wrapper over `request` |
+| `readResource` | `server` (`CvmServerRef`), `uri` (`tstr`), optional `options` (`CvmRequestOptions`) | `McpResourceContent` | wrapper over `request` |
+| `close` | `server` (`CvmServerRef`) | none | `cvm.close` |
+| `onEvent` | handler for `CvmEvent` | `CvmSubscription` handle | `cvm.event` |
+| `registry.list` | optional `query` (`CvmRegistryQuery`) | list of `CvmRegistryEntry` | `cvm.registry.list` / result |
+| `registry.has` | `family` (`tstr`), optional `options` (`CvmRegistryOptions`) | `bool` | `cvm.registry.has` / result |
+| `registry.describe` | `family` (`tstr`), optional `options` (`CvmRegistryOptions`) | `CvmRegistryEntry` | `cvm.registry.describe` / result |
+| `registry.call` | `family` (`tstr`), `tool` (`tstr`), optional `args` (`JsonObject`), optional `options` (`CvmRegistryCallOptions`) | `McpToolResult` | `cvm.registry.call` / result |
+
+### Schemas
+
+```cddl
+JsonObject = { * tstr => any }
+JsonSchema = JsonObject
+McpTool = JsonObject
+McpToolResult = JsonObject
+McpResource = JsonObject
+McpResourceContent = JsonObject
+
+CvmServerRef = {
+  pubkey: tstr,
+  ? relays: [* tstr],
 }
 
-type CvmEventHandler = (server: CvmServerRef, message: McpMessage) => void;
-
-interface CvmSubscription {
-  close(): void;
+CvmDiscoverQuery = {
+  ? search: tstr,
+  ? kinds: [* uint],
+  ? relays: [* tstr],
+  ? limit: uint,
 }
 
-interface CvmRegistry {
-  list(query?: CvmRegistryQuery): Promise<CvmRegistryEntry[]>;
-  has(family: string, options?: CvmRegistryOptions): Promise<boolean>;
-  describe(family: string, options?: CvmRegistryOptions): Promise<CvmRegistryEntry>;
-  call(family: string, tool: string, args?: Record<string, unknown>, options?: CvmRegistryCallOptions): Promise<McpToolResult>;
+CvmServer = {
+  pubkey: tstr,
+  ? relays: [* tstr],
+  ? name: tstr,
+  ? description: tstr,
+  ? capabilities: [* tstr],
+  ? paymentRequired: bool,
 }
 
-interface CvmServerRef {
-  pubkey: string;
-  relays?: string[];
+CvmRequestOptions = {
+  ? timeoutMs: uint,
+  ? initialize: bool,
+  ? payment: "deny" / "prompt" / "allow",
 }
 
-interface CvmDiscoverQuery {
-  search?: string;
-  kinds?: number[];
-  relays?: string[];
-  limit?: number;
+CvmRegistryQuery = {
+  ? search: tstr,
+  ? family: tstr,
+  ? schemaHash: tstr,
+  ? limit: uint,
 }
 
-interface CvmServer extends CvmServerRef {
-  name?: string;
-  description?: string;
-  capabilities?: string[];
-  paymentRequired?: boolean;
+CvmRegistryOptions = {
+  ? schemaHash: tstr,
+  ? server: CvmServerRef,
 }
 
-interface CvmRequestOptions {
-  timeoutMs?: number;
-  initialize?: boolean;
-  payment?: "deny" | "prompt" | "allow";
+CvmRegistryCallOptions = {
+  ? schemaHash: tstr,
+  ? server: CvmServerRef,
+  ? timeoutMs: uint,
+  ? initialize: bool,
+  ? payment: "deny" / "prompt" / "allow",
+  ? cache: "default" / "reload" / "no-store",
 }
 
-interface CvmRegistryQuery {
-  search?: string;
-  family?: string;
-  schemaHash?: string;
-  limit?: number;
+CvmRegistryEntry = {
+  family: tstr,
+  ? description: tstr,
+  ? schemaHash: tstr,
+  ? selected: CvmServerRef,
+  ? providers: [* CvmServerRef],
+  tools: [* CvmRegistryTool],
 }
 
-interface CvmRegistryOptions {
-  schemaHash?: string;
-  server?: CvmServerRef;
+CvmRegistryTool = {
+  name: tstr,
+  ? description: tstr,
+  inputSchema: JsonSchema,
+  ? outputSchema: JsonSchema,
+  ? schemaHash: tstr,
 }
 
-interface CvmRegistryCallOptions extends CvmRegistryOptions, CvmRequestOptions {
-  cache?: "default" | "reload" | "no-store";
+McpMessage = {
+  jsonrpc: "2.0",
+  ? id: tstr / number,
+  ? method: tstr,
+  ? params: any,
+  ? result: any,
+  ? error: any,
 }
 
-interface CvmRegistryEntry {
-  family: string;
-  description?: string;
-  schemaHash?: string;
-  selected?: CvmServerRef;
-  providers?: CvmServerRef[];
-  tools: CvmRegistryTool[];
-}
-
-interface CvmRegistryTool {
-  name: string;
-  description?: string;
-  inputSchema: JsonSchema;
-  outputSchema?: JsonSchema;
-  schemaHash?: string;
-}
-
-type JsonSchema = Record<string, unknown>;
-
-interface McpMessage {
-  jsonrpc: "2.0";
-  id?: string | number;
-  method?: string;
-  params?: unknown;
-  result?: unknown;
-  error?: unknown;
+CvmEvent = {
+  server: CvmServerRef,
+  message: McpMessage,
 }
 ```
 
