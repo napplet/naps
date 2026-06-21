@@ -29,71 +29,79 @@ Stronger napplets can still choose shell-owned playback when they want shell pol
 
 ## API Surface
 
-```typescript
-interface NappletMedia {
-  createSession(options: MediaSessionCreate): Promise<MediaSessionResult>;
-  updateSession(sessionId: string, metadata: Partial<MediaMetadata>): void;
-  destroySession(sessionId: string): void;
-  reportState(sessionId: string, state: MediaState): void;
-  reportCapabilities(sessionId: string, actions: MediaAction[]): void;
-  onCommand(sessionId: string, cb: (action: MediaAction, value?: number) => void): Subscription;
-  onControls(sessionId: string, cb: (controls: MediaAction[]) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `createSession` | `options` (`MediaSessionCreate`) | `MediaSessionResult` | `media.createSession` / `media.createSession.result` |
+| `updateSession` | `sessionId` (`tstr`), partial `metadata` (`MediaMetadata`) | none | `media.updateSession` |
+| `destroySession` | `sessionId` (`tstr`) | none | `media.destroySession` |
+| `reportState` | `sessionId` (`tstr`), `state` (`MediaState`) | none | `media.reportState` |
+| `reportCapabilities` | `sessionId` (`tstr`), `actions` (list of `MediaAction`) | none | `media.reportCapabilities` |
+| `onCommand` | `sessionId` (`tstr`), handler for `MediaCommand` | `Subscription` handle | `media.command` |
+| `onControls` | `sessionId` (`tstr`), handler for list of `MediaAction` | `Subscription` handle | `media.controls` |
+
+### Schemas
+
+```cddl
+MediaPlaybackOwner = "shell" / "napplet"
+MediaAction = "play" / "pause" / "stop" / "next" / "prev" / "seek" / "volume"
+
+MediaSessionCreate = {
+  owner: MediaPlaybackOwner,
+  ? sessionId: tstr,
+  ? source: MediaSourceRef,
+  ? metadata: MediaMetadata,
+  ? capabilities: [* MediaAction],
+  ? autoplay: bool,
+  ? live: bool,
 }
 
-type MediaPlaybackOwner = 'shell' | 'napplet';
-
-interface MediaSessionCreate {
-  owner: MediaPlaybackOwner;
-  sessionId?: string;
-  source?: MediaSourceRef;
-  metadata?: MediaMetadata;
-  capabilities?: MediaAction[];
-  autoplay?: boolean;
-  live?: boolean;
+MediaSourceRef = {
+  ? url: tstr,
+  ? blossomHash: tstr,
+  ? nostr: MediaNostrRef,
+  ? mimeType: tstr,
 }
 
-interface MediaSourceRef {
-  url?: string;
-  blossomHash?: string;
-  nostr?: {
-    eventId?: string;
-    address?: string;
-    relays?: string[];
-  };
-  mimeType?: string;
+MediaNostrRef = {
+  ? eventId: tstr,
+  ? address: tstr,
+  ? relays: [* tstr],
 }
 
-interface MediaMetadata {
-  title?: string;
-  artist?: string;
-  album?: string;
-  artwork?: { url?: string; hash?: string };
-  duration?: number;
-  mediaType?: 'audio' | 'video';
+MediaArtwork = {
+  ? url: tstr,
+  ? hash: tstr,
+}
+
+MediaMetadata = {
+  ? title: tstr,
+  ? artist: tstr,
+  ? album: tstr,
+  ? artwork: MediaArtwork,
+  ? duration: number,
+  ? mediaType: "audio" / "video",
 }
 ```
 
 **Resource resolution.** The `artwork.url` field is a URL string. Napplets and shells that need the artwork bytes (for example, to render album art on a media controls surface) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. The optional `artwork.hash` field, when present, MAY be used by shells as a content-addressed cache key but is not a substitute for the URL fetch — napplets address artwork by URL through the resource NAP. Direct `<img src="https://...">` loads will not work under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`); the shell is the sole network-fetch broker. Standard NAP-RESOURCE policy applies (private-IP block list at DNS-resolution time, MIME byte-sniffing, SVG rasterization, etc.).
 
-```typescript
-
-interface MediaState {
-  status: 'playing' | 'paused' | 'stopped' | 'buffering';
-  position?: number;
-  duration?: number;
-  volume?: number;
+```cddl
+MediaState = {
+  status: "playing" / "paused" / "stopped" / "buffering",
+  ? position: number,
+  ? duration: number,
+  ? volume: number,
 }
 
-type MediaAction = 'play' | 'pause' | 'stop' | 'next' | 'prev' | 'seek' | 'volume';
-
-interface MediaSessionResult {
-  sessionId?: string;
-  owner?: MediaPlaybackOwner;
-  error?: string;
+MediaCommand = {
+  action: MediaAction,
+  ? value: number,
 }
 
-interface Subscription {
-  close(): void;
+MediaSessionResult = {
+  ? sessionId: tstr,
+  ? owner: MediaPlaybackOwner,
+  ? error: tstr,
 }
 ```
 
