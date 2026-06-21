@@ -1,7 +1,7 @@
 NAAT: Napplet Archetypes
 ========================
 
-A **NAAT** (Nostr Applet ArcheType) is a shared *role* a napplet can fulfill — `note`, `feed`, `profile`, `emoji-list`. It is the third axis of the napplet ecosystem, orthogonal to the two NAP tracks:
+A **NAAT** (Nostr Applet ArcheType) is a shared *role* a napplet can fulfill — `note`, `feed`, `profile`, `pet`. It is the third axis of the napplet ecosystem, orthogonal to the two NAP tracks:
 
 - **NAP-WORD** — shell-provided API surfaces (`window.napplet.*`). *What the runtime offers.*
 - **NAP-N** — numbered, competing wire formats. *What napplets say to each other.*
@@ -22,10 +22,10 @@ This file is the **registry** — the index of every archetype. Each archetype's
 2. A napplet **opens another by role** via [NAP-INTENT](naps/NAP-INTENT.md):
    ```js
    if (napplet.shell.supports("intent")) {
-     const { available } = await napplet.intent.available("emoji-list");
+     const { available } = await napplet.intent.available("pet");
      if (available) showButton();
    }
-   napplet.intent.open("emoji-list", { /* payload, per the recommended NAP-N */ });
+   napplet.intent.open("pet", { /* payload, if a handler advertises one */ });
    ```
    The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
 
@@ -60,3 +60,4 @@ Same informal process as the NAP tracks: open a PR that adds a row to the regist
 | [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | *(none yet)* | Draft |
 | [NAAT-FEED-MANAGER](naat/feed-manager.md) | `feed-manager` | Creates, edits, saves, imports, exports, or organizes feed definitions | *(none yet)* | Draft |
 | [NAAT-COMPOSER](naat/composer.md) | `composer` | Creates and publishes a new Nostr event | *(none yet)* | Draft |
+| [NAAT-PET](naat/pet.md) | `pet` | Presents and manages a virtual pet or companion | *(none yet)* | Draft |
