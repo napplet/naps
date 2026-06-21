@@ -114,6 +114,25 @@ Terse. Exacting. Reader-comprehension first.
 - Specs use RFC-2119 **MUST / SHOULD / MAY** — and mean them.
 - A table beats a paragraph when it reads faster.
 
+## Interface schema format
+
+NAP specs are language-neutral contracts. Do not express normative surfaces as
+TypeScript, Rust, Go, or any other implementation language.
+
+Use this format instead:
+
+- **Operations table** for the napplet-facing API: operation, parameters,
+  result, and corresponding wire messages.
+- **Schemas block** for records and enums, written in CDDL-style notation
+  (RFC 8610): `tstr`, `bool`, `int`, `uint`, `number`, `null`, `any`, arrays as
+  `[* T]`, maps as `{ * tstr => T }`, optional fields as `? field: T`, and
+  alternatives as `"a" / "b"`.
+- Use record names like `IntentRequest` or `Theme`, but do not use `interface`,
+  `type`, `Promise`, `readonly`, `unknown`, or language-specific collection
+  syntax.
+- If a projection exposes an idiomatic SDK shape, describe it as projection
+  guidance only. The NAP contract remains the operations table plus schemas.
+
 ## Isolation
 
 One concern per branch, commit, and PR. Never tangle.

@@ -16,36 +16,40 @@ NAP-THEME provides napplets with read-only access to the shell's active theme. T
 
 ## API Surface
 
-```typescript
-interface ThemeColors {
-  background: string;  // hex color, e.g. "#1a1a2e"
-  text: string;        // hex color
-  primary: string;     // hex color
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `get` | none | `Theme` | `theme.get` / `theme.get.result` |
+
+### Schemas
+
+```cddl
+ThemeColors = {
+  background: tstr, ; hex color, e.g. "#1a1a2e"
+  text: tstr,       ; hex color
+  primary: tstr,    ; hex color
 }
 
-interface ThemeFont {
-  name: string;        // font family name
-  url: string;         // URL to font file (woff2, etc.)
+ThemeFont = {
+  name: tstr, ; font family name
+  url: tstr,  ; URL to font file
 }
 
-interface ThemeBackground {
-  url: string;         // URL to background image/media
-  mode: string;        // CSS background-size value, e.g. "cover"
-  mime: string;        // MIME type, e.g. "image/jpeg"
+ThemeBackground = {
+  url: tstr,  ; URL to background image/media
+  mode: tstr, ; CSS background-size value, e.g. "cover"
+  mime: tstr, ; MIME type, e.g. "image/jpeg"
 }
 
-interface Theme {
-  colors: ThemeColors;                // required
-  fonts?: {                           // optional
-    body?: ThemeFont;
-    title?: ThemeFont;
-  };
-  background?: ThemeBackground;       // optional
-  title?: string;                     // optional — human-readable theme name
+ThemeFonts = {
+  ? body: ThemeFont,
+  ? title: ThemeFont,
 }
 
-interface NappletTheme {
-  get(): Promise<Theme>;              // via theme.get / theme.get.result
+Theme = {
+  colors: ThemeColors,
+  ? fonts: ThemeFonts,
+  ? background: ThemeBackground,
+  ? title: tstr, ; human-readable theme name
 }
 ```
 

@@ -18,11 +18,20 @@ NAP-{NAME}
 
 ## API Surface
 
-{SDK-level method signatures. These are the high-level operations napplets call. Each method corresponds to one or more wire protocol messages.}
+{Language-neutral operation table. These are the high-level operations napplets call. Each method corresponds to one or more wire protocol messages.}
 
-```typescript
-interface Napplet{Name} {
-  method(param: type): ReturnType;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `method` | `param` (`tstr`) | `{ResultType}` | `{name}.action` / `{name}.action.result` |
+
+### Schemas
+
+Use CDDL-style notation. See AGENTS.md -> Interface schema format.
+
+```cddl
+ResultType = {
+  field: tstr,
+  ? optionalField: bool,
 }
 ```
 
