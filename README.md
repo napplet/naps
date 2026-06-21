@@ -199,9 +199,11 @@ napplet negotiates one at runtime with `shell.supports("inc", "NAP-N")`.
 A NAAT is neither an interface nor a wire format, just a name and a boundary.
 Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
 to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
-with a `["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets invoke
-each other by role through [NAP-INTENT](naps/NAP-INTENT.md). A napplet with no
-archetype tag is fully valid — it simply isn't invokable by role.
+with one `["archetype", "<slug>", "<NAP-N>", ...]` manifest tag per accepted
+protocol. Extra fields such as `kind:<number>` are scoped to that protocol and
+defined by [NAP-INTENT](naps/NAP-INTENT.md). Napplets invoke each other by role
+through NAP-INTENT. A napplet with no archetype tag is fully valid — it simply
+isn't invokable by role.
 
 ## Boundary rule
 
