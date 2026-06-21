@@ -18,51 +18,52 @@ Napplets do not render notifications themselves. The shell controls presentation
 
 ## API Surface
 
-```typescript
-interface NappletNotify {
-  send(notification: NotificationPayload): Promise<NotificationResult>;
-  dismiss(notificationId: string): void;
-  badge(count: number): void;
-  registerChannel(channel: NotificationChannel): void;
-  requestPermission(channel?: string): Promise<{ granted: boolean }>;
-  onAction(cb: (notificationId: string, actionId: string) => void): Subscription;
-  onClicked(cb: (notificationId: string) => void): Subscription;
-  onDismissed(cb: (notificationId: string, reason?: string) => void): Subscription;
-  onControls(cb: (controls: NotifyControl[]) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `send` | `notification` (`NotificationPayload`) | `NotificationResult` | `notify.send` / `notify.send.result` |
+| `dismiss` | `notificationId` (`tstr`) | none | `notify.dismiss` |
+| `badge` | `count` (`uint`) | none | `notify.badge` |
+| `registerChannel` | `channel` (`NotificationChannel`) | none | `notify.registerChannel` |
+| `requestPermission` | optional `channel` (`tstr`) | `PermissionResult` | `notify.requestPermission` / `notify.requestPermission.result` |
+| `onAction` | handler for `notificationId` and `actionId` | `Subscription` handle | `notify.action` |
+| `onClicked` | handler for `notificationId` | `Subscription` handle | `notify.clicked` |
+| `onDismissed` | handler for `notificationId` and optional reason | `Subscription` handle | `notify.dismissed` |
+| `onControls` | handler for list of `NotifyControl` | `Subscription` handle | `notify.controls` |
+
+### Schemas
+
+```cddl
+NotificationPriority = "low" / "normal" / "high" / "urgent"
+NotifyControl = "toasts" / "badges" / "actions" / "channels" / "system"
+
+NotificationPayload = {
+  title: tstr,
+  ? body: tstr,
+  ? icon: tstr,
+  ? actions: [* NotificationAction],
+  ? channel: tstr,
+  ? priority: NotificationPriority,
 }
 
-interface NotificationPayload {
-  title: string;
-  body?: string;
-  icon?: string;
-  actions?: NotificationAction[];
-  channel?: string;
-  priority?: NotificationPriority;
+NotificationResult = {
+  notificationId: tstr,
+  ? error: tstr,
 }
 
-interface NotificationResult {
-  notificationId: string;
-  error?: string;
+NotificationAction = {
+  id: tstr,
+  label: tstr,
 }
 
-interface NotificationAction {
-  id: string;
-  label: string;
+NotificationChannel = {
+  channelId: tstr,
+  label: tstr,
+  ? description: tstr,
+  ? defaultPriority: NotificationPriority,
 }
 
-interface NotificationChannel {
-  channelId: string;
-  label: string;
-  description?: string;
-  defaultPriority?: NotificationPriority;
-}
-
-type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
-
-type NotifyControl = 'toasts' | 'badges' | 'actions' | 'channels' | 'system';
-
-interface Subscription {
-  close(): void;
+PermissionResult = {
+  granted: bool,
 }
 ```
 
