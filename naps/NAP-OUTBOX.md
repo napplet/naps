@@ -20,65 +20,70 @@ This interface is for Nostr event access where relay selection is part of the re
 
 ## API Surface
 
-```typescript
-interface NappletOutbox {
-  query(filters: NostrFilter | NostrFilter[], options?: OutboxQueryOptions): Promise<OutboxResult>;
-  subscribe(filters: NostrFilter | NostrFilter[], options?: OutboxSubscribeOptions): OutboxSubscription;
-  publish(template: EventTemplate, options?: OutboxPublishOptions): Promise<OutboxPublishResult>;
-  resolveRelays(target: OutboxTarget): Promise<OutboxRelayPlan>;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `query` | `filters` (`NostrFilter` or list), optional `options` (`OutboxQueryOptions`) | `OutboxResult` | `outbox.query` / `outbox.query.result` |
+| `subscribe` | `filters` (`NostrFilter` or list), optional `options` (`OutboxSubscribeOptions`) | `OutboxSubscription` handle | `outbox.subscribe` plus push messages |
+| `publish` | `template` (`EventTemplate`), optional `options` (`OutboxPublishOptions`) | `OutboxPublishResult` | `outbox.publish` / `outbox.publish.result` |
+| `resolveRelays` | `target` (`OutboxTarget`) | `OutboxRelayPlan` | `outbox.resolveRelays` / `outbox.resolveRelays.result` |
+
+### Schemas
+
+```cddl
+NostrFilter = { * tstr => any }
+NostrEvent = { * tstr => any }
+EventTemplate = { * tstr => any }
+OutboxStrategy = "outbox" / "inbox" / "auto"
+
+OutboxQueryOptions = {
+  ? authors: [* tstr],
+  ? relays: [* tstr],
+  ? strategy: OutboxStrategy,
+  ? limit: uint,
+  ? timeoutMs: uint,
 }
 
-interface OutboxQueryOptions {
-  authors?: string[];
-  relays?: string[];
-  strategy?: "outbox" | "inbox" | "auto";
-  limit?: number;
-  timeoutMs?: number;
+OutboxSubscribeOptions = {
+  ? authors: [* tstr],
+  ? relays: [* tstr],
+  ? strategy: OutboxStrategy,
+  ? limit: uint,
+  ? timeoutMs: uint,
+  ? live: bool,
 }
 
-interface OutboxSubscribeOptions extends OutboxQueryOptions {
-  live?: boolean;
+OutboxPublishOptions = {
+  ? relays: [* tstr],
+  ? targetAuthors: [* tstr],
+  ? strategy: OutboxStrategy,
 }
 
-interface OutboxPublishOptions {
-  relays?: string[];
-  targetAuthors?: string[];
-  strategy?: "outbox" | "inbox" | "auto";
+OutboxTarget = {
+  ? authors: [* tstr],
+  ? pubkey: tstr,
+  ? direction: "read" / "write",
+  ? strategy: OutboxStrategy,
 }
 
-interface OutboxTarget {
-  authors?: string[];
-  pubkey?: string;
-  direction?: "read" | "write";
-  strategy?: "outbox" | "inbox" | "auto";
+OutboxRelayPlan = {
+  relays: [* tstr],
+  source: "nip65" / "cache" / "policy" / "fallback",
+  ? missingAuthors: [* tstr],
 }
 
-interface OutboxRelayPlan {
-  relays: string[];
-  source: "nip65" | "cache" | "policy" | "fallback";
-  missingAuthors?: string[];
+OutboxResult = {
+  events: [* NostrEvent],
+  relays: { * tstr => [* tstr] },
+  ? incomplete: bool,
+  ? error: tstr,
 }
 
-interface OutboxResult {
-  events: NostrEvent[];
-  relays: Record<string, string[]>;
-  incomplete?: boolean;
-  error?: string;
-}
-
-interface OutboxPublishResult {
-  ok: boolean;
-  event?: NostrEvent;
-  eventId?: string;
-  relays?: Record<string, boolean>;
-  error?: string;
-}
-
-interface OutboxSubscription {
-  on(event: "event", cb: (event: NostrEvent, relay?: string) => void): void;
-  on(event: "eose", cb: () => void): void;
-  on(event: "closed", cb: (reason?: string) => void): void;
-  close(): void;
+OutboxPublishResult = {
+  ok: bool,
+  ? event: NostrEvent,
+  ? eventId: tstr,
+  ? relays: { * tstr => bool },
+  ? error: tstr,
 }
 ```
 
