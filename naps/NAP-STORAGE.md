@@ -16,24 +16,16 @@ NAP-STORAGE provides napplets with an async localStorage-like API. Without `allo
 
 ## API Surface
 
-```typescript
-interface NappletStorage {
-  getItem(key: string): Promise<string | null>;    // via storage.get
-  setItem(key: string, value: string): Promise<void>; // via storage.set
-  removeItem(key: string): Promise<void>;           // via storage.remove
-  keys(): Promise<string[]>;                        // via storage.keys
-
-  // Per-instance storage: identical surface, scoped to the calling instance.
-  instance: NappletInstanceStorage;
-}
-
-interface NappletInstanceStorage {
-  getItem(key: string): Promise<string | null>;    // via storage.get    (scope: "instance")
-  setItem(key: string, value: string): Promise<void>; // via storage.set    (scope: "instance")
-  removeItem(key: string): Promise<void>;           // via storage.remove (scope: "instance")
-  keys(): Promise<string[]>;                        // via storage.keys   (scope: "instance")
-}
-```
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `getItem` | `key` (`tstr`) | `tstr` or `null` | `storage.get` / `storage.get.result` |
+| `setItem` | `key` (`tstr`), `value` (`tstr`) | none | `storage.set` / `storage.set.result` |
+| `removeItem` | `key` (`tstr`) | none | `storage.remove` / `storage.remove.result` |
+| `keys` | none | list of `tstr` keys | `storage.keys` / `storage.keys.result` |
+| `instance.getItem` | `key` (`tstr`) | `tstr` or `null` | `storage.get` / `storage.get.result` with `scope: "instance"` |
+| `instance.setItem` | `key` (`tstr`), `value` (`tstr`) | none | `storage.set` / `storage.set.result` with `scope: "instance"` |
+| `instance.removeItem` | `key` (`tstr`) | none | `storage.remove` / `storage.remove.result` with `scope: "instance"` |
+| `instance.keys` | none | list of `tstr` keys | `storage.keys` / `storage.keys.result` with `scope: "instance"` |
 
 **`getItem(key)`** — Retrieves a stored value by key. Returns `null` if the key does not exist, matching localStorage semantics.
 
