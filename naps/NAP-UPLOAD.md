@@ -22,46 +22,69 @@ Napplets never receive signing keys, server credentials, or direct network acces
 
 ## API Surface
 
-```typescript
-interface NappletUpload {
-  upload(request: UploadRequest): Promise<UploadResult>;   // via upload.upload
-  status(uploadId: string): Promise<UploadStatus>;         // via upload.status
-  onStatus(handler: (status: UploadStatus) => void): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `upload` | `request` (`UploadRequest`) | `UploadResult` | `upload.upload` / `upload.upload.result` |
+| `status` | `uploadId` (`tstr`) | `UploadStatus` | `upload.status` / `upload.status.result` |
+| `onStatus` | handler for `UploadStatus` | `Subscription` handle | `upload.status.changed` |
+
+### Schemas
+
+```cddl
+UploadRail = "nip96" / "blossom" / tstr
+UploadState = "pending" / "uploading" / "complete" / "failed" / "cancelled"
+NostrTag = [* tstr]
+
+UploadRequest = {
+  ? rail: UploadRail, ; omit to let the shell pick a configured default
+  data: bstr,         ; Blob or ArrayBuffer in the web projection
+  ? mimeType: tstr,   ; inferred from data when omitted
+  ? filename: tstr,
+  ? caption: tstr,    ; alt text / description for the file event
+  ? noTransform: bool,
+  ? metadata: { * tstr => any },
 }
 
-type UploadRail = "nip96" | "blossom" | string;
-
-interface UploadRequest {
-  rail?: UploadRail;                 // omit to let the shell pick a configured default
-  data: Blob | ArrayBuffer;          // structured-cloned across the postMessage boundary
-  mimeType?: string;                 // inferred from `data` when omitted
-  filename?: string;
-  caption?: string;                  // alt text / description for the file event
-  noTransform?: boolean;             // request the server not re-encode (NIP-96 no_transform)
-  metadata?: Record<string, unknown>;
+UploadDimensions = {
+  width: uint,
+  height: uint,
 }
 
-interface UploadResult {
-  ok: boolean;
-  uploadId: string;
-  status: "pending" | "uploading" | "complete" | "failed" | "cancelled";
-  rail: UploadRail;
-  url?: string;                      // primary download URL
-  fallbackUrls?: string[];          // mirrors / alternative servers
-  sha256?: string;                   // hash of the stored blob (NIP-94 `x`)
-  originalSha256?: string;           // hash before server transforms (NIP-94 `ox`)
-  size?: number;                     // bytes
-  mimeType?: string;
-  dimensions?: { width: number; height: number };
-  blurhash?: string;
-  nip94?: NostrTag[];                // ready-to-attach NIP-94 / imeta tags
-  error?: string;
+UploadResult = {
+  ok: bool,
+  uploadId: tstr,
+  status: UploadState,
+  rail: UploadRail,
+  ? url: tstr,          ; primary download URL
+  ? fallbackUrls: [* tstr],
+  ? sha256: tstr,       ; hash of the stored blob, NIP-94 x
+  ? originalSha256: tstr, ; hash before server transforms, NIP-94 ox
+  ? size: uint,         ; bytes
+  ? mimeType: tstr,
+  ? dimensions: UploadDimensions,
+  ? blurhash: tstr,
+  ? nip94: [* NostrTag],
+  ? error: tstr,
 }
 
-interface UploadStatus extends UploadResult {
-  bytesSent?: number;
-  bytesTotal?: number;
-  updatedAt: number;
+UploadStatus = {
+  ok: bool,
+  uploadId: tstr,
+  status: UploadState,
+  rail: UploadRail,
+  ? url: tstr,
+  ? fallbackUrls: [* tstr],
+  ? sha256: tstr,
+  ? originalSha256: tstr,
+  ? size: uint,
+  ? mimeType: tstr,
+  ? dimensions: UploadDimensions,
+  ? blurhash: tstr,
+  ? nip94: [* NostrTag],
+  ? error: tstr,
+  ? bytesSent: uint,
+  ? bytesTotal: uint,
+  updatedAt: uint,
 }
 ```
 
