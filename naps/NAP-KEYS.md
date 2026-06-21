@@ -18,27 +18,25 @@ When a napplet registers an action and the shell binds it to a key, the shell pu
 
 ## API Surface
 
-```typescript
-interface NappletKeys {
-  registerAction(action: Action): Promise<RegisterResult>;  // via keys.registerAction / keys.registerAction.result
-  unregisterAction(actionId: string): void;                 // via keys.unregisterAction
-  forward(event: KeyboardEvent): void;                      // via keys.forward
-  onAction(actionId: string, cb: () => void): Subscription; // local — not a wire message
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `registerAction` | `action` (`Action`) | `RegisterResult` | `keys.registerAction` / `keys.registerAction.result` |
+| `unregisterAction` | `actionId` (`tstr`) | none | `keys.unregisterAction` |
+| `forward` | keyboard event fields | none | `keys.forward` |
+| `onAction` | `actionId` (`tstr`), local callback | `Subscription` handle | local helper; not a wire message |
+
+### Schemas
+
+```cddl
+Action = {
+  id: tstr,    ; unique action identifier, e.g. "editor.save"
+  label: tstr, ; human-readable label for shell keybinding UI
+  ? defaultKey: tstr, ; suggested binding hint, e.g. "Ctrl+S"
 }
 
-interface Action {
-  id: string;              // unique action identifier, e.g. "editor.save", "viewer.zoom-in"
-  label: string;           // human-readable label for the shell's keybinding UI
-  defaultKey?: string;     // suggested binding hint, e.g. "Ctrl+S" — shell MAY ignore
-}
-
-interface RegisterResult {
-  actionId: string;
-  binding?: string;        // key combo the shell assigned, if any (null = unbound)
-}
-
-interface Subscription {
-  close(): void;
+RegisterResult = {
+  actionId: tstr,
+  ? binding: tstr, ; key combo assigned by the shell, absent when unbound
 }
 ```
 
