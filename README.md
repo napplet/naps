@@ -196,7 +196,7 @@ napplet negotiates one at runtime with `shell.supports("inc", "NAP-N")`.
 
 ### NAAT — archetypes (*what kind of napplet this is*)
 
-Canonical napplet *roles* — `note`, `feed`, `profile`, `emoji-list`. A NAAT is
+Canonical napplet *roles* — `note`, `feed`, `profile`, `pet`. A NAAT is
 **not** a NAP: neither an interface nor a wire format, just a name and a boundary.
 Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
 to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
