@@ -220,7 +220,7 @@ competing feed-topic NAPs is determined by implementation adoption.
 
 Napplets discover support for this protocol with:
 
-```ts
+```
 window.napplet.shell.supports("inc", "NAP-5");
 ```
 
