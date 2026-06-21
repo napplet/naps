@@ -22,111 +22,118 @@ Mining commits the user's pubkey and `created_at` into the event id (NIP-13), so
 
 ## API Surface
 
-```typescript
-interface NappletPow {
-  mine(template: EventTemplate, target: number, opts?: PowOptions): PowJob;
-  mineAndPublish(template: EventTemplate, target: number, opts?: PowOptions): PowJob;
-  queue(): Promise<PowJobSummary[]>;                 // via pow.queue
-  job(jobId: string): Promise<PowProgress>;          // via pow.job — snapshot of one job
-  hashrate(): Promise<PowHashrate>;                  // via pow.hashrate — miner-wide, live
-  cancel(jobId: string): Promise<boolean>;           // via pow.cancel
-  pause(jobId?: string): Promise<void>;              // via pow.pause  — one job, or all if omitted
-  resume(jobId?: string): Promise<void>;             // via pow.resume — one job, or all if omitted
-  formatHashRate(hashesPerSecond: number): string;   // sugar: 1500 -> "1.5 kH/s" (local, no message)
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `mine` | `template` (`EventTemplate`), `target` (`uint`), optional `opts` (`PowOptions`) | `PowJob` handle | `pow.mine` plus push messages |
+| `mineAndPublish` | `template` (`EventTemplate`), `target` (`uint`), optional `opts` (`PowOptions`) | `PowJob` handle | `pow.mineAndPublish` plus push messages |
+| `queue` | none | list of `PowJobSummary` | `pow.queue` / `pow.queue.result` |
+| `job` | `jobId` (`tstr`) | `PowProgress` | `pow.job` / `pow.job.result` |
+| `hashrate` | none | `PowHashrate` | `pow.hashrate` / `pow.hashrate.result` |
+| `cancel` | `jobId` (`tstr`) | `bool` | `pow.cancel` / `pow.cancel.result` |
+| `pause` | optional `jobId` (`tstr`) | none | `pow.pause` / `pow.pause.result` |
+| `resume` | optional `jobId` (`tstr`) | none | `pow.resume` / `pow.resume.result` |
+| `formatHashRate` | `hashesPerSecond` (`number`) | `tstr` | local helper; no wire message |
+
+`PowJob` is a local handle for `jobId` and `target`. It exposes `started`,
+`completed`, event listeners for `state`, `progress`, `done`, and `error`, and
+local `cancel`, `pause`, and `resume` helpers backed by the matching operations.
+
+### Schemas
+
+```cddl
+PowState = "queued" / "mining" / "paused" / "done" / "cancelled" / "error"
+NostrEvent = { * tstr => any }
+NostrTag = [* tstr]
+
+EventTemplate = {
+  kind: uint,
+  content: tstr,
+  ? tags: [* NostrTag],
+  ? created_at: uint,
 }
 
-interface EventTemplate {
-  kind: number;
-  content: string;
-  tags?: string[][];                 // a ["nonce", …] tag, if present, is replaced by the shell
-  created_at?: number;               // hint; the shell stamps the committed value at job start
+PowOptions = {
+  ? workers: uint,
+  ? priority: int,
+  ? timeoutMs: uint,
+  ? commitCreatedAt: bool,
 }
 
-interface PowOptions {
-  workers?: number;                  // desired worker count (1..n); a hint, the shell caps it
-  priority?: number;                 // queue-ordering hint; higher runs sooner. Shell MAY ignore. Default 0
-  timeoutMs?: number;                // max time spent MINING before the job ends "error"; excludes queue wait
-  commitCreatedAt?: boolean;         // stamp created_at when mining begins and freeze it for the search (default true)
+PowStateChange = {
+  jobId: tstr,
+  state: PowState,
+  ? position: uint,
 }
 
-interface PowJob {
-  jobId: string;                     // shell-unique handle for this job
-  target: number;                    // requested difficulty (leading zero bits)
-  started: Promise<void>;            // resolves when the job leaves the queue and mining begins
-  completed: Promise<PowResult>;     // resolves on success; rejects on cancel/timeout/error
-  on(event: "state", cb: (s: PowStateChange) => void): void;     // queued -> mining -> paused/done/cancelled/error
-  on(event: "progress", cb: (p: PowProgress) => void): void;
-  on(event: "done", cb: (r: PowResult) => void): void;
-  on(event: "error", cb: (e: PowError) => void): void;
-  cancel(): Promise<boolean>;
-  pause(): Promise<void>;
-  resume(): Promise<void>;
+WorkerStat = {
+  workerId: uint,
+  bestPow: uint,
+  hashes: uint,
+  hashRate: number,
 }
 
-interface PowStateChange {
-  jobId: string;
-  state: PowState;
-  position?: number;                 // 0-based queue position while state === "queued"
+PowProgress = {
+  jobId: tstr,
+  target: uint,
+  state: PowState,
+  bestPow: uint,
+  ? bestNonce: tstr,
+  hashes: uint,
+  hashRate: number,
+  workers: [* WorkerStat],
+  elapsedMs: uint,
 }
 
-interface WorkerStat {
-  workerId: number;
-  bestPow: number;                   // best leading-zero-bits this worker has found
-  hashes: number;                    // hashes tried by this worker
-  hashRate: number;                  // H/s for this worker
+PowWorkerHashrate = {
+  workerId: uint,
+  hashRate: number,
 }
 
-interface PowProgress {
-  jobId: string;
-  target: number;
-  state: PowState;
-  bestPow: number;                   // best difficulty found across all workers
-  bestNonce?: string;
-  hashes: number;                    // total hashes tried for this job
-  hashRate: number;                  // H/s for this job (sum of its workers)
-  workers: WorkerStat[];             // one entry per active worker on this job
-  elapsedMs: number;
+PowJobHashrate = {
+  jobId: tstr,
+  hashRate: number,
 }
 
-interface PowHashrate {
-  hashRate: number;                  // total H/s across the whole miner
-  workers: number;                   // active worker count
-  perWorker: { workerId: number; hashRate: number }[];
-  byJob: { jobId: string; hashRate: number }[];
+PowHashrate = {
+  hashRate: number,
+  workers: uint,
+  perWorker: [* PowWorkerHashrate],
+  byJob: [* PowJobHashrate],
 }
 
-interface PowResult {
-  jobId: string;
-  ok: boolean;
-  event: NostrEvent;                 // mined event; id meets target; carries the nonce tag
-  pow: number;                       // achieved difficulty (>= target)
-  nonce: string;
-  hashes: number;
-  elapsedMs: number;
-  published?: PowPublishResult;      // present only for mineAndPublish
-  error?: string;
+PowResult = {
+  jobId: tstr,
+  ok: bool,
+  event: NostrEvent,
+  pow: uint,
+  nonce: tstr,
+  hashes: uint,
+  elapsedMs: uint,
+  ? published: PowPublishResult,
+  ? error: tstr,
 }
 
-interface PowPublishResult {
-  eventId: string;
-  relays: Record<string, boolean>;   // outbox fanout outcome per relay
+PowPublishResult = {
+  eventId: tstr,
+  relays: { * tstr => bool },
 }
 
-interface PowJobSummary {
-  jobId: string;
-  target: number;
-  state: PowState;
-  priority: number;
-  position?: number;                 // 0-based queue position while state === "queued"
-  bestPow: number;
-  hashRate: number;
-  kind: number;
-  mode: "mine" | "mineAndPublish";
+PowJobSummary = {
+  jobId: tstr,
+  target: uint,
+  state: PowState,
+  priority: int,
+  ? position: uint,
+  bestPow: uint,
+  hashRate: number,
+  kind: uint,
+  mode: "mine" / "mineAndPublish",
 }
 
-interface PowError { jobId: string; error: string; }
-
-type PowState = "queued" | "mining" | "paused" | "done" | "cancelled" | "error";
+PowError = {
+  jobId: tstr,
+  error: tstr,
+}
 ```
 
 **`mine(template, target, opts?)`** — **Submits** a mining job and returns a `PowJob` handle immediately. The job is *enqueued*: depending on the shell's concurrency policy it begins mining at once or waits behind other jobs, reporting `state: "queued"` (with a queue `position`) until a worker slot frees. `job.started` resolves when mining actually begins; `job.completed` resolves with the mined **unsigned** event once `target` is met. The handle is valid the moment it is returned — `cancel`, `pause`, and queue inspection all work while the job is still queued.
