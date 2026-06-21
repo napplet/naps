@@ -22,54 +22,60 @@ This shell-user identity is distinct from the NIP-5D napplet session identity. T
 
 ## API Surface
 
-```typescript
-interface NappletIdentity {
-  getPublicKey(): Promise<string>;
-  onChanged(handler: (pubkey: string) => void): Subscription;
-  getRelays(): Promise<Record<string, { read: boolean; write: boolean }>>;
-  getProfile(): Promise<ProfileData | null>;
-  getFollows(): Promise<string[]>;
-  getList(type: string): Promise<string[]>;
-  getZaps(): Promise<ZapReceipt[]>;
-  getMutes(): Promise<string[]>;
-  getBlocked(): Promise<string[]>;
-  getBadges(): Promise<Badge[]>;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `getPublicKey` | none | `tstr` public key, or `""` when no signer is connected | `identity.getPublicKey` / `identity.getPublicKey.result` |
+| `onChanged` | handler for `tstr` public key | `Subscription` handle | `identity.changed` |
+| `getRelays` | none | `RelayMap` | `identity.getRelays` / `identity.getRelays.result` |
+| `getProfile` | none | `ProfileData` or `null` | `identity.getProfile` / `identity.getProfile.result` |
+| `getFollows` | none | list of `tstr` pubkeys | `identity.getFollows` / `identity.getFollows.result` |
+| `getList` | `type` (`tstr`) | list of `tstr` entries | `identity.getList` / `identity.getList.result` |
+| `getZaps` | none | list of `ZapReceipt` | `identity.getZaps` / `identity.getZaps.result` |
+| `getMutes` | none | list of `tstr` pubkeys | `identity.getMutes` / `identity.getMutes.result` |
+| `getBlocked` | none | list of `tstr` pubkeys | `identity.getBlocked` / `identity.getBlocked.result` |
+| `getBadges` | none | list of `Badge` | `identity.getBadges` / `identity.getBadges.result` |
+
+### Schemas
+
+```cddl
+RelayPermissions = {
+  read: bool,
+  write: bool,
 }
 
-interface ProfileData {
-  name?: string;
-  displayName?: string;
-  about?: string;
-  picture?: string;
-  banner?: string;
-  nip05?: string;
-  lud16?: string;
-  website?: string;
+RelayMap = {
+  * tstr => RelayPermissions,
+}
+
+ProfileData = {
+  ? name: tstr,
+  ? displayName: tstr,
+  ? about: tstr,
+  ? picture: tstr,
+  ? banner: tstr,
+  ? nip05: tstr,
+  ? lud16: tstr,
+  ? website: tstr,
 }
 ```
 
 **Resource resolution.** The `picture` and `banner` fields are URL strings. Napplets that need the bytes (for example, to render an `<img>` via an object URL) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. Napplets MUST NOT attempt direct `<img src="https://...">` loads — sandboxed napplets cannot make direct network requests under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`). Conformant shells expose every external byte resource through NAP-RESOURCE, including profile pictures and banners. The shell applies the standard NAP-RESOURCE policy to these fetches (private-IP block list at DNS-resolution time, MIME byte-sniffing, optional SVG rasterization, etc.).
 
-```typescript
-
-interface ZapReceipt {
-  eventId: string;
-  sender: string;
-  amount: number;
-  content?: string;
+```cddl
+ZapReceipt = {
+  eventId: tstr,
+  sender: tstr,
+  amount: uint,
+  ? content: tstr,
 }
 
-interface Badge {
-  id: string;
-  name?: string;
-  description?: string;
-  image?: string;
-  thumbs?: string[];
-  awardedBy: string;
-}
-
-interface Subscription {
-  close(): void;
+Badge = {
+  id: tstr,
+  ? name: tstr,
+  ? description: tstr,
+  ? image: tstr,
+  ? thumbs: [* tstr],
+  awardedBy: tstr,
 }
 ```
 
