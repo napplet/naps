@@ -42,27 +42,21 @@ normative.
 
 ## API Surface
 
-```typescript
-interface NappletShell {
-  // Synchronous capability query, answered from the cached environment.
-  // `protocol` narrows a domain to a specific numbered wire protocol within it.
-  supports(domain: string, protocol?: string): boolean;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `supports` | `domain` (`tstr`), optional `protocol` (`tstr`) | `bool` | local query against cached `shell.init` |
+| `services` | none | list of `tstr` service names | local read against cached `shell.init` |
+| `ready` | none | `ShellEnvironment` | resolves after `shell.ready` / `shell.init` |
+| `onReady` | handler for `ShellEnvironment` | `Subscription` handle | fires after `shell.init` |
 
-  // The named services the runtime exposes for this napplet.
-  readonly services: readonly string[];
+### Schemas
 
-  // Resolves once the environment has been delivered. Repeated calls after
-  // delivery resolve immediately with the same environment.
-  ready(): Promise<ShellEnvironment>;
+```cddl
+ShellCapabilities = any ; runtime-internal shape sufficient to answer supports(domain, protocol?)
 
-  // Fires once when the environment is delivered (or immediately if already
-  // delivered). Use to gate identity- or capability-dependent startup.
-  onReady(handler: (env: ShellEnvironment) => void): Subscription;
-}
-
-interface ShellEnvironment {
-  capabilities: ShellCapabilities;   // sufficient to answer supports(domain, protocol?)
-  services: string[];
+ShellEnvironment = {
+  capabilities: ShellCapabilities,
+  services: [* tstr],
 }
 ```
 

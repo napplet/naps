@@ -18,47 +18,40 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 ## API Surface
 
-```typescript
-interface NappletInc {
-  // Topic-based pub/sub
-  emit(topic: string, payload?: unknown): void;         // via inc.emit
-  on(topic: string, callback: (event: IncEvent) => void): Subscription;  // via inc.subscribe
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `emit` | `topic` (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
+| `on` | `topic` (`tstr`), event handler for `IncEvent` | `Subscription` handle | `inc.subscribe` / `inc.subscribe.result` |
+| `channel.open` | `target` (`tstr`, peer dTag) | `ChannelHandle` | `inc.channel.open` / `inc.channel.open.result` |
+| `channel.list` | none | list of `ChannelInfo` | `inc.channel.list` / `inc.channel.list.result` |
+| `channel.broadcast` | `payload` (`any`) | none | `inc.channel.broadcast` |
+| `ChannelHandle.emit` | `payload` (`any`) | none | `inc.channel.emit` |
+| `ChannelHandle.on` | event handler for `ChannelEvent` | `Subscription` handle | `inc.channel.event` |
+| `ChannelHandle.close` | none | none | `inc.channel.close` |
 
-  // Point-to-point channels
-  channel: {
-    open(target: string): Promise<ChannelHandle>;     // via inc.channel.open
-    list(): Promise<ChannelInfo[]>;                    // via inc.channel.list
-    broadcast(payload: unknown): void;                 // via inc.channel.broadcast
-  };
+### Schemas
+
+```cddl
+IncEvent = {
+  topic: tstr,
+  sender: tstr, ; sender dTag, per NIP-5D
+  ? payload: any,
 }
 
-interface IncEvent {
-  topic: string;
-  sender: string;    // sender dTag (napplet type identifier, per NIP-5D)
-  payload: unknown;
+ChannelHandle = {
+  id: tstr,   ; shell-assigned channel ID
+  peer: tstr, ; peer dTag
 }
 
-interface Subscription {
-  close(): void;     // via inc.unsubscribe
+ChannelEvent = {
+  channelId: tstr,
+  sender: tstr, ; sender dTag
+  ? payload: any,
 }
 
-interface ChannelHandle {
-  readonly id: string;           // shell-assigned channel ID
-  readonly peer: string;         // peer dTag
-  emit(payload: unknown): void;  // via inc.channel.emit
-  on(callback: (event: ChannelEvent) => void): Subscription;
-  close(): void;                 // via inc.channel.close
-}
-
-interface ChannelEvent {
-  channelId: string;
-  sender: string;    // sender dTag
-  payload: unknown;
-}
-
-interface ChannelInfo {
-  id: string;
-  peer: string;      // peer dTag
+ChannelInfo = {
+  id: tstr,
+  peer: tstr, ; peer dTag
 }
 ```
 
