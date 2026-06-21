@@ -18,30 +18,24 @@ NAP-RELAY provides napplets with relay access through the shell. Sandboxed ifram
 
 ## API Surface
 
-```typescript
-interface NappletRelay {
-  subscribe(                                         // via relay.subscribe
-    filters: NostrFilter | NostrFilter[],
-    options?: { relay?: string },
-  ): Subscription;
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `subscribe` | `filters` (`NostrFilter` or list), optional `options` (`RelaySubscribeOptions`) | `Subscription` handle | `relay.subscribe` plus `relay.event` / `relay.eose` |
+| `publish` | `template` (`EventTemplate`) | `NostrEvent` | `relay.publish` / `relay.publish.result` |
+| `publishEncrypted` | `template` (`EventTemplate`), `recipient` (`tstr`), optional `encryption` (`RelayEncryption`) | `NostrEvent` | `relay.publishEncrypted` / `relay.publishEncrypted.result` |
+| `query` | `filters` (`NostrFilter` or list) | list of `NostrEvent` | `relay.query` / `relay.query.result` |
+| `Subscription.close` | none | none | `relay.close` |
 
-  publish(template: EventTemplate): Promise<NostrEvent>;  // via relay.publish
+### Schemas
 
-  publishEncrypted(                                  // via relay.publishEncrypted
-    template: EventTemplate,
-    recipient: string,
-    encryption?: 'nip44' | 'nip04',
-  ): Promise<NostrEvent>;
+```cddl
+NostrFilter = { * tstr => any }
+NostrEvent = { * tstr => any }
+EventTemplate = { * tstr => any }
+RelayEncryption = "nip44" / "nip04"
 
-  query(                                             // via relay.query
-    filters: NostrFilter | NostrFilter[],
-  ): Promise<NostrEvent[]>;
-}
-
-interface Subscription {
-  on(event: 'event', cb: (event: NostrEvent) => void): void;
-  on(event: 'eose', cb: () => void): void;
-  close(): void;                                     // via relay.close
+RelaySubscribeOptions = {
+  ? relay: tstr,
 }
 ```
 
@@ -141,13 +135,9 @@ Pre-resolution is **OPTIONAL** with **default OFF** for privacy reasons document
 **imports** the type to type its own `resources?` field; it MUST NOT redefine it.
 The owning shape is reproduced here for reference only — `resource` is normative:
 
-```typescript
-interface ResourceSidecarEntry {
-  url: string;       // canonical URL form for this resource
-  blob: Blob;        // pre-fetched bytes
-  mime: string;      // shell-classified by byte-sniffing -- NEVER upstream Content-Type
-}
-```
+`ResourceSidecarEntry` contains the canonical URL, pre-fetched bytes, and
+shell-classified MIME value defined by NAP-RESOURCE. This spec references that
+record by name only.
 
 ### Wire example (with sidecar)
 
