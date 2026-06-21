@@ -21,18 +21,10 @@ This NAP depends on the iframe sandbox model defined by NIP-5D (`sandbox="allow-
 
 ## API Surface
 
-```typescript
-interface NappletResource {
-  /** Fetch bytes for a URL through the host shell. */
-  bytes(url: string, opts?: { signal?: AbortSignal }): Promise<Blob>;
-
-  /**
-   * Synchronously return a handle whose `url` is populated with a blob URL
-   * once the fetch resolves; revoke() releases the underlying object URL.
-   */
-  bytesAsObjectURL(url: string): { url: string; revoke: () => void };
-}
-```
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `bytes` | `url` (`tstr`), optional abort signal | byte payload (`Blob` in the web projection) | `resource.bytes` / `resource.bytes.result` or `resource.bytes.error` |
+| `bytesAsObjectURL` | `url` (`tstr`) | object URL handle with `url` and `revoke` | helper over `bytes` |
 
 **`bytes(url, opts?)`** -- Sends a `resource.bytes` envelope to the host shell with the supplied URL and a freshly minted correlation `id`. Resolves with the `Blob` delivered by the shell on `resource.bytes.result`, or rejects with an error whose code is one of the eight enumerated in Error Codes below. When `opts.signal` is supplied, an already-aborted signal MUST cause the returned Promise to reject synchronously with an `AbortError` and SHOULD cause a `resource.cancel` envelope to be sent so the shell can release any in-flight fetch resources. Aborts after dispatch send `resource.cancel` to the shell and reject the awaiting napplet's Promise locally; the shell MAY emit no further envelopes for that `id`.
 
