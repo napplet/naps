@@ -98,7 +98,7 @@ adoption.
 
 Napplets discover support for this protocol with:
 
-```ts
+```
 window.napplet.shell.supports("inc", "NAP-3");
 ```
 
