@@ -28,8 +28,6 @@ capability it reports.
 | `services` | none | list of `SystemServiceStatus` | `system.services` / `system.services.result` |
 | `relays` | none | list of `SystemRelayStatus` | `system.relays` / `system.relays.result` |
 | `eventCache` | none | `SystemStorageStatus` | `system.eventCache` / `system.eventCache.result` |
-| `localStorage` | none | `SystemStorageStatus` | `system.localStorage` / `system.localStorage.result` |
-| `indexedDb` | none | `SystemStorageStatus` | `system.indexedDb` / `system.indexedDb.result` |
 | `media` | none | `SystemMediaStatus` | `system.media` / `system.media.result` |
 | `nappletStorage` | none | `SystemStorageStatus` | `system.nappletStorage` / `system.nappletStorage.result` |
 | `scopes` | none | list of `SystemScopeSummary` | `system.scopes` / `system.scopes.result` |
@@ -114,14 +112,6 @@ not user relay preferences. User relay preferences belong to NAP-IDENTITY.
 **`eventCache()`** returns runtime event-cache details, such as approximate size,
 quota, persistence, and health.
 
-**`localStorage()`** returns runtime local-storage details. In a web projection
-this may describe browser `localStorage`; in another projection it may describe
-the runtime's equivalent local key-value surface.
-
-**`indexedDb()`** returns runtime IndexedDB details. In a non-web projection this
-MAY describe the runtime's equivalent indexed object store, or return
-`available: false`.
-
 **`media()`** returns runtime media status: playback, capture availability,
 active sessions, and health. It does not grant camera, microphone, screen, or
 playback control.
@@ -147,8 +137,6 @@ Global accessors describe runtime-wide systems as redacted for this napplet:
 | `services()` | runtime service availability and health |
 | `relays()` | connected relay health |
 | `eventCache()` | event-cache health, usage, and persistence |
-| `localStorage()` | local-storage health and usage |
-| `indexedDb()` | IndexedDB / indexed-store health and usage |
 | `media()` | media subsystem health and active session count |
 
 Scoped accessors describe only resources attributable to the requesting napplet:
@@ -177,10 +165,6 @@ NAP-SYSTEM.
 | `system.relays.result` | runtime -> napplet | `id`, `relays?`, `error?` |
 | `system.eventCache` | napplet -> runtime | `id` |
 | `system.eventCache.result` | runtime -> napplet | `id`, `status?`, `error?` |
-| `system.localStorage` | napplet -> runtime | `id` |
-| `system.localStorage.result` | runtime -> napplet | `id`, `status?`, `error?` |
-| `system.indexedDb` | napplet -> runtime | `id` |
-| `system.indexedDb.result` | runtime -> napplet | `id`, `status?`, `error?` |
 | `system.media` | napplet -> runtime | `id` |
 | `system.media.result` | runtime -> napplet | `id`, `status?`, `error?` |
 | `system.nappletStorage` | napplet -> runtime | `id` |
@@ -293,8 +277,8 @@ media availability, and service health.
 - The runtime SHOULD bucket or omit exact byte counts and latency values when
   exact values are not needed.
 - The runtime MUST NOT expose private event contents, storage keys, stored
-  values, media metadata, raw IndexedDB data, raw localStorage data, or another
-  napplet's scoped data.
+  values, media metadata, raw backing-store data, or another napplet's scoped
+  data.
 - The runtime MUST NOT treat `system.naps` as an authorization mechanism.
   Capability authorization remains with NAP-SHELL and runtime policy.
 - Napplets MUST treat system snapshots as advisory. A status can change
