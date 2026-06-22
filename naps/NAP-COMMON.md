@@ -57,13 +57,13 @@ CommonNip19EncodeInput =
 CommonNip19EncodeResult = {
   ok: bool,
   ? value: tstr,
-  ? type: CommonNip19Type,
+  ? nip19Type: CommonNip19Type,
   ? error: tstr,
 }
 
 CommonNip19DecodeResult = {
   ok: bool,
-  ? type: CommonNip19Type,
+  ? nip19Type: CommonNip19Type,
   ? hex: tstr,
   ? pubkey: HexPubkey,
   ? eventId: NostrEventId,
@@ -142,9 +142,9 @@ MUST use `CommonReportTarget`.
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
 | `common.encodeNip19` | napplet -> shell | `id`, `input` |
-| `common.encodeNip19.result` | shell -> napplet | `id`, `ok`, `value?`, `type?`, `error?` |
+| `common.encodeNip19.result` | shell -> napplet | `id`, `ok`, `value?`, `nip19Type?`, `error?` |
 | `common.decodeNip19` | napplet -> shell | `id`, `value` |
-| `common.decodeNip19.result` | shell -> napplet | `id`, `ok`, `type?`, `hex?`, `pubkey?`, `eventId?`, `identifier?`, `relays?`, `author?`, `kind?`, `relay?`, `error?` |
+| `common.decodeNip19.result` | shell -> napplet | `id`, `ok`, `nip19Type?`, `hex?`, `pubkey?`, `eventId?`, `identifier?`, `relays?`, `author?`, `kind?`, `relay?`, `error?` |
 | `common.getProfile` | napplet -> shell | `id`, `target` |
 | `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `event?`, `relays?`, `error?` |
 | `common.follow` | napplet -> shell | `id`, `pubkeys` |
