@@ -9,28 +9,31 @@ Common Social Actions
 **NAP ID:** NAP-COMMON
 **Domain:** `common`
 **Depends:**
-- `identity` — capability · required — actions use the current shell-user identity as the event author.
-- `relay` — capability · required — publishes kind 3 follow lists, kind 7 reactions, and kind 1984 reports.
+- `identity` — capability · required — user-authoritative actions use the current shell-user identity as the event author.
+- `relay` — capability · required — fetches kind 0 profiles and publishes kind 3 follow lists, kind 7 reactions, and kind 1984 reports.
 **Web binding (NIP-5D):** `window.napplet.common` · `shell.supports("common")`
 
 ## Description
 
 NAP-COMMON gives napplets a small shell-mediated surface for common Nostr social
-actions: follow, unfollow, react, and report. These actions are user identity
-operations, not napplet-owned event construction. The napplet supplies intent
-and minimal targets; the shell owns identity, consent, event construction,
-signing, replacement-list merging, and publishing.
+actions and profile lookup: getProfile, follow, unfollow, react, and report.
+The modifying actions are user identity operations, not napplet-owned event
+construction. The napplet supplies intent and minimal targets; the shell owns
+identity, consent, event construction, signing, replacement-list merging, and
+publishing.
 
 This NAP is deliberately narrow. It does not expose a generic event builder, a
-follow-list editor, moderation policy, or relay selection API. Napplets that need
-full event control use NAP-RELAY. Napplets that need outbox-aware fanout use
-NAP-OUTBOX when available. NAP-COMMON is the simple path for user-visible social
-buttons that should behave consistently across napplets.
+follow-list editor, moderation policy, or relay selection API. Napplets that
+need full event control use NAP-RELAY. Napplets that need outbox-aware fanout
+use NAP-OUTBOX when available. NAP-COMMON is the simple path for user-visible
+profile cards and social buttons that should behave consistently across
+napplets.
 
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
+| `getProfile` | `target` (`CommonProfileTarget`) | `CommonProfileResult` | `common.getProfile` / `common.getProfile.result` |
 | `follow` | one or more `npub` targets | `CommonActionResult` | `common.follow` / `common.follow.result` |
 | `unfollow` | one or more `npub` targets | `CommonActionResult` | `common.unfollow` / `common.unfollow.result` |
 | `react` | `id` (`tstr`), `reaction` (`CommonReaction`), optional `customEmojiHref` (`tstr`) | `CommonActionResult` | `common.react` / `common.react.result` |
@@ -40,9 +43,33 @@ buttons that should behave consistently across napplets.
 
 ```cddl
 Npub = tstr
+Nprofile = tstr
+HexPubkey = tstr
 NostrEventId = tstr
 NostrEvent = { * tstr => any }
 CommonPubkeyList = [Npub, * Npub]
+CommonProfileTarget = HexPubkey / Npub / Nprofile
+
+CommonProfileData = {
+  ? name: tstr,
+  ? displayName: tstr,
+  ? about: tstr,
+  ? picture: tstr,
+  ? banner: tstr,
+  ? nip05: tstr,
+  ? lud16: tstr,
+  ? website: tstr,
+  * tstr => any,
+}
+
+CommonProfileResult = {
+  ok: bool,
+  pubkey: HexPubkey,
+  ? profile: CommonProfileData / null,
+  ? event: NostrEvent,
+  ? relays: [* tstr],
+  ? error: tstr,
+}
 
 CommonActionResult = {
   ok: bool,
@@ -73,8 +100,13 @@ CommonEventReportTarget = {
 
 CommonPubkeyReportTarget = {
   type: "pubkey",
-  pubkey: Npub,
+  pubkey: Npub / HexPubkey,
   ? relay: tstr,
+}
+
+CommonGetProfileRequest = {
+  id: tstr,
+  target: CommonProfileTarget,
 }
 
 CommonFollowRequest = {
@@ -96,6 +128,14 @@ CommonReportRequest = {
   text: tstr,
 }
 ```
+
+**`getProfile(hexPubkey|npub|nprofile)`** -- Resolves a public profile for one
+Nostr public key. The shell accepts a 32-byte hex public key, a NIP-19 `npub`, or
+a NIP-19 `nprofile`. The shell normalizes the target to a hex public key, uses
+any `nprofile` relay TLVs as relay hints, fetches the latest kind 0 metadata
+event it can find, parses its JSON content, and returns the normalized pubkey,
+profile data, optional source event, and optional relays used. If no profile is
+found, the shell returns `ok: true` with `profile: null`.
 
 **`follow(...npub)`** -- Adds one or more public keys to the shell-user's NIP-02
 follow list. The shell decodes each NIP-19 `npub` to a hex public key, loads the
@@ -138,6 +178,7 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 | Action | Event shape |
 |--------|-------------|
+| `getProfile` | NIP-01 replaceable metadata: latest kind 0 by target pubkey |
 | `follow` | NIP-02 replacement follow list: kind 3, `p` tags, empty content |
 | `unfollow` | NIP-02 replacement follow list with matching `p` tags removed |
 | `react` | NIP-25 reaction: kind 7, `content` set to reaction, target `e` tag; optional NIP-30 `emoji` tag |
@@ -150,6 +191,8 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
+| `common.getProfile` | napplet -> shell | `id`, `target` |
+| `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `event?`, `relays?`, `error?` |
 | `common.follow` | napplet -> shell | `id`, `pubkeys` |
 | `common.follow.result` | shell -> napplet | `id`, `ok`, `eventId?`, `event?`, `error?` |
 | `common.unfollow` | napplet -> shell | `id`, `pubkeys` |
@@ -161,6 +204,11 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 Key design notes:
 - Request/result pairs use `id` for correlation.
+- `target` for `common.getProfile` MUST be a 32-byte hex public key, NIP-19
+  `npub`, or NIP-19 `nprofile`. `nprofile` relay TLVs are hints only; the shell
+  MAY use, ignore, reorder, or supplement them by policy.
+- `common.getProfile.result` returns `profile: null` when no kind 0 profile is
+  found. This is not an error.
 - `pubkeys` MUST be a non-empty list of NIP-19 `npub` strings. Shells MAY accept
   32-byte hex public keys as a compatibility extension, but MUST publish hex
   keys in Nostr events.
@@ -176,6 +224,20 @@ Key design notes:
   another runtime policy path. That routing choice is not visible to napplets.
 
 ### Examples
+
+**Get profile from nprofile:**
+
+```
+-> { "type": "common.getProfile", "id": "p1", "target": "nprofile1..." }
+<- {
+     "type": "common.getProfile.result",
+     "id": "p1",
+     "ok": true,
+     "pubkey": "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d",
+     "profile": { "name": "Alice", "picture": "https://example.com/alice.png" },
+     "relays": ["wss://relay.example.com"]
+   }
+```
 
 **Follow:**
 
@@ -214,8 +276,9 @@ Key design notes:
 
 Result messages include `ok: false` and an `error` string when the shell cannot
 complete the action. Common errors are `"not-signed-in"`, `"invalid-pubkey"`,
-`"invalid-target"`, `"invalid-reaction"`, `"invalid-report-reason"`,
-`"author-unresolved"`, `"user-denied"`, `"publish-failed"`, and
+`"invalid-profile-target"`, `"invalid-target"`, `"invalid-reaction"`,
+`"invalid-report-reason"`, `"author-unresolved"`, `"user-denied"`,
+`"relay-timeout"`, `"publish-failed"`, and
 `"unsupported"`.
 
 For `report` event targets, `"author-unresolved"` means the shell could not
@@ -224,8 +287,12 @@ report without the required `p` tag.
 
 ## Shell Behavior
 
+- The shell MUST resolve `getProfile` targets to hex public keys before querying
+  relays.
+- The shell MUST query kind 0 replaceable metadata for `getProfile`.
 - The shell MUST perform all signing. Napplets MUST NOT receive signing keys.
-- The shell MUST reject every operation when no shell-user signer is connected.
+- The shell MUST reject modifying operations when no shell-user signer is
+  connected. `getProfile` MAY succeed without a connected signer.
 - The shell MUST publish NIP-02 follow-list updates as replacement kind 3 events.
 - The shell SHOULD preserve existing follow-list `p` tag relay and petname
   fields when it can.
@@ -247,11 +314,15 @@ legitimate users.
 - Shells SHOULD apply anti-spam and duplicate-action policy before publishing.
 - Shells SHOULD treat napplet-supplied report text, custom emoji URLs, and relay
   hints as untrusted input.
+- Shells SHOULD treat `nprofile` relay hints as advisory. A malicious napplet can
+  choose slow, hostile, or privacy-invasive relays.
+- Napplets SHOULD treat profile metadata as untrusted display data.
 - Napplets MUST NOT treat a successful NAP-COMMON action as proof that relays,
   clients, or users accepted the social meaning of the event.
 
 ## References
 
+- [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — Basic protocol flow and kind 0 metadata
 - [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) — Follow List
 - [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) — bech32-encoded entities
 - [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) — Reactions
