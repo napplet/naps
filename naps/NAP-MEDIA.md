@@ -50,6 +50,7 @@ MediaSessionCreate = {
   ? sessionId: tstr,
   ? source: MediaSourceRef,
   ? metadata: MediaMetadata,
+  ? context: MediaSessionContext,
   ? capabilities: [* MediaAction],
   ? autoplay: bool,
   ? live: bool,
@@ -81,6 +82,20 @@ MediaMetadata = {
   ? duration: number,
   ? mediaType: "audio" / "video",
 }
+
+MediaSessionContext = {
+  ? label: tstr,
+  ? detail: tstr,
+  ? index: uint,
+  ? total: uint,
+  ? links: [* MediaContextLink],
+}
+
+MediaContextLink = {
+  rel: tstr,
+  ? title: tstr,
+  ? nostr: MediaNostrRef,
+}
 ```
 
 **Resource resolution.** The `artwork.url` field is a URL string. Napplets and shells that need the artwork bytes (for example, to render album art on a media controls surface) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. The optional `artwork.hash` field, when present, MAY be used by shells as a content-addressed cache key but is not a substitute for the URL fetch — napplets address artwork by URL through the resource NAP. Direct `<img src="https://...">` loads will not work under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`); the shell is the sole network-fetch broker. Standard NAP-RESOURCE policy applies (private-IP block list at DNS-resolution time, MIME byte-sniffing, SVG rasterization, etc.).
@@ -105,7 +120,7 @@ MediaSessionResult = {
 }
 ```
 
-**`createSession(options)`** -- Creates a new media session. The napplet MUST set `owner` to `"shell"` or `"napplet"`. For shell-owned sessions, `source` is required and the shell fetches/plays it. For napplet-owned sessions, `source` is optional and advisory; the napplet owns playback inside its frame. The napplet MAY provide a preferred `sessionId`, metadata, initial capabilities, `autoplay`, and `live`. Returns the shell-canonical `sessionId` and owner. The shell MAY reject session creation (e.g., invalid source, unsupported owner mode, or session limit exceeded).
+**`createSession(options)`** -- Creates a new media session. The napplet MUST set `owner` to `"shell"` or `"napplet"`. For shell-owned sessions, `source` is required and the shell fetches/plays it. For napplet-owned sessions, `source` is optional and advisory; the napplet owns playback inside its frame. The napplet MAY provide a preferred `sessionId`, metadata, context, initial capabilities, `autoplay`, and `live`. Returns the shell-canonical `sessionId` and owner. The shell MAY reject session creation (e.g., invalid source, unsupported owner mode, or session limit exceeded).
 
 **`updateSession(sessionId, metadata)`** -- Updates metadata for an existing session. Partial updates are supported -- only the fields provided are changed. Fire-and-forget.
 
@@ -125,7 +140,7 @@ MediaSessionResult = {
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
-| `media.session.create` | napplet -> shell | `id`, `owner`, `sessionId?`, `source?`, `metadata?`, `capabilities?`, `autoplay?`, `live?` |
+| `media.session.create` | napplet -> shell | `id`, `owner`, `sessionId?`, `source?`, `metadata?`, `context?`, `capabilities?`, `autoplay?`, `live?` |
 | `media.session.create.result` | shell -> napplet | `id`, `sessionId?`, `owner?`, `error?` |
 | `media.session.update` | napplet -> shell | `sessionId`, `metadata` |
 | `media.session.destroy` | napplet -> shell | `sessionId` |
@@ -138,6 +153,7 @@ Key design notes:
 - `media.session.create` / `media.session.create.result` use `id` for correlation. The napplet MAY provide `sessionId` as a preferred client identifier, but the shell canonicalizes the session id in `media.session.create.result`.
 - `owner` is required. Without it, the shell cannot know who fetches media, emits state, receives commands, or owns audio output.
 - `source` is required for shell-owned sessions and optional for napplet-owned sessions. A napplet-owned `source` is advisory metadata; it does not ask the shell to fetch or play media.
+- `context` is optional session association metadata. It can describe where this media item sits in a list (`label`, `detail`, `index`, `total`) and can link related resources such as a Nostr event, address, or live-chat target. Context does not grant fetch authority and MUST NOT change session ownership.
 - `media.session.update`, `media.session.destroy`, `media.state`, and `media.capabilities` are fire-and-forget (no `id` correlation).
 - For napplet-owned sessions, `media.state` and `media.capabilities` are napplet -> shell, and `media.command` is shell -> napplet.
 - For shell-owned sessions, `media.state` and `media.capabilities` are shell -> napplet, and `media.command` is napplet -> shell when the napplet requests an allowed playback action.
@@ -158,6 +174,14 @@ All later messages MUST use the canonical `sessionId`. Messages that use the pre
 For `owner: "shell"`, `source` is required unless the shell defines a separate out-of-band source binding for the napplet. The shell MUST fetch and validate source bytes through shell-controlled policy. The napplet does not gain direct network access.
 
 For `owner: "napplet"`, `source` is optional metadata. The shell MUST NOT treat a napplet-owned `source` as permission to fetch or play media on the napplet's behalf.
+
+### Session Context
+
+`context` describes the media session around the source. It is for UI, queue position, and related-resource affordances. A shell MAY ignore any context field it does not understand.
+
+`context.links[]` entries identify related resources by relation name. Relation names are lower-case strings. Implementations MAY define relation names such as `live-chat` or `source-event`, but unknown relation names MUST be ignored.
+
+Nostr links use `MediaNostrRef`. `nostr.address` MAY be an address coordinate such as `30311:<pubkey>:<d-tag>`. `nostr.eventId` MAY identify an event. `nostr.relays` are optional routing hints. Absence of `nostr.relays` MUST NOT make the link invalid; the runtime resolves the Nostr reference through its normal routing policy.
 
 ### Metadata
 
@@ -189,6 +213,12 @@ All metadata fields are optional. The `artwork` field supports two forms:
 ```
 -> { "type": "media.session.create", "id": "m2", "owner": "shell", "source": { "url": "https://example.com/live.mp3", "mimeType": "audio/mpeg" }, "metadata": { "title": "Live Stream" }, "autoplay": true, "live": true }
 <- { "type": "media.session.create.result", "id": "m2", "sessionId": "shell-7", "owner": "shell" }
+```
+
+**Create a shell-owned live stream with a chat association:**
+```
+-> { "type": "media.session.create", "id": "m3", "owner": "shell", "source": { "url": "https://example.com/live.mp3", "mimeType": "audio/mpeg" }, "metadata": { "title": "Live Stream" }, "context": { "links": [{ "rel": "live-chat", "title": "Live Stream", "nostr": { "address": "30311:pubkey:d-tag" } }] }, "autoplay": true, "live": true }
+<- { "type": "media.session.create.result", "id": "m3", "sessionId": "shell-8", "owner": "shell" }
 ```
 
 **Update metadata:**
@@ -290,6 +320,7 @@ For shell-owned sessions:
 ## Security Considerations
 
 - Media sessions expose metadata and playback state to the shell. Napplets SHOULD NOT include sensitive information in metadata fields.
+- Session context is napplet-supplied metadata. Shells SHOULD validate Nostr references before using them for UI or routing and MUST ignore unknown context links.
 - Artwork URLs are fetched by the shell, not the napplet (the napplet is sandboxed with no network access). The shell SHOULD validate URLs and enforce a content security policy for fetched resources.
 - Shell-owned `source` URLs are fetched and played by the shell, not the napplet. The shell MUST apply the same resource safety policy it applies to artwork and other external bytes.
 - Blossom artwork hashes allow the shell to resolve artwork through its own Blossom infrastructure without the napplet needing network access. The shell controls which Blossom servers are queried.
