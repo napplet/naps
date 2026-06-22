@@ -30,6 +30,7 @@ normalization.
 | `encodeNip19` | `input` (`CommonNip19EncodeInput`) | `CommonNip19EncodeResult` | `common.encodeNip19` / `.result` |
 | `decodeNip19` | `value` (`tstr`) | `CommonNip19DecodeResult` | `common.decodeNip19` / `.result` |
 | `getProfile` | `target` (`CommonProfileTarget`) | `CommonProfileResult` | `common.getProfile` / `.result` |
+| `follows` | none | `[ * HexPubkey ]` | `common.follows` / `.result` |
 | `follow` | one or more `npub` targets | `CommonActionResult` | `common.follow` / `.result` |
 | `unfollow` | one or more `npub` targets | `CommonActionResult` | `common.unfollow` / `.result` |
 | `react` | `id`, `reaction`, `customEmojiHref?` | `CommonActionResult` | `common.react` / `.result` |
@@ -117,6 +118,7 @@ CommonReportTarget =
 | `encodeNip19` | Encodes public NIP-19 identifiers: `npub`, `note`, `nprofile`, `nevent`, `naddr`, `nrelay`. MUST reject `nsec`. |
 | `decodeNip19` | Decodes the same public types. MUST reject `nsec`, ignore unknown TLVs, and SHOULD reject strings longer than 5000 chars. |
 | `getProfile` | Accepts hex pubkey, `npub`, or `nprofile`. Normalizes to hex, treats `nprofile` relay TLVs as hints, queries latest kind 0, returns `profile: null` if not found. |
+| `follows` | Returns hex pubkeys from the shell-user's current NIP-02 kind 3 follow list. Returns an empty array when no list is found. |
 | `follow` | Decodes each `npub`, merges new `p` tags into the current NIP-02 kind 3 list, preserves unrelated tags, signs, publishes. Idempotent. |
 | `unfollow` | Decodes each `npub`, removes matching `p` tags from the current kind 3 list, preserves unrelated tags, signs, publishes. Idempotent. |
 | `react` | Publishes NIP-25 kind 7 for native Nostr events only. `reaction` is `+`, `-`, one Unicode emoji, or one NIP-30 shortcode. `customEmojiHref` requires one matching `emoji` tag. |
@@ -131,7 +133,7 @@ MUST use `CommonReportTarget`.
 |-----------|-----|
 | `encodeNip19`, `decodeNip19` | NIP-19 public bech32 / TLV identifiers |
 | `getProfile` | NIP-01 latest kind 0 by pubkey |
-| `follow`, `unfollow` | NIP-02 replacement kind 3 follow list |
+| `follows`, `follow`, `unfollow` | NIP-02 replacement kind 3 follow list |
 | `react` | NIP-25 kind 7; optional NIP-30 `emoji` tag |
 | `report` | NIP-56 kind 1984 |
 
@@ -147,6 +149,8 @@ MUST use `CommonReportTarget`.
 | `common.decodeNip19.result` | shell -> napplet | `id`, `ok`, `nip19Type?`, `hex?`, `pubkey?`, `eventId?`, `identifier?`, `relays?`, `author?`, `kind?`, `relay?`, `error?` |
 | `common.getProfile` | napplet -> shell | `id`, `target` |
 | `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `event?`, `relays?`, `error?` |
+| `common.follows` | napplet -> shell | `id` |
+| `common.follows.result` | shell -> napplet | `id`, `ok`, `pubkeys`, `error?` |
 | `common.follow` | napplet -> shell | `id`, `pubkeys` |
 | `common.follow.result` | shell -> napplet | `id`, `ok`, `eventId?`, `event?`, `error?` |
 | `common.unfollow` | napplet -> shell | `id`, `pubkeys` |
@@ -170,6 +174,7 @@ Result messages use `ok: false` plus `error`. Common errors:
 - MUST normalize NIP-19 helper results to hex fields for keys and event ids.
 - MUST resolve `getProfile` targets to hex before querying relays.
 - MUST query kind 0 replaceable metadata for `getProfile`.
+- MUST return hex pubkeys from `follows`.
 - MUST perform all signing and never expose signing keys.
 - MUST reject modifying operations when no shell-user signer is connected; `getProfile` MAY work signed out.
 - MUST publish follow changes as NIP-02 replacement kind 3 events.
