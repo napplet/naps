@@ -15,24 +15,26 @@ Common Social Actions
 
 ## Description
 
-NAP-COMMON gives napplets a small shell-mediated surface for common Nostr social
-actions and profile lookup: getProfile, follow, unfollow, react, and report.
-The modifying actions are user identity operations, not napplet-owned event
-construction. The napplet supplies intent and minimal targets; the shell owns
-identity, consent, event construction, signing, replacement-list merging, and
-publishing.
+NAP-COMMON gives napplets a small shell-mediated surface for common Nostr
+identifier helpers, profile lookup, and social actions: encodeNip19,
+decodeNip19, getProfile, follow, unfollow, react, and report. The modifying
+actions are user identity operations, not napplet-owned event construction. The
+napplet supplies intent and minimal targets; the shell owns identity, consent,
+event construction, signing, replacement-list merging, and publishing.
 
 This NAP is deliberately narrow. It does not expose a generic event builder, a
 follow-list editor, moderation policy, or relay selection API. Napplets that
 need full event control use NAP-RELAY. Napplets that need outbox-aware fanout
 use NAP-OUTBOX when available. NAP-COMMON is the simple path for user-visible
-profile cards and social buttons that should behave consistently across
-napplets.
+identifier displays, profile cards, and social buttons that should behave
+consistently across napplets.
 
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
+| `encodeNip19` | `input` (`CommonNip19EncodeInput`) | `CommonNip19EncodeResult` | `common.encodeNip19` / `common.encodeNip19.result` |
+| `decodeNip19` | `value` (`tstr`) | `CommonNip19DecodeResult` | `common.decodeNip19` / `common.decodeNip19.result` |
 | `getProfile` | `target` (`CommonProfileTarget`) | `CommonProfileResult` | `common.getProfile` / `common.getProfile.result` |
 | `follow` | one or more `npub` targets | `CommonActionResult` | `common.follow` / `common.follow.result` |
 | `unfollow` | one or more `npub` targets | `CommonActionResult` | `common.unfollow` / `common.unfollow.result` |
@@ -49,6 +51,68 @@ NostrEventId = tstr
 NostrEvent = { * tstr => any }
 CommonPubkeyList = [Npub, * Npub]
 CommonProfileTarget = HexPubkey / Npub / Nprofile
+
+CommonNip19Type = "npub" / "note" / "nprofile" / "nevent" / "naddr" / "nrelay"
+
+CommonNip19EncodeInput =
+  CommonNip19BareEncodeInput /
+  CommonNip19ProfileEncodeInput /
+  CommonNip19EventEncodeInput /
+  CommonNip19AddressEncodeInput /
+  CommonNip19RelayEncodeInput
+
+CommonNip19BareEncodeInput = {
+  type: "npub" / "note",
+  hex: tstr,
+}
+
+CommonNip19ProfileEncodeInput = {
+  type: "nprofile",
+  pubkey: HexPubkey,
+  ? relays: [* tstr],
+}
+
+CommonNip19EventEncodeInput = {
+  type: "nevent",
+  eventId: NostrEventId,
+  ? relays: [* tstr],
+  ? author: HexPubkey,
+  ? kind: uint,
+}
+
+CommonNip19AddressEncodeInput = {
+  type: "naddr",
+  identifier: tstr,
+  pubkey: HexPubkey,
+  kind: uint,
+  ? relays: [* tstr],
+}
+
+CommonNip19RelayEncodeInput = {
+  type: "nrelay",
+  relay: tstr,
+}
+
+CommonNip19EncodeResult = {
+  ok: bool,
+  ? value: tstr,
+  ? type: CommonNip19Type,
+  ? error: tstr,
+}
+
+CommonNip19DecodeResult = {
+  ok: bool,
+  ? type: CommonNip19Type,
+  ? hex: tstr,
+  ? pubkey: HexPubkey,
+  ? eventId: NostrEventId,
+  ? identifier: tstr,
+  ? relays: [* tstr],
+  ? author: HexPubkey,
+  ? kind: uint,
+  ? relay: tstr,
+  ? error: tstr,
+}
 
 CommonProfileData = {
   ? name: tstr,
@@ -129,6 +193,18 @@ CommonReportRequest = {
 }
 ```
 
+**`encodeNip19(input)`** -- Encodes public Nostr identifiers into NIP-19 display
+strings. The shell accepts structured inputs for `npub`, `note`, `nprofile`,
+`nevent`, `naddr`, and `nrelay`, validates their fields, and returns the encoded
+bech32 string. `nprofile`, `nevent`, and `naddr` encode relay hints as NIP-19
+TLV `relay` entries when supplied.
+
+**`decodeNip19(value)`** -- Decodes a public NIP-19 display string into a
+structured result. The shell supports `npub`, `note`, `nprofile`, `nevent`,
+`naddr`, and `nrelay`. It MUST reject `nsec` because private-key material is not
+a public common helper and MUST NOT cross the napplet/shell seam. Unknown TLV
+entries are ignored, as required by NIP-19.
+
 **`getProfile(hexPubkey|npub|nprofile)`** -- Resolves a public profile for one
 Nostr public key. The shell accepts a 32-byte hex public key, a NIP-19 `npub`, or
 a NIP-19 `nprofile`. The shell normalizes the target to a hex public key, uses
@@ -178,6 +254,8 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 | Action | Event shape |
 |--------|-------------|
+| `encodeNip19` | NIP-19 bech32 display encoding for public identifiers |
+| `decodeNip19` | NIP-19 bech32 / TLV decoding for public identifiers |
 | `getProfile` | NIP-01 replaceable metadata: latest kind 0 by target pubkey |
 | `follow` | NIP-02 replacement follow list: kind 3, `p` tags, empty content |
 | `unfollow` | NIP-02 replacement follow list with matching `p` tags removed |
@@ -191,6 +269,10 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
+| `common.encodeNip19` | napplet -> shell | `id`, `input` |
+| `common.encodeNip19.result` | shell -> napplet | `id`, `ok`, `value?`, `type?`, `error?` |
+| `common.decodeNip19` | napplet -> shell | `id`, `value` |
+| `common.decodeNip19.result` | shell -> napplet | `id`, `ok`, `type?`, `hex?`, `pubkey?`, `eventId?`, `identifier?`, `relays?`, `author?`, `kind?`, `relay?`, `error?` |
 | `common.getProfile` | napplet -> shell | `id`, `target` |
 | `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `event?`, `relays?`, `error?` |
 | `common.follow` | napplet -> shell | `id`, `pubkeys` |
@@ -204,6 +286,11 @@ For `report(id|pubkey, reason, text)` shorthands, SDKs MUST map the target into
 
 Key design notes:
 - Request/result pairs use `id` for correlation.
+- `encodeNip19` and `decodeNip19` are public identifier helpers only. They MUST
+  NOT accept or return `nsec`.
+- `decodeNip19` MUST ignore unknown TLV entries rather than failing the whole
+  decode.
+- `decodeNip19` SHOULD reject bech32 strings longer than 5000 characters.
 - `target` for `common.getProfile` MUST be a 32-byte hex public key, NIP-19
   `npub`, or NIP-19 `nprofile`. `nprofile` relay TLVs are hints only; the shell
   MAY use, ignore, reorder, or supplement them by policy.
@@ -224,6 +311,27 @@ Key design notes:
   another runtime policy path. That routing choice is not visible to napplets.
 
 ### Examples
+
+**Encode npub:**
+
+```
+-> { "type": "common.encodeNip19", "id": "n1", "input": { "type": "npub", "hex": "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d" } }
+<- { "type": "common.encodeNip19.result", "id": "n1", "ok": true, "type": "npub", "value": "npub1..." }
+```
+
+**Decode nprofile:**
+
+```
+-> { "type": "common.decodeNip19", "id": "n2", "value": "nprofile1..." }
+<- {
+     "type": "common.decodeNip19.result",
+     "id": "n2",
+     "ok": true,
+     "type": "nprofile",
+     "pubkey": "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d",
+     "relays": ["wss://relay.example.com"]
+   }
+```
 
 **Get profile from nprofile:**
 
@@ -276,9 +384,9 @@ Key design notes:
 
 Result messages include `ok: false` and an `error` string when the shell cannot
 complete the action. Common errors are `"not-signed-in"`, `"invalid-pubkey"`,
-`"invalid-profile-target"`, `"invalid-target"`, `"invalid-reaction"`,
-`"invalid-report-reason"`, `"author-unresolved"`, `"user-denied"`,
-`"relay-timeout"`, `"publish-failed"`, and
+`"invalid-nip19"`, `"unsupported-nip19-type"`, `"invalid-profile-target"`,
+`"invalid-target"`, `"invalid-reaction"`, `"invalid-report-reason"`,
+`"author-unresolved"`, `"user-denied"`, `"relay-timeout"`, `"publish-failed"`, and
 `"unsupported"`.
 
 For `report` event targets, `"author-unresolved"` means the shell could not
@@ -287,6 +395,9 @@ report without the required `p` tag.
 
 ## Shell Behavior
 
+- The shell MUST reject NIP-19 helper requests that encode or decode `nsec`.
+- The shell MUST normalize NIP-19 helper results to hex fields for keys and
+  event ids.
 - The shell MUST resolve `getProfile` targets to hex public keys before querying
   relays.
 - The shell MUST query kind 0 replaceable metadata for `getProfile`.
