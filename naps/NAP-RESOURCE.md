@@ -330,9 +330,3 @@ The carrier domain (e.g. NAP-RELAY) defines its `resources?` sidecar field as **
 ## Implementations
 
 - (none yet)
-
-## Implementation Note
-
-Reference implementations of NAP-RESOURCE — both the napplet-side primitive and the shell-side resource handler with the default policy, SVG rasterizer, and sidecar plumbing — live in the **downstream shell repo** alongside v0.28.0's first set of demo napplets (profile viewer, feed napplet with inline images, scheme-mixed consumer). The napplet-side SDK surface (`window.napplet.resource.bytes` / `bytesMany` / `bytesAsObjectURL`) is shipped via the napplet protocol SDK monorepo and is consumed by any conformant shell implementation; the shell-side handler implementation (network policy enforcement, MIME byte-sniffing, SVG rasterization in a sandboxed Worker, optional sidecar pre-resolution) is shell-specific and is not part of this spec.
-
-Shell implementers SHOULD consult the downstream shell repo for a working reference implementation of the default resource policy described in this NAP. The protocol surface defined here is implementation-agnostic; any shell may host it.
