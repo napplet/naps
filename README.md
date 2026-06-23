@@ -163,6 +163,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` |  | `relay` | Outbox-aware relay routing and queries | Draft |
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
+| [NAP-COUNT](naps/NAP-COUNT.md) | `count` |  | `relay` | Runtime-mediated event counts from NIP-01 filters | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* |  | *—* | *Strict baseline posture (sub-track)* | *Deferred* |
