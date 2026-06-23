@@ -13,7 +13,7 @@ Sandboxed Resource Fetching
 
 ## Description
 
-NAP-RESOURCE provides sandboxed napplets with a single, scheme-pluggable primitive for fetching byte-addressable resources through the host shell: `resource.bytes(url) → Blob`. Napplets address resources by URL only -- they never see a raw `fetch`, never open a socket, and never observe the upstream `Content-Type`. The shell mediates the fetch under a documented policy (private-IP block list at DNS-resolution time, MIME byte-sniffing, response size cap, fetch timeout, per-napplet rate limit, redirect chain cap), classifies the returned bytes by sniffing, optionally rasterizes vector formats to bitmap before delivery, and returns a single `Blob` plus a shell-classified `mime` string.
+NAP-RESOURCE provides sandboxed napplets with scheme-pluggable primitives for fetching byte-addressable resources through the host shell: `resource.bytes(url) → Blob` and `resource.bytesMany(urls) → ResourceBytesItem[]`. Napplets address resources by URL only -- they never see a raw `fetch`, never open a socket, and never observe the upstream `Content-Type`. The shell mediates each fetch under a documented policy (private-IP block list at DNS-resolution time, MIME byte-sniffing, response size cap, fetch timeout, per-napplet rate limit, redirect chain cap), classifies the returned bytes by sniffing, optionally rasterizes vector formats to bitmap before delivery, and returns `Blob` payloads plus shell-classified `mime` strings.
 
 The URL space is scheme-pluggable. Four canonical schemes are defined in this NAP: `https:` (shell-side network fetch with policy enforcement), `blossom:` (Blossom hash → bytes resolution), `nostr:` (NIP-19 bech32 single-hop resolution), and `data:` (RFC 2397, decoded inline by the napplet shim). Shells MAY support additional schemes behind explicit shell-administrator policy, but unknown schemes MUST be rejected with `unsupported-scheme`.
 
@@ -24,15 +24,20 @@ This NAP depends on the iframe sandbox model defined by NIP-5D (`sandbox="allow-
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
 | `bytes` | `url` (`tstr`), optional abort signal | byte payload (`Blob` in the web projection) | `resource.bytes` / `resource.bytes.result` or `resource.bytes.error` |
+| `bytesMany` | `urls` (`[+ tstr]`), optional abort signal | ordered `ResourceBytesItem[]` | `resource.bytesMany` / `resource.bytesMany.result` or `resource.bytesMany.error` |
 | `bytesAsObjectURL` | `url` (`tstr`) | object URL handle with `url` and `revoke` | helper over `bytes` |
 
-**`bytes(url, opts?)`** -- Sends a `resource.bytes` envelope to the host shell with the supplied URL and a freshly minted correlation `id`. Resolves with the `Blob` delivered by the shell on `resource.bytes.result`, or rejects with an error whose code is one of the eight enumerated in Error Codes below. When `opts.signal` is supplied, an already-aborted signal MUST cause the returned Promise to reject synchronously with an `AbortError` and SHOULD cause a `resource.cancel` envelope to be sent so the shell can release any in-flight fetch resources. Aborts after dispatch send `resource.cancel` to the shell and reject the awaiting napplet's Promise locally; the shell MAY emit no further envelopes for that `id`.
+**`bytes(url, opts?)`** -- Sends a `resource.bytes` envelope to the host shell with the supplied URL and a freshly minted correlation `id`. Resolves with the `Blob` delivered by the shell on `resource.bytes.result`, or rejects with an error whose code is one of the enumerated Error Codes below. When `opts.signal` is supplied, an already-aborted signal MUST cause the returned Promise to reject synchronously with an `AbortError` and SHOULD cause a `resource.cancel` envelope to be sent so the shell can release any in-flight fetch resources. Aborts after dispatch send `resource.cancel` to the shell and reject the awaiting napplet's Promise locally; the shell MAY emit no further envelopes for that `id`.
 
 The `data:` scheme MAY be decoded entirely inside the napplet shim with zero shell round-trip; it is the only scheme where the result envelope is synthesized client-side. All other schemes traverse `postMessage` to the shell.
 
+**`bytesMany(urls, opts?)`** -- Sends one `resource.bytesMany` envelope for a non-empty URL list. The result preserves input order and contains one item per requested URL. Each item succeeds with `blob` and `mime`, or fails with an `error` code. The shell MUST apply the same scheme, policy, MIME, rasterization, size, timeout, cache, and quota rules that would apply to independent `bytes(url)` calls. Bulk requests reduce envelope count; they do not widen what a napplet may fetch.
+
+Invalid bulk requests reject as `resource.bytesMany.error`. Per-URL fetch failures are reported inside `resource.bytesMany.result` so one failed URL does not discard successful siblings. A bulk abort uses `resource.cancel` with the bulk request `id` and cancels every in-flight item for that request.
+
 **`bytesAsObjectURL(url)`** -- Synchronous helper for napplets that need a stable object URL handle (e.g., to set on an `<img src>` attribute) without awaiting the underlying fetch. Returns `{ url, revoke }` immediately; the `url` field is populated with `URL.createObjectURL(blob)` once the underlying `bytes(url)` resolves. The napplet MUST call `revoke()` when the resource is no longer needed -- the napplet owns the object URL lifetime, not the shell. Multiple `revoke()` calls are idempotent. Calling `revoke()` before the underlying fetch resolves cancels the cache write so the eventual Blob is not retained against an already-dead object URL.
 
-Both methods are scoped to the napplet's `(dTag, aggregateHash)` identity per NIP-5D. Napplets cannot read another napplet's cached resources; the shell-side cache is partitioned by source identity.
+All methods are scoped to the napplet's `(dTag, aggregateHash)` identity per NIP-5D. Napplets cannot read another napplet's cached resources; the shell-side cache is partitioned by source identity.
 
 ## Wire Protocol
 
@@ -41,17 +46,34 @@ Both methods are scoped to the napplet's `(dTag, aggregateHash)` identity per NI
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
 | `resource.bytes`        | napplet -> shell | `id`, `url`              |
+| `resource.bytesMany`    | napplet -> shell | `id`, `urls`             |
 | `resource.cancel`       | napplet -> shell | `id`                     |
 | `resource.bytes.result` | shell -> napplet | `id`, `blob`, `mime`     |
 | `resource.bytes.error`  | shell -> napplet | `id`, `error`, `message?` |
+| `resource.bytesMany.result` | shell -> napplet | `id`, `items` |
+| `resource.bytesMany.error`  | shell -> napplet | `id`, `error`, `message?` |
+
+```cddl
+ResourceBytesItem = {
+  url: tstr,
+  ok: bool,
+  ? blob: bstr,
+  ? mime: tstr,
+  ? error: tstr,
+  ? message: tstr,
+}
+```
 
 Key design notes:
 
 - All correlation uses `id`. Each `resource.bytes` request gets exactly one terminal envelope: either `resource.bytes.result` or `resource.bytes.error`.
+- Each `resource.bytesMany` request gets exactly one terminal envelope: either `resource.bytesMany.result` or `resource.bytesMany.error`.
+- `resource.bytesMany.result.items` MUST preserve `urls` order and MUST contain exactly one `ResourceBytesItem` per input URL.
+- A successful bulk item (`ok: true`) MUST include `blob` and `mime`. A failed bulk item (`ok: false`) MUST include `error` and MUST NOT include `blob`.
 - The `mime` field on `resource.bytes.result` is **shell-classified by byte-sniffing** -- never passed through from the upstream `Content-Type` header. See Default Resource Policy § MIME byte-sniffing for the rationale.
 - `resource.cancel` is fire-and-forget; shells SHOULD release any in-flight fetch resources for the correlated `id` and SHOULD NOT emit a terminal envelope for that `id` after receiving the cancel. Late-arriving result envelopes for cancelled `id`s MUST be silently dropped by conformant napplet shims.
-- **Single-Blob contract**: the result envelope delivers exactly one `Blob` -- there is no streaming, chunking, range, or progress field anywhere in this NAP. Streaming media (audio, video) is reserved for a future NAP with a different delivery model.
-- The `message?` field on `resource.bytes.error` is a human-readable string for diagnostics; programmatic dispatch MUST be driven by the `error` field (one of the eight enumerated codes), never by string-matching `message`.
+- **Blob delivery contract**: each successful `resource.bytes` result or `resource.bytesMany` item delivers a complete `Blob` -- there is no streaming, chunking, range, or progress field anywhere in this NAP. Streaming media (audio, video) is reserved for a future NAP with a different delivery model.
+- The `message?` field on errors is a human-readable string for diagnostics; programmatic dispatch MUST be driven by the `error` field, never by string-matching `message`.
 
 ### Examples
 
@@ -84,6 +106,15 @@ napplet: napplet.resource.bytes('data:image/png;base64,iVBORw0KGgo...')
 -> { "type": "resource.bytes", "id": "r4", "url": "https://example.com/large.bin" }
 -> { "type": "resource.cancel", "id": "r4" }
    // No further envelopes expected for id "r4".
+```
+
+**Bulk image fetch (single envelope pair):**
+```
+-> { "type": "resource.bytesMany", "id": "r5", "urls": ["https://example.com/a.png", "https://example.com/b.svg"] }
+<- { "type": "resource.bytesMany.result", "id": "r5", "items": [
+     { "url": "https://example.com/a.png", "ok": true, "blob": <Blob 1200 bytes>, "mime": "image/png" },
+     { "url": "https://example.com/b.svg", "ok": false, "error": "blocked-by-policy" }
+   ] }
 ```
 
 ## Scheme Protocol Surfaces
@@ -150,6 +181,12 @@ Shells SHOULD enforce a per-URL fetch timeout; recommended default is 30 seconds
 
 Shells SHOULD enforce a per-napplet limit on concurrent in-flight `resource.bytes` calls (recommended: 10) and a per-napplet rate limit (recommended: 60 calls per minute, sliding window). Rate-limit and concurrency-limit rejections MUST emit `error: "blocked-by-policy"` with a `message` string identifying which limit was hit.
 
+Bulk requests count per URL, not per envelope. A `resource.bytesMany` request with 20 URLs consumes 20 rate-limit units and 20 concurrency slots unless the shell coalesces duplicates from cache.
+
+### Bulk request size cap (SHOULD, recommended ≤ 100 URLs)
+
+Shells SHOULD cap `resource.bytesMany.urls` length. Recommended default is 100 URLs per bulk request. Excess MUST result in `resource.bytesMany.error` with `error: "too-large"`.
+
 ### Redirect chain cap (SHOULD, recommended ≤ 5)
 
 Shells SHOULD cap the redirect chain at 5 hops. **Each hop MUST be re-validated against the private-IP block list** (DNS pinning per hop). Excess hops or a redirect to a blocked address MUST result in `error: "blocked-by-policy"`. This per-hop re-validation is the mitigation for redirect-amplification attacks where a public host 302s to an internal address.
@@ -212,7 +249,9 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are t
 | Enforce private-IP block list at DNS-resolution time | Per the Default Resource Policy. Each redirect hop re-validated independently. |
 | Byte-sniff MIME | Never honor upstream `Content-Type` for the value delivered to the napplet. Sniffed MIME drives scheme-appropriate allowlist enforcement. |
 | Rasterize SVG in a sandboxed Worker with no network | Per the SVG Handling section. `image/svg+xml` MUST NOT be delivered to napplets. |
-| Single-Blob delivery | Result envelope contains exactly one `Blob`; no streaming, no chunked, no range, no progress. |
+| Complete Blob delivery | Each successful result item contains exactly one complete `Blob`; no streaming, no chunked, no range, no progress. |
+| Preserve bulk result order | `resource.bytesMany.result.items` has exactly one item per input URL, in input order. |
+| Apply policy per bulk URL | Bulk requests do not bypass scheme, MIME, rasterization, size, timeout, cache, quota, rate-limit, or private-IP rules. |
 | Verify Blossom hash before delivery | For `blossom:sha256:<hex>` URLs, the returned bytes MUST hash to the declared digest. Mismatch MUST result in `error: "decode-failed"`. |
 | Single-hop `nostr:` resolution | Do NOT recursively follow URLs found within resolved Nostr resources. |
 | Scope cache per `(dTag, aggregateHash)` | Per NIP-5D identity binding. Napplets MUST NOT see another napplet's cached resources. |
@@ -252,14 +291,15 @@ The resource NAP is the canonical fetch path for every external byte resource re
 
 | Code | Emitted by | Meaning |
 |------|------------|---------|
-| `not-found`          | `resource.bytes.error` | The resource does not exist (e.g., HTTP 404, Blossom not-found across all consulted hosts, unresolvable `nostr:` bech32). |
-| `blocked-by-policy`  | `resource.bytes.error` | Shell policy rejected the fetch (private-IP block, MIME-not-allowed, rate limit exceeded, concurrency limit exceeded, redirect-to-blocked, scheme-disallowed). |
-| `timeout`            | `resource.bytes.error` | Fetch exceeded the per-URL fetch timeout, or rasterization exceeded the wall-clock budget. |
-| `too-large`          | `resource.bytes.error` | Response body exceeded the configured size cap, or rasterization input/output exceeded the configured caps. |
-| `unsupported-scheme` | `resource.bytes.error` | URL scheme is not in the shell's whitelist (canonical or opt-in). |
-| `decode-failed`      | `resource.bytes.error` | MIME byte-sniff failed to classify, Blossom hash verification failed, or rasterization aborted on malformed input. |
-| `network-error`      | `resource.bytes.error` | Generic upstream network failure (DNS resolution failure, TCP reset, TLS handshake failure, connection refused). |
-| `quota-exceeded`     | `resource.bytes.error` | Per-napplet outstanding-Blob quota exceeded; existing delivered Blobs are unaffected. |
+| `invalid-request`    | `resource.bytes.error`, `resource.bytesMany.error` | Request payload is malformed, missing required fields, or has an empty `urls` list. |
+| `not-found`          | `resource.bytes.error`, `resource.bytesMany.result` item | The resource does not exist (e.g., HTTP 404, Blossom not-found across all consulted hosts, unresolvable `nostr:` bech32). |
+| `blocked-by-policy`  | `resource.bytes.error`, `resource.bytesMany.result` item | Shell policy rejected the fetch (private-IP block, MIME-not-allowed, rate limit exceeded, concurrency limit exceeded, redirect-to-blocked, scheme-disallowed). |
+| `timeout`            | `resource.bytes.error`, `resource.bytesMany.result` item | Fetch exceeded the per-URL fetch timeout, or rasterization exceeded the wall-clock budget. |
+| `too-large`          | `resource.bytes.error`, `resource.bytesMany.result` item, `resource.bytesMany.error` | Response body exceeded the configured size cap, rasterization input/output exceeded the configured caps, or a bulk request exceeded the URL count cap. |
+| `unsupported-scheme` | `resource.bytes.error`, `resource.bytesMany.result` item | URL scheme is not in the shell's whitelist (canonical or opt-in). |
+| `decode-failed`      | `resource.bytes.error`, `resource.bytesMany.result` item | MIME byte-sniff failed to classify, Blossom hash verification failed, or rasterization aborted on malformed input. |
+| `network-error`      | `resource.bytes.error`, `resource.bytesMany.result` item | Generic upstream network failure (DNS resolution failure, TCP reset, TLS handshake failure, connection refused). |
+| `quota-exceeded`     | `resource.bytes.error`, `resource.bytesMany.result` item | Per-napplet outstanding-Blob quota exceeded; existing delivered Blobs are unaffected. |
 
 ## Security Considerations
 
@@ -293,6 +333,6 @@ The carrier domain (e.g. NAP-RELAY) defines its `resources?` sidecar field as **
 
 ## Implementation Note
 
-Reference implementations of NAP-RESOURCE — both the napplet-side primitive and the shell-side resource handler with the default policy, SVG rasterizer, and sidecar plumbing — live in the **downstream shell repo** alongside v0.28.0's first set of demo napplets (profile viewer, feed napplet with inline images, scheme-mixed consumer). The napplet-side SDK surface (`window.napplet.resource.bytes` / `bytesAsObjectURL`) is shipped via the napplet protocol SDK monorepo and is consumed by any conformant shell implementation; the shell-side handler implementation (network policy enforcement, MIME byte-sniffing, SVG rasterization in a sandboxed Worker, optional sidecar pre-resolution) is shell-specific and is not part of this spec.
+Reference implementations of NAP-RESOURCE — both the napplet-side primitive and the shell-side resource handler with the default policy, SVG rasterizer, and sidecar plumbing — live in the **downstream shell repo** alongside v0.28.0's first set of demo napplets (profile viewer, feed napplet with inline images, scheme-mixed consumer). The napplet-side SDK surface (`window.napplet.resource.bytes` / `bytesMany` / `bytesAsObjectURL`) is shipped via the napplet protocol SDK monorepo and is consumed by any conformant shell implementation; the shell-side handler implementation (network policy enforcement, MIME byte-sniffing, SVG rasterization in a sandboxed Worker, optional sidecar pre-resolution) is shell-specific and is not part of this spec.
 
 Shell implementers SHOULD consult the downstream shell repo for a working reference implementation of the default resource policy described in this NAP. The protocol surface defined here is implementation-agnostic; any shell may host it.
