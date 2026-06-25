@@ -87,6 +87,7 @@ Rules:
 | `data:` | MAY decode in the napplet shim. If sent to the runtime, it MUST be decoded and policy-checked. No network access. |
 | `https:` | Runtime fetch. Full Default Resource Policy applies. Returned `mime` is sniffed, not upstream `Content-Type`. |
 | `blossom:` | Canonical form `blossom:sha256:<hex>`. Runtime MUST verify SHA-256 before delivery. Upstream hosts use `https:` policy. |
+| `htree:` | Hashtree reference (`htree://...`, `nhash`, or compatible immutable form). Runtime resolves the referenced file bytes, verifies every Hashtree hash before delivery, and MUST NOT leak fragment keys to relays, storage servers, or peers. |
 | `nostr:` | NIP-19 bech32. Runtime resolves one hop and returns the referenced bytes. MUST NOT recursively follow URLs or `nostr:` references in the result. |
 
 Unknown schemes MUST return `unsupported-scheme`. `http:` is not canonical and
@@ -100,6 +101,7 @@ MUST NOT be enabled by default.
 | MIME sniffing | MUST | Classify bytes by sniffing. Enforce scheme-appropriate allowlists. Never pass upstream `Content-Type` through. |
 | SVG rasterization | MUST | Raw `image/svg+xml` MUST NOT be delivered. Rasterize to PNG/WebP in a no-network sandboxed Worker. |
 | Blossom hash check | MUST | Hash mismatch returns `decode-failed`. |
+| Hashtree verification | MUST | `htree:` results verify the resolved root, tree nodes, chunks, and CHK decryption before delivery. Hash/key mismatch returns `decode-failed`. |
 | Response size cap | SHOULD | Recommended 10 MiB. Exceed returns `too-large`. |
 | Fetch timeout | SHOULD | Recommended 30 s per URL. Exceed returns `timeout`. |
 | Concurrency/rate limit | SHOULD | Recommended 10 in-flight and 60 requests/minute per napplet. Bulk counts per URL, not per envelope. |
@@ -169,6 +171,9 @@ SHOULD pass canonical URL strings.
   confidential once delivered through this channel.
 - Upstream `Content-Type` is attacker-controlled and MUST NOT be trusted.
 - Raw SVG is an active XML surface and MUST be rasterized before delivery.
+- `htree:` fragment keys are read capabilities. Runtimes MUST keep them
+  client-side and MUST NOT forward them to relays, storage servers, FIPS peers,
+  or HTTP request bodies.
 - Sidecar prefetch can leak user interest to resource hosts. It is optional and
   carrier-policy gated.
 - Cache scope comes from runtime-bound napplet identity, never napplet payload.
