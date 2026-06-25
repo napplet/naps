@@ -7,7 +7,8 @@
 **NAP ID:** NAP-BLOSSOM
 **Domain:** `blossom`
 **Depends:**
-- `identity` -- layering · optional -- authenticated Blossom requests use the current shell-user pubkey for BUD-11 authorization tokens.
+- `identity` -- capability · optional -- authenticated Blossom requests and BUD-03 server-list mutations use the current shell-user identity.
+- `relay` -- capability · optional -- BUD-03 server-list helpers read and publish kind `10063` events through the runtime relay surface.
 **Web binding (NIP-5D):** `window.napplet.blossom` · `shell.supports("blossom")`
 
 ## Description
@@ -27,7 +28,7 @@ where the shell chooses NIP-96, Blossom, or another rail.
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `head` | `request` (`BlossomHeadRequest`) | `BlossomHeadResult` | `blossom.head` / `blossom.head.result` |
+| `check` | `request` (`BlossomBlobCheckRequest`) | `BlossomBlobCheckResult` | `blossom.check` / `blossom.check.result` |
 | `get` | `request` (`BlossomGetRequest`) | `BlossomBytesResult` | `blossom.get` / `blossom.get.result` |
 | `checkUpload` | `request` (`BlossomCheckRequest`) | `BlossomCheckResult` | `blossom.checkUpload` / `blossom.checkUpload.result` |
 | `upload` | `request` (`BlossomUploadRequest`) | `BlossomDescriptorResult` | `blossom.upload` / `blossom.upload.result` |
@@ -36,6 +37,10 @@ where the shell chooses NIP-96, Blossom, or another rail.
 | `media` | `request` (`BlossomMediaRequest`) | `BlossomDescriptorResult` | `blossom.media` / `blossom.media.result` |
 | `list` | `request` (`BlossomListRequest`) | `BlossomListResult` | `blossom.list` / `blossom.list.result` |
 | `delete` | `request` (`BlossomDeleteRequest`) | `BlossomDeleteResult` | `blossom.delete` / `blossom.delete.result` |
+| `servers` | none | `BlossomServerListResult` | `blossom.servers` / `blossom.servers.result` |
+| `addServer` | `request` (`BlossomAddServerRequest`) | `BlossomServerListResult` | `blossom.addServer` / `blossom.addServer.result` |
+| `removeServer` | `server` (`ServerUrl`) | `BlossomServerListResult` | `blossom.removeServer` / `blossom.removeServer.result` |
+| `reorderServers` | `servers` (list of `ServerUrl`) | `BlossomServerListResult` | `blossom.reorderServers` / `blossom.reorderServers.result` |
 | `parseUri` | `uri` (`tstr`) | `BlossomUri` | local helper; no wire message |
 | `formatUri` | `uri` (`BlossomUri`) | `tstr` | local helper; no wire message |
 
@@ -51,8 +56,9 @@ ErrorCode = tstr
 NostrTag = [* tstr]
 
 BlossomAuthMode = "auto" / "required" / "none"
+NostrEvent = { * tstr => any }
 
-BlossomHeadRequest = {
+BlossomBlobCheckRequest = {
   server: ServerUrl,
   sha256: HexSha256,
   ? extension: BlobExtension,
@@ -141,7 +147,7 @@ BlossomDescriptor = {
   * tstr => any,
 }
 
-BlossomHeadResult = {
+BlossomBlobCheckResult = {
   ok: bool,
   status: uint,
   headers: BlossomHeaders,
@@ -184,6 +190,19 @@ BlossomDeleteResult = {
   ? error: ErrorCode,
 }
 
+BlossomAddServerRequest = {
+  server: ServerUrl,
+  ? position: uint,
+}
+
+BlossomServerListResult = {
+  ok: bool,
+  servers: [* ServerUrl],
+  ? eventId: tstr,
+  ? event: NostrEvent,
+  ? error: ErrorCode,
+}
+
 BlossomUri = {
   sha256: HexSha256,
   extension: BlobExtension,
@@ -193,8 +212,9 @@ BlossomUri = {
 }
 ```
 
-**`head(request)`** -- Performs BUD-01 `HEAD /<sha256>` against `server`.
-Returns status and safe metadata headers. It never returns bytes.
+**`check(request)`** -- Checks whether `server` has the blob identified by
+`sha256`, using the BUD-01 `HEAD /<sha256>` endpoint under the hood. Returns
+status and safe metadata headers. It never returns bytes.
 
 **`get(request)`** -- Performs BUD-01 `GET /<sha256>`. The shell MUST verify
 that returned bytes hash to `request.sha256` before delivering `blob`. When
@@ -230,6 +250,26 @@ normal result, not as proof that the user has no blobs.
 acts on exactly one hash. Multiple authorization `x` tags, if the shell creates
 them, MUST NOT be treated as a multi-delete request.
 
+**`servers()`** -- Returns the shell-user's ordered BUD-03 server list from the
+latest kind `10063` event. Returns an empty list when no list exists. This is a
+Blossom-specific helper for the user's preferred upload/retrieval servers, not a
+generic list editor.
+
+**`addServer(request)`** -- Adds `server` to the shell-user's BUD-03 list and
+publishes a replacement kind `10063` event. If `server` already exists, the
+shell MAY treat the request as idempotent or move it to `position` when supplied.
+The server URL MUST include `http://` or `https://`, matching BUD-03.
+
+**`removeServer(server)`** -- Removes `server` from the shell-user's BUD-03 list
+and publishes the replacement kind `10063` event. Removing an absent server is
+idempotent. Removing the final server MUST be rejected with
+`empty-server-list`, because BUD-03 events require at least one `server` tag.
+
+**`reorderServers(servers)`** -- Replaces the ordering of the shell-user's BUD-03
+list. The supplied list MUST contain the same server set as the current list;
+callers use `addServer` or `removeServer` to change membership. Empty lists MUST
+be rejected with `empty-server-list`.
+
 **`parseUri(uri)`** -- Parses a BUD-10 `blossom:` URI into hash, extension,
 server hints, author hints, and size. It performs no network I/O.
 
@@ -244,8 +284,8 @@ is known.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
-| `blossom.head` | napplet -> shell | `id`, `request` |
-| `blossom.head.result` | shell -> napplet | `id`, `result`, `error?` |
+| `blossom.check` | napplet -> shell | `id`, `request` |
+| `blossom.check.result` | shell -> napplet | `id`, `result`, `error?` |
 | `blossom.get` | napplet -> shell | `id`, `request` |
 | `blossom.get.result` | shell -> napplet | `id`, `result`, `error?` |
 | `blossom.checkUpload` | napplet -> shell | `id`, `request` |
@@ -262,6 +302,14 @@ is known.
 | `blossom.list.result` | shell -> napplet | `id`, `result`, `error?` |
 | `blossom.delete` | napplet -> shell | `id`, `request` |
 | `blossom.delete.result` | shell -> napplet | `id`, `result`, `error?` |
+| `blossom.servers` | napplet -> shell | `id` |
+| `blossom.servers.result` | shell -> napplet | `id`, `result`, `error?` |
+| `blossom.addServer` | napplet -> shell | `id`, `request` |
+| `blossom.addServer.result` | shell -> napplet | `id`, `result`, `error?` |
+| `blossom.removeServer` | napplet -> shell | `id`, `server` |
+| `blossom.removeServer.result` | shell -> napplet | `id`, `result`, `error?` |
+| `blossom.reorderServers` | napplet -> shell | `id`, `servers` |
+| `blossom.reorderServers.result` | shell -> napplet | `id`, `result`, `error?` |
 
 Key design notes:
 - Request/result pairs use `id` for correlation.
@@ -272,9 +320,21 @@ Key design notes:
   policy failures MAY use `status: 0` with a stable `error`.
 - `headers.reason` carries BUD `X-Reason` diagnostics only. Napplets MUST NOT
   branch on it.
+- BUD-03 server-list helpers are shell-owned read/replace mutations over kind
+  `10063`. Runtimes MAY implement them using the same internal machinery as a
+  generic list API, but NAP-BLOSSOM exposes the Blossom-specific verbs directly.
 - Local helpers (`parseUri`, `formatUri`) do not send wire messages.
 
 ### Examples
+
+**Check whether a server has a blob:**
+
+```
+-> { "type": "blossom.check", "id": "c1",
+     "request": { "server": "https://cdn.example.com", "sha256": "b167...", "extension": ".pdf" } }
+<- { "type": "blossom.check.result", "id": "c1",
+     "result": { "ok": true, "status": 200, "headers": { "contentType": "application/pdf", "contentLength": 184292 } } }
+```
 
 **Check, then upload exact bytes:**
 
@@ -287,6 +347,23 @@ Key design notes:
      "request": { "server": "https://cdn.example.com", "data": "<bytes>", "sha256": "b167...", "type": "application/pdf", "size": 184292 } }
 <- { "type": "blossom.upload.result", "id": "b2",
      "result": { "ok": true, "status": 201, "descriptor": { "url": "https://cdn.example.com/b167....pdf", "sha256": "b167...", "size": 184292, "type": "application/pdf", "uploaded": 1725105921 } } }
+```
+
+**Add and reorder preferred servers:**
+
+```
+-> { "type": "blossom.addServer", "id": "s1",
+     "request": { "server": "https://cdn.example.com", "position": 0 } }
+<- { "type": "blossom.addServer.result", "id": "s1",
+     "result": { "ok": true, "servers": ["https://cdn.example.com"], "eventId": "ev1..." } }
+-> { "type": "blossom.addServer", "id": "s2",
+     "request": { "server": "https://cdn2.example.com", "position": 1 } }
+<- { "type": "blossom.addServer.result", "id": "s2",
+     "result": { "ok": true, "servers": ["https://cdn.example.com", "https://cdn2.example.com"], "eventId": "ev2..." } }
+-> { "type": "blossom.reorderServers", "id": "s3",
+     "servers": ["https://cdn2.example.com", "https://cdn.example.com"] }
+<- { "type": "blossom.reorderServers.result", "id": "s3",
+     "result": { "ok": true, "servers": ["https://cdn2.example.com", "https://cdn.example.com"], "eventId": "ev3..." } }
 ```
 
 **Retrieve by hash:**
@@ -307,7 +384,8 @@ no typed result can be constructed.
 Common error codes: `invalid-request`, `invalid-server`, `invalid-hash`,
 `not-signed-in`, `user-denied`, `blocked-by-policy`, `not-found`,
 `auth-required`, `payment-required`, `too-large`, `unsupported-media-type`,
-`hash-mismatch`, `network-error`, `timeout`, `server-error`, `unsupported`.
+`hash-mismatch`, `server-list-unavailable`, `invalid-server-list`,
+`empty-server-list`, `network-error`, `timeout`, `server-error`, `unsupported`.
 
 ## Shell Behavior
 
@@ -328,6 +406,14 @@ Common error codes: `invalid-request`, `invalid-server`, `invalid-hash`,
   endpoint implies a hash.
 - The shell MUST reject `auth: "required"` requests and server-authenticated
   operations with `not-signed-in` when no shell-user signer is connected.
+- The shell MUST publish BUD-03 server-list mutations as kind `10063` events
+  with empty `content` and ordered `server` tags.
+- The shell MUST reject BUD-03 server-list mutation requests that would publish
+  zero `server` tags.
+- The shell MUST preserve the caller-visible BUD-03 server ordering exactly in
+  `servers`, `addServer`, `removeServer`, and `reorderServers` results.
+- The shell MUST reject server-list mutation requests with `not-signed-in` when
+  no shell-user signer is connected.
 - The shell MAY prompt, deny, rate-limit, cache, redact diagnostics, or route by
   napplet policy.
 - The shell MAY try unsigned requests for public endpoints when `auth` is
@@ -350,6 +436,9 @@ Common error codes: `invalid-request`, `invalid-server`, `invalid-hash`,
   MUST use `upload`, not `media`.
 - `list` can reveal a user's stored blobs. Shells SHOULD require explicit
   consent when listing a pubkey that belongs to the shell-user.
+- BUD-03 server lists are user preference and routing state. Shells SHOULD show
+  the requesting napplet, server URL, and resulting order before publishing a
+  mutation.
 - Successful upload, mirror, delete, or media results prove only what the
   Blossom server reported. They do not prove future availability or deletion
   across other servers.
