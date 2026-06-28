@@ -22,6 +22,7 @@ This interface is for Nostr event access where relay selection is part of the re
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
+| `getEvent` | `eventId` (`tstr`), optional `options` (`OutboxEventOptions`) | `OutboxEventResult` | `outbox.getEvent` / `outbox.getEvent.result` |
 | `query` | `filters` (`NostrFilter` or list), optional `options` (`OutboxQueryOptions`) | `OutboxResult` | `outbox.query` / `outbox.query.result` |
 | `subscribe` | `filters` (`NostrFilter` or list), optional `options` (`OutboxSubscribeOptions`) | `OutboxSubscription` handle | `outbox.subscribe` plus push messages |
 | `publish` | `template` (`EventTemplate`), optional `options` (`OutboxPublishOptions`) | `OutboxPublishResult` | `outbox.publish` / `outbox.publish.result` |
@@ -34,6 +35,13 @@ NostrFilter = { * tstr => any }
 NostrEvent = { * tstr => any }
 EventTemplate = { * tstr => any }
 OutboxStrategy = "outbox" / "inbox" / "auto"
+
+OutboxEventOptions = {
+  ? author: tstr,
+  ? relays: [* tstr],
+  ? strategy: OutboxStrategy,
+  ? timeoutMs: uint,
+}
 
 OutboxQueryOptions = {
   ? authors: [* tstr],
@@ -71,6 +79,13 @@ OutboxRelayPlan = {
   ? missingAuthors: [* tstr],
 }
 
+OutboxEventResult = {
+  ? event: NostrEvent,
+  relays: [* tstr],
+  ? incomplete: bool,
+  ? error: tstr,
+}
+
 OutboxResult = {
   events: [* NostrEvent],
   relays: { * tstr => [* tstr] },
@@ -87,6 +102,8 @@ OutboxPublishResult = {
 }
 ```
 
+**`getEvent(eventId, options?)`** -- Fetches one event by ID through shell-owned relay routing. If `options.author` is present, the shell SHOULD use that author's outbox relays as the primary read target. If no author is known, the shell MAY use relay hints, cache, policy relays, fallback relays, or relay intelligence. The shell validates the event ID and signature before returning it.
+
 **`query(filters, options?)`** -- Performs a one-shot outbox-aware query. The shell derives authors from `filters.authors`, `options.authors`, tag hints, or shell policy, resolves the relevant relays, queries them, deduplicates events by `id`, and returns the collected events.
 
 **`subscribe(filters, options?)`** -- Opens a live outbox-aware subscription. The shell may add or remove relay connections as NIP-65 relay lists are discovered or updated.
@@ -101,6 +118,8 @@ OutboxPublishResult = {
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
+| `outbox.getEvent` | napplet -> shell | `id`, `eventId`, `options?` |
+| `outbox.getEvent.result` | shell -> napplet | `id`, `event?`, `relays`, `incomplete?`, `error?` |
 | `outbox.query` | napplet -> shell | `id`, `filters`, `options?` |
 | `outbox.query.result` | shell -> napplet | `id`, `events`, `relays`, `incomplete?`, `error?` |
 | `outbox.subscribe` | napplet -> shell | `id`, `subId`, `filters`, `options?` |
@@ -115,11 +134,28 @@ OutboxPublishResult = {
 
 Key design notes:
 - `filters` are NIP-01 filters, either one filter or an array of filters.
-- `relays` in results maps event IDs to relay URLs where the shell observed the event.
+- `relays` in results records relay URLs where the shell observed returned events.
 - `options.relays` is a hint or policy override, not a command to bypass shell ACLs.
+- `outbox.getEvent` is a request; `outbox.event` remains the subscription push message.
 - The shell may internally use NAP-RELAY semantics, but napplets consume this higher-level outbox interface.
 
 ### Examples
+
+**Fetch a single event with an author hint:**
+```
+-> {
+     "type": "outbox.getEvent",
+     "id": "e1",
+     "eventId": "ev1...",
+     "options": { "author": "ab12...", "strategy": "outbox", "timeoutMs": 3000 }
+   }
+<- {
+     "type": "outbox.getEvent.result",
+     "id": "e1",
+     "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." },
+     "relays": ["wss://relay.example.com"]
+   }
+```
 
 **Query an author's notes from their outbox relays:**
 ```
@@ -176,13 +212,14 @@ Key design notes:
 
 ### Error Handling
 
-Result messages MAY include `error`. Common errors include `"no authors"`, `"relay list unavailable"`, `"relay timeout"`, `"policy denied"`, `"publish denied"`, and `"invalid filter"`.
+Result messages MAY include `error`. Common errors include `"not found"`, `"no authors"`, `"relay list unavailable"`, `"relay timeout"`, `"policy denied"`, `"publish denied"`, and `"invalid filter"`.
 
 If the shell returns partial results because some relay lists or relay connections failed, it SHOULD set `incomplete: true` and still return events it found.
 
 ## Shell Behavior
 
 - The shell MUST resolve relay plans according to NIP-65 relay list metadata when available.
+- The shell MUST verify that an event returned by `outbox.getEvent` matches the requested `eventId`.
 - The shell MUST deduplicate events by event ID before returning `outbox.query.result`.
 - The shell MUST validate event signatures before delivering events to napplets.
 - The shell MUST sign event templates submitted through `outbox.publish`; napplets do not receive signing keys.
@@ -197,6 +234,7 @@ If the shell returns partial results because some relay lists or relay connectio
 
 - Relay selection leaks user interest. Shells SHOULD limit broad outbox queries and apply user or napplet-specific policy for sensitive authors and filters.
 - `options.relays` MUST be treated as a hint subject to shell validation. Napplets MUST NOT be able to force connections to private network relays or disallowed hosts.
+- Event ID lookups without an author can become broad relay searches. Shells SHOULD enforce timeouts, fallback limits, and policy checks before expanding beyond hinted or known relays.
 - Unbounded author sets, missing limits, and broad live subscriptions can exhaust shell and relay resources. Shells SHOULD enforce limits, timeouts, and maximum subscription counts.
 - Publishing remains shell-mediated. Shells SHOULD show consent UI or require prior policy approval before signing and publishing events.
 - Relay plans may reveal user relay preferences. Shells MAY redact relay URLs or return a policy-derived plan when a napplet is not trusted to inspect relay metadata.
