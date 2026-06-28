@@ -29,9 +29,14 @@ projection-neutral; `Blob` is the web projection result type.
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
+| `info` | none | `ResourceInfo` | `resource.info` |
 | `bytes` | `url`, `opts?` | one Blob result | `resource.bytes` |
 | `bytesMany` | non-empty `urls`, `opts?` | ordered per-URL results | `resource.bytesMany` |
 | `bytesAsObjectURL` | `url` | `{ url, revoke }` helper | helper over `bytes` |
+
+`info()` is optional introspection. Napplets MAY call it to adapt UI or choose
+supported URL forms, but MUST NOT be required to call it before `bytes` or
+`bytesMany`.
 
 `opts.signal` MAY abort `bytes` or `bytesMany`. Abort sends `resource.cancel`
 for the request `id`. Late terminal envelopes for cancelled IDs MUST be dropped.
@@ -50,6 +55,9 @@ A napplet MUST NOT read another napplet's resource cache.
 
 | Type | Direction | Payload |
 |------|-----------|---------|
+| `resource.info` | napplet -> runtime | `id` |
+| `resource.info.result` | runtime -> napplet | `id`, `info` |
+| `resource.info.error` | runtime -> napplet | `id`, `error`, `message?` |
 | `resource.bytes` | napplet -> runtime | `id`, `url` |
 | `resource.bytesMany` | napplet -> runtime | `id`, `urls` |
 | `resource.cancel` | napplet -> runtime | `id` |
@@ -59,6 +67,17 @@ A napplet MUST NOT read another napplet's resource cache.
 | `resource.bytesMany.error` | runtime -> napplet | `id`, `error`, `message?` |
 
 ```cddl
+ResourceSchemeInfo = {
+  scheme: tstr,
+  enabled: bool,
+}
+
+ResourceInfo = {
+  schemes: [* ResourceSchemeInfo],
+  ? maxBytes: uint,
+  ? maxUrls: uint,
+}
+
 ResourceBytesItem = {
   url: tstr,
   ok: bool,
@@ -72,6 +91,7 @@ ResourceBytesItem = {
 Rules:
 
 - Every request gets one terminal result or error envelope.
+- `resource.info` is advisory and MUST NOT be a required preflight.
 - `bytesMany.result.items` MUST preserve input order and length.
 - `ok: true` items MUST include `blob` and `mime`.
 - `ok: false` items MUST include `error` and MUST NOT include `blob`.
@@ -79,6 +99,8 @@ Rules:
 - Successful results deliver complete Blobs only. No streaming, chunks, ranges,
   or progress fields are defined by this NAP.
 - `message?` is diagnostic only. Programmatic handling uses `error`.
+- Unsupported schemes still fail per request with `unsupported-scheme`, even if
+  the napplet skipped `resource.info`.
 
 ## Schemes
 
@@ -92,6 +114,10 @@ Rules:
 
 Unknown schemes MUST return `unsupported-scheme`. `http:` is not canonical and
 MUST NOT be enabled by default.
+
+`resource.info.schemes` reports schemes the runtime is willing to disclose to
+the napplet. It does not grant fetch authority. Each `bytes` or `bytesMany` URL
+still passes through scheme dispatch and policy checks.
 
 ## Default Resource Policy
 
@@ -177,6 +203,8 @@ SHOULD pass canonical URL strings.
 - Sidecar prefetch can leak user interest to resource hosts. It is optional and
   carrier-policy gated.
 - Cache scope comes from runtime-bound napplet identity, never napplet payload.
+- `resource.info` can reveal enabled schemes and coarse policy limits. Runtimes
+  MAY redact schemes or round limits for untrusted napplets.
 
 ## Implementations
 
