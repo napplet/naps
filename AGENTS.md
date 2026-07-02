@@ -133,6 +133,18 @@ Use this format instead:
 - If a projection exposes an idiomatic SDK shape, describe it as projection
   guidance only. The NAP contract remains the operations table plus schemas.
 
+## Operation naming
+
+Domain repetition is a code smell. A wire type is `domain.action`; the action MUST
+add meaning beyond the domain name.
+
+- Avoid tautologies like `count.count`, `relay.relay`, `storage.storage`, or
+  `<domain>.<domain>`.
+- Prefer the operation the napplet is asking the runtime to perform: `query`,
+  `publish`, `open`, `get`, `set`, `subscribe`, `info`, `check`.
+- If the best verb equals the domain, the domain or operation is probably wrong.
+  Stop and rename one side before the smell enters a spec.
+
 ## Isolation
 
 One concern per branch, commit, and PR. Never tangle.
