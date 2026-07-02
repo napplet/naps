@@ -164,6 +164,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
+| [NAP-DM](naps/NAP-DM.md) | `dm` |  | — | Runtime-mediated direct messages (conversations, history, send, live delivery) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* |  | *—* | *Strict baseline posture (sub-track)* | *Deferred* |
 | *[NAP-CLASS-2](https://github.com/napplet/naps/pull/18)* | *`class`* |  | *—* | *User-approved explicit-origin posture (sub-track)* | *Deferred* |
