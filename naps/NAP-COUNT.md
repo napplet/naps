@@ -23,7 +23,7 @@ aggregation, caching, approximation policy, and refusal handling.
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `count` | `filters`, `options?` | `CountResult` | `count.count` / `.result` |
+| `query` | `filters`, `options?` | `CountResult` | `count.query` / `.result` |
 
 ### Schemas
 
@@ -61,7 +61,7 @@ and aggregated into one count, matching NIP-45 `COUNT` semantics.
 
 | Operation | Rules |
 |-----------|-------|
-| `count` | Counts events matching NIP-01 filters. MUST NOT return event payloads. MAY use NIP-45 `COUNT`, runtime indexes, caches, or other runtime-owned sources. |
+| `query` | Counts events matching NIP-01 filters. MUST NOT return event payloads. MAY use NIP-45 `COUNT`, runtime indexes, caches, or other runtime-owned sources. |
 
 If `options.approximate` is false, the runtime SHOULD return exact counts or
 reject with `"exact-count-unavailable"`. If `options.hll` is true, the runtime
@@ -95,8 +95,8 @@ These are examples, not separate methods:
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
-| `count.count` | napplet -> runtime | `id`, `filters`, `options?` |
-| `count.count.result` | runtime -> napplet | `id`, `ok`, `count?`, `approximate?`, `hll?`, `relays?`, `error?`, `reason?` |
+| `count.query` | napplet -> runtime | `id`, `filters`, `options?` |
+| `count.query.result` | runtime -> napplet | `id`, `ok`, `count?`, `approximate?`, `hll?`, `relays?`, `error?`, `reason?` |
 
 ## Error Handling
 
