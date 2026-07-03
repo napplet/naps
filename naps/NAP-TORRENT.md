@@ -56,241 +56,62 @@ intent and observes a job. It does not own the transport.
 raw NIP-35 events returned from search or descriptor conversion. Publish and
 comment operations still return shell-created signed events as `NostrEvent`.
 
-```cddl
-HexInfoHash = tstr
-HexPubkey = tstr
-NostrEventId = tstr
-NostrEvent = { * tstr => any }
-; External type: RelayEventResult, owned by NAP-RELAY.
-NostrTag = [* tstr]
+Primitive aliases and imported types:
 
-TorrentTransport = "webtorrent" / "bittorrent" / "auto" / tstr
-TorrentMode = "download" / "seed" / "download-and-seed"
-TorrentJobState = "queued" / "metadata" / "downloading" / "seeding" /
-                  "paused" / "complete" / "cancelled" / "error"
-TorrentSourceType = "nip35" / "magnet" / "infohash" / "metainfo" / "runtime-file-set"
+| Name | Definition |
+|------|------------|
+| `HexInfoHash` | BitTorrent info hash encoded as lowercase hex |
+| `HexPubkey` | 32-byte public key encoded as lowercase hex |
+| `NostrEventId` | 32-byte event id encoded as lowercase hex |
+| `NostrEvent` | Nostr event object |
+| `NostrTag` | list of text tag fields |
+| `RelayEventResult` | external type owned by NAP-RELAY |
 
-TorrentCapabilities = {
-  transports: [* TorrentTransport],
-  modes: [* TorrentMode],
-  ? maxActiveJobs: uint,
-  ? maxTorrentSize: uint,
-  ? canPublishNip35: bool,
-  ? canComment: bool,
-  ? canSeedRuntimeFiles: bool,
-  ? canUseDht: bool,
-  ? canUseTrackers: bool,
-  ? canUseWebSeeds: bool,
-}
+Enums:
 
-TorrentFile = {
-  path: tstr,
-  ? size: uint,
-}
+| Name | Values |
+|------|--------|
+| `TorrentTransport` | `webtorrent`, `bittorrent`, `auto`, or runtime-defined text |
+| `TorrentMode` | `download`, `seed`, `download-and-seed` |
+| `TorrentJobState` | `queued`, `metadata`, `downloading`, `seeding`, `paused`, `complete`, `cancelled`, `error` |
+| `TorrentSourceType` | `nip35`, `magnet`, `infohash`, `metainfo`, `runtime-file-set` |
+| `TorrentStorage` | `temporary`, `persistent`, `user-selected` |
+| `TorrentReferencePrefix` | `tcat`, `newznab`, `tmdb`, `ttvdb`, `imdb`, `mal`, `anilist`, or other text |
 
-TorrentReference = {
-  prefix: "tcat" / "newznab" / "tmdb" / "ttvdb" / "imdb" / "mal" / "anilist" / tstr,
-  value: tstr,
-}
+Record fields:
 
-TorrentDescriptor = {
-  infoHash: HexInfoHash,
-  ? title: tstr,
-  ? description: tstr,
-  files: [* TorrentFile],
-  trackers: [* tstr],
-  tags: [* tstr],
-  references: [* TorrentReference],
-  ? magnet: tstr,
-  ? eventId: NostrEventId,
-  ? author: HexPubkey,
-  ? createdAt: uint,
-  ? result: RelayEventResult,
-}
+| Record | Required fields | Optional fields |
+|--------|-----------------|-----------------|
+| `TorrentCapabilities` | `transports: list of TorrentTransport`, `modes: list of TorrentMode` | `maxActiveJobs: uint`, `maxTorrentSize: uint`, `canPublishNip35: bool`, `canComment: bool`, `canSeedRuntimeFiles: bool`, `canUseDht: bool`, `canUseTrackers: bool`, `canUseWebSeeds: bool` |
+| `TorrentFile` | `path: tstr` | `size: uint` |
+| `TorrentReference` | `prefix: TorrentReferencePrefix`, `value: tstr` | none |
+| `TorrentDescriptor` | `infoHash: HexInfoHash`, `files: list of TorrentFile`, `trackers: list of tstr`, `tags: list of tstr`, `references: list of TorrentReference` | `title: tstr`, `description: tstr`, `magnet: tstr`, `eventId: NostrEventId`, `author: HexPubkey`, `createdAt: uint`, `result: RelayEventResult` |
+| `TorrentDescriptorResult` | `ok: bool` | `descriptor: TorrentDescriptor`, `error: tstr`, `reason: tstr` |
+| `TorrentMagnetResult` | `ok: bool` | `magnet: tstr`, `error: tstr`, `reason: tstr` |
+| `TorrentSearchQuery` | none | `text: tstr`, `infoHash: HexInfoHash`, `tags: list of tstr`, `references: list of TorrentReference`, `authors: list of HexPubkey`, `since: uint`, `until: uint`, `limit: uint` |
+| `TorrentSearchResult` | `descriptor: TorrentDescriptor`, `result: RelayEventResult` | none |
+| `TorrentPublishRequest` | `descriptor: TorrentDescriptor` | `content: tstr`, `relays: list of tstr`, `publish: bool` |
+| `TorrentCommentRequest` | `torrentEventId: NostrEventId`, `torrentAuthor: HexPubkey`, `content: tstr` | `relays: list of tstr` |
+| `TorrentPublishResult` | `ok: bool` | `eventId: NostrEventId`, `event: NostrEvent`, `relays: map of relay URL to bool`, `error: tstr`, `reason: tstr` |
+| `TorrentPickOptions` | none | `multiple: bool`, `suggestedName: tstr` |
+| `TorrentRuntimeFileSet` | `runtimeFileSetId: tstr`, `files: list of TorrentFile`, `totalBytes: uint` | `displayName: tstr` |
+| `TorrentFileSetResult` | `ok: bool` | `fileSet: TorrentRuntimeFileSet`, `error: tstr`, `reason: tstr` |
+| `TorrentSource` | `sourceType: TorrentSourceType` | `event: NostrEvent`, `descriptor: TorrentDescriptor`, `magnet: tstr`, `infoHash: HexInfoHash`, `metainfo: bstr`, `runtimeFileSetId: tstr` |
+| `TorrentAddOptions` | none | `mode: TorrentMode`, `transport: TorrentTransport`, `startPaused: bool`, `seedAfterComplete: bool`, `downloadLimitBytesPerSecond: uint`, `uploadLimitBytesPerSecond: uint`, `storage: TorrentStorage`, `trackers: list of tstr`, `webSeeds: list of tstr`, `fileSelection: TorrentFileSelection` |
+| `TorrentAddRequest` | `source: TorrentSource` | `jobId: tstr`, `options: TorrentAddOptions` |
+| `TorrentJobAck` | `ok: bool` | `jobId: tstr`, `state: TorrentJobState`, `error: tstr`, `reason: tstr` |
+| `TorrentPeerStats` | `peers: uint`, `seeds: uint`, `leeches: uint` | none |
+| `TorrentJobStatus` | `ok: bool`, `jobId: tstr`, `state: TorrentJobState`, `mode: TorrentMode`, `transport: TorrentTransport`, `infoHash: HexInfoHash`, `downloadedBytes: uint`, `uploadedBytes: uint`, `totalBytes: uint`, `progress: number`, `downloadRate: number`, `uploadRate: number`, `ratio: number`, `peers: TorrentPeerStats` | `title: tstr`, `etaSeconds: uint`, `storage: TorrentStorage`, `error: tstr`, `reason: tstr` |
+| `TorrentJobSummary` | `jobId: tstr`, `state: TorrentJobState`, `mode: TorrentMode`, `transport: TorrentTransport`, `infoHash: HexInfoHash`, `progress: number`, `downloadRate: number`, `uploadRate: number`, `ratio: number` | `title: tstr` |
+| `TorrentJobFilter` | none | `states: list of TorrentJobState`, `modes: list of TorrentMode` |
+| `TorrentFileStatus` | `index: uint`, `path: tstr`, `size: uint`, `selected: bool`, `priority: int`, `downloadedBytes: uint`, `progress: number` | none |
+| `TorrentFileSelection` | none | `indexes: list of uint`, `paths: list of tstr`, `priority: int` |
+| `TorrentRemoveOptions` | none | `deleteData: bool` |
+| `TorrentRemoveResult` | `ok: bool`, `jobId: tstr` | `deletedData: bool`, `error: tstr`, `reason: tstr` |
 
-TorrentDescriptorResult = {
-  ok: bool,
-  ? descriptor: TorrentDescriptor,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentMagnetResult = {
-  ok: bool,
-  ? magnet: tstr,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentSearchQuery = {
-  ? text: tstr,
-  ? infoHash: HexInfoHash,
-  ? tags: [* tstr],
-  ? references: [* TorrentReference],
-  ? authors: [* HexPubkey],
-  ? since: uint,
-  ? until: uint,
-  ? limit: uint,
-}
-
-TorrentSearchResult = {
-  descriptor: TorrentDescriptor,
-  result: RelayEventResult,
-}
-
-TorrentPublishRequest = {
-  descriptor: TorrentDescriptor,
-  ? content: tstr,
-  ? relays: [* tstr],
-  ? publish: bool, ; default true; false returns an unsigned preview only
-}
-
-TorrentCommentRequest = {
-  torrentEventId: NostrEventId,
-  torrentAuthor: HexPubkey,
-  content: tstr,
-  ? relays: [* tstr],
-}
-
-TorrentPublishResult = {
-  ok: bool,
-  ? eventId: NostrEventId,
-  ? event: NostrEvent,
-  ? relays: { * tstr => bool },
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentPickOptions = {
-  ? multiple: bool,
-  ? suggestedName: tstr,
-}
-
-TorrentRuntimeFileSet = {
-  runtimeFileSetId: tstr,
-  files: [* TorrentFile],
-  totalBytes: uint,
-  ? displayName: tstr,
-}
-
-TorrentFileSetResult = {
-  ok: bool,
-  ? fileSet: TorrentRuntimeFileSet,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentSource = {
-  sourceType: TorrentSourceType,
-  ? event: NostrEvent,
-  ? descriptor: TorrentDescriptor,
-  ? magnet: tstr,
-  ? infoHash: HexInfoHash,
-  ? metainfo: bstr,
-  ? runtimeFileSetId: tstr,
-}
-
-TorrentAddOptions = {
-  ? mode: TorrentMode,              ; default "download"
-  ? transport: TorrentTransport,    ; default "auto"
-  ? startPaused: bool,
-  ? seedAfterComplete: bool,
-  ? downloadLimitBytesPerSecond: uint,
-  ? uploadLimitBytesPerSecond: uint,
-  ? storage: "temporary" / "persistent" / "user-selected",
-  ? trackers: [* tstr],
-  ? webSeeds: [* tstr],
-  ? fileSelection: TorrentFileSelection,
-}
-
-TorrentAddRequest = {
-  ? jobId: tstr,
-  source: TorrentSource,
-  ? options: TorrentAddOptions,
-}
-
-TorrentJobAck = {
-  ok: bool,
-  ? jobId: tstr,
-  ? state: TorrentJobState,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentPeerStats = {
-  peers: uint,
-  seeds: uint,
-  leeches: uint,
-}
-
-TorrentJobStatus = {
-  ok: bool,
-  jobId: tstr,
-  state: TorrentJobState,
-  mode: TorrentMode,
-  transport: TorrentTransport,
-  infoHash: HexInfoHash,
-  ? title: tstr,
-  downloadedBytes: uint,
-  uploadedBytes: uint,
-  totalBytes: uint,
-  progress: number,
-  downloadRate: number,
-  uploadRate: number,
-  ratio: number,
-  ? etaSeconds: uint,
-  peers: TorrentPeerStats,
-  ? storage: "temporary" / "persistent" / "user-selected",
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-TorrentJobSummary = {
-  jobId: tstr,
-  state: TorrentJobState,
-  mode: TorrentMode,
-  transport: TorrentTransport,
-  infoHash: HexInfoHash,
-  ? title: tstr,
-  progress: number,
-  downloadRate: number,
-  uploadRate: number,
-  ratio: number,
-}
-
-TorrentJobFilter = {
-  ? states: [* TorrentJobState],
-  ? modes: [* TorrentMode],
-}
-
-TorrentFileStatus = {
-  index: uint,
-  path: tstr,
-  size: uint,
-  selected: bool,
-  priority: int,
-  downloadedBytes: uint,
-  progress: number,
-}
-
-TorrentFileSelection = {
-  ? indexes: [* uint],
-  ? paths: [* tstr],
-  ? priority: int,
-}
-
-TorrentRemoveOptions = {
-  ? deleteData: bool,
-}
-
-TorrentRemoveResult = {
-  ok: bool,
-  jobId: tstr,
-  ? deletedData: bool,
-  ? error: tstr,
-  ? reason: tstr,
-}
-```
+When `TorrentPublishRequest.publish` is omitted, the default is `true`.
+When `TorrentAddOptions.mode` is omitted, the default is `download`.
+When `TorrentAddOptions.transport` is omitted, the default is `auto`.
 
 **`capabilities()`** -- Reports the runtime's torrent features for this
 napplet. `transports` names supported backend families, not a promise that a
