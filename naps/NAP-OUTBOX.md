@@ -290,3 +290,9 @@ If the shell returns partial results because some relay lists or relay connectio
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `a1968b8` - Introduced NAP-OUTBOX for outbox-aware relay routing.
+- `20379e8` - Added single-event retrieval through `outbox.getEvent`.
+- `57db924` - Changed outbox event returns to use relay-owned result shape and declared the relay dependency.
