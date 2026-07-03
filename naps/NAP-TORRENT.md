@@ -9,6 +9,8 @@
 **Depends:**
 - `identity` -- capability · required -- publishing NIP-35 torrent and comment events uses the current shell-user identity as event author.
 - `relay` -- capability · required -- searches, reads, comments on, and publishes NIP-35 torrent events through the runtime relay surface.
+- `relay` -- wire · required -- imports `RelayEventResult` for raw NIP-35 event returns.
+- `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding (NIP-5D):** `window.napplet.torrent` · `shell.supports("torrent")`
 
 ## Description
@@ -50,11 +52,16 @@ intent and observes a job. It does not own the transport.
 
 ### Schemas
 
+`RelayEventResult` is owned by NAP-RELAY. NAP-TORRENT imports it by name for
+raw NIP-35 events returned from search or descriptor conversion. Publish and
+comment operations still return shell-created signed events as `NostrEvent`.
+
 ```cddl
 HexInfoHash = tstr
 HexPubkey = tstr
 NostrEventId = tstr
 NostrEvent = { * tstr => any }
+; External type: RelayEventResult, owned by NAP-RELAY.
 NostrTag = [* tstr]
 
 TorrentTransport = "webtorrent" / "bittorrent" / "auto" / tstr
@@ -98,7 +105,7 @@ TorrentDescriptor = {
   ? eventId: NostrEventId,
   ? author: HexPubkey,
   ? createdAt: uint,
-  ? event: NostrEvent,
+  ? result: RelayEventResult,
 }
 
 TorrentDescriptorResult = {
@@ -128,8 +135,7 @@ TorrentSearchQuery = {
 
 TorrentSearchResult = {
   descriptor: TorrentDescriptor,
-  event: NostrEvent,
-  ? relays: [* tstr],
+  result: RelayEventResult,
 }
 
 TorrentPublishRequest = {
@@ -303,8 +309,8 @@ store torrent files on Nostr.
 
 **`search(query)`** -- Searches for NIP-35 kind `2003` events through runtime
 relay policy, indexes, or cache. It returns normalized descriptors plus source
-events. Search matching is runtime-owned; the stable contract is the query
-shape and returned descriptor.
+events as `RelayEventResult`. Search matching is runtime-owned; the stable
+contract is the query shape and returned descriptor.
 
 **`publish(request)`** -- Builds a NIP-35 kind `2003` torrent event from a
 descriptor, signs it as the current shell-user, and publishes it through the
@@ -429,7 +435,7 @@ Key design notes:
 ```
 -> { "type": "torrent.search", "id": "s1", "query": { "text": "dune", "tags": ["movie"], "limit": 10 } }
 <- { "type": "torrent.search.result", "id": "s1",
-     "results": [{ "descriptor": { "infoHash": "0123...", "title": "Dune", "files": [], "trackers": ["udp://tracker.example:1337"], "tags": ["movie"], "references": [] }, "event": { "kind": 2003, "tags": [] } }] }
+     "results": [{ "descriptor": { "infoHash": "0123...", "title": "Dune", "files": [], "trackers": ["udp://tracker.example:1337"], "tags": ["movie"], "references": [] }, "result": { "event": { "kind": 2003, "tags": [] }, "sidecar": { "relayHints": ["wss://relay.example.com"] } } }] }
 -> { "type": "torrent.add", "id": "a1",
      "request": { "source": { "sourceType": "nip35", "descriptor": { "infoHash": "0123...", "title": "Dune", "files": [], "trackers": ["udp://tracker.example:1337"], "tags": ["movie"], "references": [] } },
                   "options": { "mode": "download-and-seed", "transport": "auto", "storage": "user-selected" } } }
@@ -500,6 +506,11 @@ result can be constructed.
   napplet.
 - MUST enforce runtime policy for trackers, DHT, peer discovery, web seeds,
   bandwidth, storage, retention, and seeding.
+- SHOULD merge observed NIP-35 relay URLs into
+  `RelayEventResult.sidecar.relayHints` when it can disclose them.
+- MAY include pre-resolved resources referenced by NIP-35 events in
+  `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy
+  policy and NAP-RESOURCE's fetch policy both apply.
 - SHOULD report progress through `torrent.progress` at a throttled cadence.
 - MAY use WebTorrent, standard BitTorrent, a local daemon, or a remote runtime
   service as the backend.
