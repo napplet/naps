@@ -66,27 +66,31 @@ A napplet MUST NOT read another napplet's resource cache.
 | `resource.bytesMany.result` | runtime -> napplet | `id`, `items` |
 | `resource.bytesMany.error` | runtime -> napplet | `id`, `error`, `message?` |
 
-```cddl
-ResourceSchemeInfo = {
-  scheme: tstr,
-  enabled: bool,
-}
+`ResourceSchemeInfo` fields:
 
-ResourceInfo = {
-  schemes: [* ResourceSchemeInfo],
-  ? maxBytes: uint,
-  ? maxUrls: uint,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `scheme` | yes | text |
+| `enabled` | yes | boolean |
 
-ResourceBytesItem = {
-  url: tstr,
-  ok: bool,
-  ? blob: bstr,
-  ? mime: tstr,
-  ? error: tstr,
-  ? message: tstr,
-}
-```
+`ResourceInfo` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `schemes` | yes | list of `ResourceSchemeInfo` |
+| `maxBytes` | no | unsigned integer |
+| `maxUrls` | no | unsigned integer |
+
+`ResourceBytesItem` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `url` | yes | text |
+| `ok` | yes | boolean |
+| `blob` | no | bytes |
+| `mime` | no | text |
+| `error` | no | text |
+| `message` | no | text |
 
 Rules:
 
@@ -145,13 +149,13 @@ The runtime MAY hydrate resource cache entries before the napplet asks for them.
 The sidecar entry type is owned here. The carrier field is owned by the carrier
 domain, such as `RelayEventResult.sidecar.resources?` in NAP-RELAY.
 
-```cddl
-ResourceSidecarEntry = {
-  url: tstr,
-  blob: bstr,
-  mime: tstr,
-}
-```
+`ResourceSidecarEntry` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `url` | yes | text |
+| `blob` | yes | bytes |
+| `mime` | yes | text |
 
 Sidecar rules:
 
