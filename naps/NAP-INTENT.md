@@ -300,3 +300,7 @@ The shell SHOULD return a structured `result` with `ok: false` and `handled: fal
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `8c876c3` - Added installed-handler contract discovery with action, protocol, and optional event-kind constraints.
