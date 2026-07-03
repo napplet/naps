@@ -37,93 +37,126 @@ The napplet supplies the server identity and the MCP operation it wants. The she
 
 ### Schemas
 
-```cddl
-JsonObject = { * tstr => any }
-JsonSchema = JsonObject
-McpTool = JsonObject
-McpToolResult = JsonObject
-McpResource = JsonObject
-McpResourceContent = JsonObject
+Primitive references:
 
-CvmServerRef = {
-  pubkey: tstr,
-  ? relays: [* tstr],
-}
+| Name | Meaning |
+|------|---------|
+| `JsonObject` | JSON object. |
+| `JsonSchema` | JSON Schema object. |
+| `McpTool` | MCP tool object. |
+| `McpToolResult` | MCP tool result object. |
+| `McpResource` | MCP resource object. |
+| `McpResourceContent` | MCP resource content object. |
 
-CvmDiscoverQuery = {
-  ? search: tstr,
-  ? kinds: [* uint],
-  ? relays: [* tstr],
-  ? limit: uint,
-}
+Enumerations:
 
-CvmServer = {
-  pubkey: tstr,
-  ? relays: [* tstr],
-  ? name: tstr,
-  ? description: tstr,
-  ? capabilities: [* tstr],
-  ? paymentRequired: bool,
-}
+| Name | Values |
+|------|--------|
+| `CvmRequestOptions.payment` | `deny`, `prompt`, `allow` |
+| `CvmRegistryCallOptions.payment` | `deny`, `prompt`, `allow` |
+| `CvmRegistryCallOptions.cache` | `default`, `reload`, `no-store` |
+| `McpMessage.jsonrpc` | `2.0` |
 
-CvmRequestOptions = {
-  ? timeoutMs: uint,
-  ? initialize: bool,
-  ? payment: "deny" / "prompt" / "allow",
-}
+`CvmServerRef`:
 
-CvmRegistryQuery = {
-  ? search: tstr,
-  ? family: tstr,
-  ? schemaHash: tstr,
-  ? limit: uint,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pubkey` | `tstr` | yes | ContextVM server pubkey. |
+| `relays` | list of `tstr` | no | Relay hints for the server. |
 
-CvmRegistryOptions = {
-  ? schemaHash: tstr,
-  ? server: CvmServerRef,
-}
+`CvmDiscoverQuery`:
 
-CvmRegistryCallOptions = {
-  ? schemaHash: tstr,
-  ? server: CvmServerRef,
-  ? timeoutMs: uint,
-  ? initialize: bool,
-  ? payment: "deny" / "prompt" / "allow",
-  ? cache: "default" / "reload" / "no-store",
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `search` | `tstr` | no | Search string. |
+| `kinds` | list of `uint` | no | Announcement kinds to inspect. |
+| `relays` | list of `tstr` | no | Relay hints for discovery. |
+| `limit` | `uint` | no | Maximum number of servers to return. |
 
-CvmRegistryEntry = {
-  family: tstr,
-  ? description: tstr,
-  ? schemaHash: tstr,
-  ? selected: CvmServerRef,
-  ? providers: [* CvmServerRef],
-  tools: [* CvmRegistryTool],
-}
+`CvmServer`:
 
-CvmRegistryTool = {
-  name: tstr,
-  ? description: tstr,
-  inputSchema: JsonSchema,
-  ? outputSchema: JsonSchema,
-  ? schemaHash: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pubkey` | `tstr` | yes | ContextVM server pubkey. |
+| `relays` | list of `tstr` | no | Relay hints for the server. |
+| `name` | `tstr` | no | Human-readable server name. |
+| `description` | `tstr` | no | Human-readable server description. |
+| `capabilities` | list of `tstr` | no | Server capability names. |
+| `paymentRequired` | `bool` | no | Whether the server requires value exchange. |
 
-McpMessage = {
-  jsonrpc: "2.0",
-  ? id: tstr / number,
-  ? method: tstr,
-  ? params: any,
-  ? result: any,
-  ? error: any,
-}
+`CvmRequestOptions`:
 
-CvmEvent = {
-  server: CvmServerRef,
-  message: McpMessage,
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
+| `initialize` | `bool` | no | Whether the shell should initialize the MCP session if needed. |
+| `payment` | `deny`, `prompt`, or `allow` | no | Payment handling policy. |
+
+`CvmRegistryQuery`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `search` | `tstr` | no | Search string. |
+| `family` | `tstr` | no | Registry family name. |
+| `schemaHash` | `tstr` | no | Required common-schema hash. |
+| `limit` | `uint` | no | Maximum number of entries to return. |
+
+`CvmRegistryOptions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `schemaHash` | `tstr` | no | Required common-schema hash. |
+| `server` | `CvmServerRef` | no | Required provider server. |
+
+`CvmRegistryCallOptions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `schemaHash` | `tstr` | no | Required common-schema hash. |
+| `server` | `CvmServerRef` | no | Required provider server. |
+| `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
+| `initialize` | `bool` | no | Whether the shell should initialize the MCP session if needed. |
+| `payment` | `deny`, `prompt`, or `allow` | no | Payment handling policy. |
+| `cache` | `default`, `reload`, or `no-store` | no | Registry cache policy. |
+
+`CvmRegistryEntry`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `family` | `tstr` | yes | Registry family name. |
+| `description` | `tstr` | no | Human-readable family description. |
+| `schemaHash` | `tstr` | no | Selected common-schema hash. |
+| `selected` | `CvmServerRef` | no | Selected provider server. |
+| `providers` | list of `CvmServerRef` | no | Candidate provider servers. |
+| `tools` | list of `CvmRegistryTool` | yes | Callable tools in this family. |
+
+`CvmRegistryTool`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `tstr` | yes | Tool name. |
+| `description` | `tstr` | no | Human-readable tool description. |
+| `inputSchema` | `JsonSchema` | yes | Tool input schema. |
+| `outputSchema` | `JsonSchema` | no | Tool output schema. |
+| `schemaHash` | `tstr` | no | Common-schema hash for the tool. |
+
+`McpMessage`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jsonrpc` | `2.0` | yes | JSON-RPC version. |
+| `id` | `tstr` or `number` | no | JSON-RPC correlation ID. |
+| `method` | `tstr` | no | JSON-RPC method name. |
+| `params` | any JSON value | no | JSON-RPC parameters. |
+| `result` | any JSON value | no | JSON-RPC result. |
+| `error` | any JSON value | no | JSON-RPC error. |
+
+`CvmEvent`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `server` | `CvmServerRef` | yes | Server that emitted the event. |
+| `message` | `McpMessage` | yes | MCP message delivered by the server. |
 
 **`discover(query?)`** -- Returns public ContextVM server announcements known to the shell. The shell MAY resolve discovery from local cache, configured relays, or user-curated lists.
 
