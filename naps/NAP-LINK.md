@@ -102,3 +102,7 @@ Prompt choices MAY include:
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `88a3431` - Introduced NAP-LINK as a shell-owned external link opener for sandboxed napplets.
