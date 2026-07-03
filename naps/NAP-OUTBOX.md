@@ -9,7 +9,8 @@ Outbox-Aware Relay Access
 **NAP ID:** NAP-OUTBOX
 **Domain:** `outbox`
 **Depends:**
-- `relay` — layering · optional — the shell MAY use `relay` semantics internally; napplets consume the higher-level outbox surface
+- `relay` — wire · required — imports `RelayEventResult` for raw Nostr event returns.
+- `resource` — wire · optional — imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding (NIP-5D):** `window.napplet.outbox` · `shell.supports("outbox")`
 
 ## Description
@@ -30,11 +31,18 @@ This interface is for Nostr event access where relay selection is part of the re
 
 ### Schemas
 
+`RelayEventResult` is owned by NAP-RELAY. NAP-OUTBOX imports it by name for
+every raw Nostr event it returns. Its sidecar carries optional
+`resources` and `relayHints`; relay hints replace NAP-OUTBOX's former top-level
+`relays` result map for returned events.
+
 ```cddl
 NostrFilter = { * tstr => any }
 NostrEvent = { * tstr => any }
 EventTemplate = { * tstr => any }
 OutboxStrategy = "outbox" / "inbox" / "auto"
+
+; External type: RelayEventResult, owned by NAP-RELAY.
 
 OutboxEventOptions = {
   ? author: tstr,
@@ -80,15 +88,13 @@ OutboxRelayPlan = {
 }
 
 OutboxEventResult = {
-  ? event: NostrEvent,
-  relays: [* tstr],
+  ? result: RelayEventResult,
   ? incomplete: bool,
   ? error: tstr,
 }
 
 OutboxResult = {
-  events: [* NostrEvent],
-  relays: { * tstr => [* tstr] },
+  events: [* RelayEventResult],
   ? incomplete: bool,
   ? error: tstr,
 }
@@ -102,11 +108,11 @@ OutboxPublishResult = {
 }
 ```
 
-**`getEvent(eventId, options?)`** -- Fetches one event by ID through shell-owned relay routing. If `options.author` is present, the shell SHOULD use that author's outbox relays as the primary read target. If no author is known, the shell MAY use relay hints, cache, policy relays, fallback relays, or relay intelligence. The shell validates the event ID and signature before returning it.
+**`getEvent(eventId, options?)`** -- Fetches one event by ID through shell-owned relay routing. If `options.author` is present, the shell SHOULD use that author's outbox relays as the primary read target. If no author is known, the shell MAY use relay hints, cache, policy relays, fallback relays, or relay intelligence. The shell validates the event ID and signature before returning it as `RelayEventResult`.
 
-**`query(filters, options?)`** -- Performs a one-shot outbox-aware query. The shell derives authors from `filters.authors`, `options.authors`, tag hints, or shell policy, resolves the relevant relays, queries them, deduplicates events by `id`, and returns the collected events.
+**`query(filters, options?)`** -- Performs a one-shot outbox-aware query. The shell derives authors from `filters.authors`, `options.authors`, tag hints, or shell policy, resolves the relevant relays, queries them, deduplicates events by `id`, merges relay hints into each `RelayEventResult.sidecar.relayHints`, and returns the collected results.
 
-**`subscribe(filters, options?)`** -- Opens a live outbox-aware subscription. The shell may add or remove relay connections as NIP-65 relay lists are discovered or updated.
+**`subscribe(filters, options?)`** -- Opens a live outbox-aware event stream. The shell MAY use relay EOSE messages internally to separate initial backfill from live delivery, but it MUST NOT expose relay EOSE to the napplet. Outbox routing may span multiple relays and may change over time, so there is no single napplet-facing EOSE boundary.
 
 **`publish(template, options?)`** -- Publishes a shell-signed event using outbox-aware relay fanout. For the shell-user's own event, this usually means the user's write relays. For directed events, the shell MAY include recipient inbox relays.
 
@@ -119,12 +125,11 @@ OutboxPublishResult = {
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
 | `outbox.getEvent` | napplet -> shell | `id`, `eventId`, `options?` |
-| `outbox.getEvent.result` | shell -> napplet | `id`, `event?`, `relays`, `incomplete?`, `error?` |
+| `outbox.getEvent.result` | shell -> napplet | `id`, `result?`, `incomplete?`, `error?` |
 | `outbox.query` | napplet -> shell | `id`, `filters`, `options?` |
-| `outbox.query.result` | shell -> napplet | `id`, `events`, `relays`, `incomplete?`, `error?` |
+| `outbox.query.result` | shell -> napplet | `id`, `events`, `incomplete?`, `error?` |
 | `outbox.subscribe` | napplet -> shell | `id`, `subId`, `filters`, `options?` |
-| `outbox.event` | shell -> napplet | `subId`, `event`, `relay?` |
-| `outbox.eose` | shell -> napplet | `subId` |
+| `outbox.event` | shell -> napplet | `subId`, `result` |
 | `outbox.closed` | shell -> napplet | `subId`, `reason?` |
 | `outbox.close` | napplet -> shell | `id`, `subId` |
 | `outbox.publish` | napplet -> shell | `id`, `event`, `options?` |
@@ -134,9 +139,11 @@ OutboxPublishResult = {
 
 Key design notes:
 - `filters` are NIP-01 filters, either one filter or an array of filters.
-- `relays` in results records relay URLs where the shell observed returned events.
+- `RelayEventResult.sidecar.relayHints` records relay URLs where the shell observed returned events, when the shell can disclose them.
+- `RelayEventResult.sidecar.resources` carries resource sidecars when the shell pre-resolves bytes under NAP-RESOURCE policy.
 - `options.relays` is a hint or policy override, not a command to bypass shell ACLs.
 - `outbox.getEvent` is a request; `outbox.event` remains the subscription push message.
+- `outbox.eose` is not defined. Relay EOSE is an internal routing detail.
 - The shell may internally use NAP-RELAY semantics, but napplets consume this higher-level outbox interface.
 
 ### Examples
@@ -152,8 +159,10 @@ Key design notes:
 <- {
      "type": "outbox.getEvent.result",
      "id": "e1",
-     "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." },
-     "relays": ["wss://relay.example.com"]
+     "result": {
+       "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." },
+       "sidecar": { "relayHints": ["wss://relay.example.com"] }
+     }
    }
 ```
 
@@ -168,8 +177,12 @@ Key design notes:
 <- {
      "type": "outbox.query.result",
      "id": "q1",
-     "events": [{ "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." }],
-     "relays": { "ev1...": ["wss://relay.example.com"] }
+     "events": [
+       {
+         "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." },
+         "sidecar": { "relayHints": ["wss://relay.example.com"] }
+       }
+     ]
    }
 ```
 
@@ -182,8 +195,7 @@ Key design notes:
      "filters": [{ "authors": ["ab12..."], "kinds": [1], "limit": 50 }],
      "options": { "strategy": "outbox", "live": true }
    }
-<- { "type": "outbox.event", "subId": "sub-1", "relay": "wss://relay.example.com", "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." } }
-<- { "type": "outbox.eose", "subId": "sub-1" }
+<- { "type": "outbox.event", "subId": "sub-1", "result": { "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." }, "sidecar": { "relayHints": ["wss://relay.example.com"] } } }
 ```
 
 **Publish through the user's write relays:**
@@ -224,6 +236,10 @@ If the shell returns partial results because some relay lists or relay connectio
 - The shell MUST validate event signatures before delivering events to napplets.
 - The shell MUST sign event templates submitted through `outbox.publish`; napplets do not receive signing keys.
 - The shell MUST respond to every request with a result or lifecycle message carrying the same `id` or `subId`.
+- The shell MUST NOT emit `outbox.eose`. Relay EOSE is an internal routing detail.
+- The shell MUST deliver matching subscription events as `outbox.event` until the napplet sends `outbox.close` or the shell terminates the stream with `outbox.closed`.
+- The shell SHOULD merge observed relay URLs into `RelayEventResult.sidecar.relayHints` after deduplication when it can disclose them.
+- The shell MAY include pre-resolved byte resources in `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy policy and NAP-RESOURCE's fetch policy both apply.
 - The shell SHOULD cache relay lists and refresh them according to shell policy.
 - The shell SHOULD fall back to configured relays when NIP-65 data is absent, stale, or unreachable.
 - The shell MAY use NIP-66 or other relay intelligence to choose among candidate relays.
