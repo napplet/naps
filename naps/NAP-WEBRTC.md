@@ -240,3 +240,7 @@ revokes the capability.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `1a83117` - Introduced NAP-WEBRTC as a runtime-owned WebRTC signaling surface.
