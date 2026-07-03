@@ -30,23 +30,25 @@ The shell is the sole writer of configuration values. Napplets cannot mutate con
 
 ### Schemas
 
-```cddl
-ConfigSchema = { * tstr => any } ; JSON Schema draft-07+, restricted below
-ConfigValues = { * tstr => any } ; shell-validated JSON-serializable values
+Primitive references:
 
-ConfigSchemaErrorCode =
-  "invalid-schema" /
-  "version-conflict" /
-  "unsupported-draft" /
-  "ref-not-allowed" /
-  "pattern-not-allowed" /
-  "secret-with-default"
+| Name | Meaning |
+|------|---------|
+| `ConfigSchema` | JSON Schema draft-07 or later, restricted below. |
+| `ConfigValues` | Shell-validated JSON-serializable configuration values. |
 
-ConfigSchemaError = {
-  code: ConfigSchemaErrorCode,
-  message: tstr,
-}
-```
+Enumerations:
+
+| Name | Values |
+|------|--------|
+| `ConfigSchemaErrorCode` | `invalid-schema`, `version-conflict`, `unsupported-draft`, `ref-not-allowed`, `pattern-not-allowed`, `secret-with-default` |
+
+`ConfigSchemaError`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `code` | `ConfigSchemaErrorCode` | yes | Machine-readable schema error code. |
+| `message` | `tstr` | yes | Human-readable error message. |
 
 **`registerSchema(schema, version?)`** -- Runtime escape hatch for declaring a configuration schema. The preferred path is manifest-declared schema at napplet build time; `registerSchema` is for napplets whose schema genuinely cannot be static. The optional `version` parameter is the `$version` migration hint. Shell responds asynchronously via a positive-ACK (`config.registerSchema.result`); errors surface via the `onSchemaError` subscription.
 
