@@ -233,3 +233,12 @@ Result messages use `ok: false` plus `error`. Common errors:
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `a189372` - Introduced NAP-COMMON for shared social actions.
+- `8171616` - Added profile lookup to the common social action surface.
+- `e0b1414` - Added NIP-19 encode and decode helpers.
+- `f0cf652` - Renamed NIP-19 result payload `type` to `nip19Type` to avoid NIP-5D envelope collisions.
+- `c52def9` - Added current-follow lookup to the common social action surface.
+- `7973802` - Changed common profile reads to use relay-owned result shape and declared the relay dependency.
