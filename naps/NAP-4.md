@@ -41,43 +41,51 @@ inc.emit("note:open", payload)
 
 Payload:
 
-```cddl
-NoteOpenPayload = {
-  target: NoteOpenTarget,
-  ? relays: [* tstr],
-  ? source: NoteOpenSource,
-  ? behavior: NoteOpenBehavior,
-}
+`NoteOpenPayload`:
 
-NoteOpenSource = {
-  ? napplet: tstr,
-  ? windowId: tstr,
-  ? requestId: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `target` | `NoteOpenTarget` | yes | Event or addressable event to open. |
+| `relays` | list of `tstr` | no | Advisory relay hints. |
+| `source` | `NoteOpenSource` | no | Optional producer metadata. |
+| `behavior` | `NoteOpenBehavior` | no | Optional viewer behavior hints. |
 
-NoteOpenBehavior = {
-  ? focus: bool,
-  ? newWindow: bool,
-}
+`NoteOpenSource`:
 
-NoteOpenTarget = NoteOpenEventTarget / NoteOpenAddressTarget
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `napplet` | `tstr` | no | Source napplet identifier. |
+| `windowId` | `tstr` | no | Source window identifier. |
+| `requestId` | `tstr` | no | Source request identifier. |
 
-NoteOpenEventTarget = {
-  type: "event",
-  id: tstr,      ; 32-byte lowercase hex event id
-  ? kind: uint,
-  ? pubkey: tstr, ; lowercase hex pubkey when known
-  ? nip19: tstr,  ; note1/nevent1 reference when available
-}
+`NoteOpenBehavior`:
 
-NoteOpenAddressTarget = {
-  type: "address",
-  kind: uint,
-  pubkey: tstr, ; lowercase hex pubkey
-  identifier: tstr,
-  ? nip19: tstr, ; naddr1 reference when available
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `focus` | `bool` | no | Whether the viewer should be focused. |
+| `newWindow` | `bool` | no | Whether the viewer should open in a new window. |
+
+`NoteOpenTarget` is one of `NoteOpenEventTarget` or `NoteOpenAddressTarget`.
+
+`NoteOpenEventTarget`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `event` | yes | Target discriminator. |
+| `id` | `tstr` | yes | 32-byte lowercase hex event ID. |
+| `kind` | `uint` | no | Event kind when known. |
+| `pubkey` | `tstr` | no | Lowercase hex pubkey when known. |
+| `nip19` | `tstr` | no | `note1` or `nevent1` reference when available. |
+
+`NoteOpenAddressTarget`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `address` | yes | Target discriminator. |
+| `kind` | `uint` | yes | Addressable event kind. |
+| `pubkey` | `tstr` | yes | Lowercase hex pubkey. |
+| `identifier` | `tstr` | yes | Addressable event identifier. |
+| `nip19` | `tstr` | no | `naddr1` reference when available. |
 
 Requirements:
 
