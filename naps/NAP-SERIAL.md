@@ -253,3 +253,7 @@ device information. The runtime is the policy boundary.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `85f6ddb` - Introduced NAP-SERIAL as a portable serial access surface.
