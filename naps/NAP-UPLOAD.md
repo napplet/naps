@@ -31,75 +31,94 @@ Napplets never receive signing keys, server credentials, or direct network acces
 
 ### Schemas
 
-```cddl
-UploadRail = "nip96" / "blossom" / tstr
-UploadState = "pending" / "uploading" / "complete" / "failed" / "cancelled"
-NostrTag = [* tstr]
+Primitive references:
 
-UploadRailInfo = {
-  rail: UploadRail,
-  enabled: bool,
-  ? returns: [* tstr], ; URL/result forms such as "https" or "blossom"
-}
+| Name | Meaning |
+|------|---------|
+| `NostrTag` | NIP-01 event tag list. |
 
-UploadInfo = {
-  rails: [* UploadRailInfo],
-  ? maxBytes: uint,
-  ? mimeTypes: [* tstr],
-}
+Enumerations:
 
-UploadRequest = {
-  ? rail: UploadRail, ; omit to let the shell pick a configured default
-  data: bstr,         ; Blob or ArrayBuffer in the web projection
-  ? mimeType: tstr,   ; inferred from data when omitted
-  ? filename: tstr,
-  ? caption: tstr,    ; alt text / description for the file event
-  ? noTransform: bool,
-  ? metadata: { * tstr => any },
-}
+| Name | Values |
+|------|--------|
+| `UploadRail` | `nip96`, `blossom`, or another rail name string. |
+| `UploadState` | `pending`, `uploading`, `complete`, `failed`, `cancelled` |
 
-UploadDimensions = {
-  width: uint,
-  height: uint,
-}
+`UploadRailInfo`:
 
-UploadResult = {
-  ok: bool,
-  uploadId: tstr,
-  status: UploadState,
-  rail: UploadRail,
-  ? url: tstr,          ; primary download URL
-  ? fallbackUrls: [* tstr],
-  ? sha256: tstr,       ; hash of the stored blob, NIP-94 x
-  ? originalSha256: tstr, ; hash before server transforms, NIP-94 ox
-  ? size: uint,         ; bytes
-  ? mimeType: tstr,
-  ? dimensions: UploadDimensions,
-  ? blurhash: tstr,
-  ? nip94: [* NostrTag],
-  ? error: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `rail` | `UploadRail` | yes | Upload rail. |
+| `enabled` | `bool` | yes | Whether this rail is available. |
+| `returns` | list of `tstr` | no | URL or result forms, such as `https` or `blossom`. |
 
-UploadStatus = {
-  ok: bool,
-  uploadId: tstr,
-  status: UploadState,
-  rail: UploadRail,
-  ? url: tstr,
-  ? fallbackUrls: [* tstr],
-  ? sha256: tstr,
-  ? originalSha256: tstr,
-  ? size: uint,
-  ? mimeType: tstr,
-  ? dimensions: UploadDimensions,
-  ? blurhash: tstr,
-  ? nip94: [* NostrTag],
-  ? error: tstr,
-  ? bytesSent: uint,
-  ? bytesTotal: uint,
-  updatedAt: uint,
-}
-```
+`UploadInfo`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `rails` | list of `UploadRailInfo` | yes | Upload rails the runtime is willing to disclose. |
+| `maxBytes` | `uint` | no | Maximum accepted upload size in bytes. |
+| `mimeTypes` | list of `tstr` | no | Accepted MIME types. |
+
+`UploadRequest`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `rail` | `UploadRail` | no | Requested rail; omitted lets the shell pick a configured default. |
+| `data` | `bstr` | yes | Upload bytes; Blob or ArrayBuffer in the web projection. |
+| `mimeType` | `tstr` | no | MIME type; inferred from data when omitted. |
+| `filename` | `tstr` | no | Suggested filename. |
+| `caption` | `tstr` | no | Alt text or file-event description. |
+| `noTransform` | `bool` | no | Request that the server not transform the upload. |
+| `metadata` | map of `tstr` to any JSON value | no | Rail-specific metadata. |
+
+`UploadDimensions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `width` | `uint` | yes | Width in pixels. |
+| `height` | `uint` | yes | Height in pixels. |
+
+`UploadResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the upload request succeeded. |
+| `uploadId` | `tstr` | yes | Shell-generated upload identifier. |
+| `status` | `UploadState` | yes | Current upload state. |
+| `rail` | `UploadRail` | yes | Upload rail used. |
+| `url` | `tstr` | no | Primary download URL. |
+| `fallbackUrls` | list of `tstr` | no | Additional download URLs. |
+| `sha256` | `tstr` | no | Hash of the stored blob, NIP-94 `x`. |
+| `originalSha256` | `tstr` | no | Hash before server transforms, NIP-94 `ox`. |
+| `size` | `uint` | no | Stored size in bytes. |
+| `mimeType` | `tstr` | no | Stored MIME type. |
+| `dimensions` | `UploadDimensions` | no | Media dimensions. |
+| `blurhash` | `tstr` | no | Blurhash preview. |
+| `nip94` | list of `NostrTag` | no | NIP-94 tags for the uploaded file. |
+| `error` | `tstr` | no | Error reason when upload failed. |
+
+`UploadStatus`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the status lookup succeeded. |
+| `uploadId` | `tstr` | yes | Shell-generated upload identifier. |
+| `status` | `UploadState` | yes | Current upload state. |
+| `rail` | `UploadRail` | yes | Upload rail used. |
+| `url` | `tstr` | no | Primary download URL. |
+| `fallbackUrls` | list of `tstr` | no | Additional download URLs. |
+| `sha256` | `tstr` | no | Hash of the stored blob, NIP-94 `x`. |
+| `originalSha256` | `tstr` | no | Hash before server transforms, NIP-94 `ox`. |
+| `size` | `uint` | no | Stored size in bytes. |
+| `mimeType` | `tstr` | no | Stored MIME type. |
+| `dimensions` | `UploadDimensions` | no | Media dimensions. |
+| `blurhash` | `tstr` | no | Blurhash preview. |
+| `nip94` | list of `NostrTag` | no | NIP-94 tags for the uploaded file. |
+| `error` | `tstr` | no | Error reason when upload failed. |
+| `bytesSent` | `uint` | no | Bytes uploaded so far. |
+| `bytesTotal` | `uint` | no | Total bytes expected. |
+| `updatedAt` | `uint` | yes | Timestamp of the latest status update. |
 
 **`info()`** — Returns the upload rails and coarse limits the runtime is willing to expose to the napplet. Napplets MAY call this to adapt UI or intentionally request a specific rail, but they MUST NOT be required to call it before `upload(request)`.
 
