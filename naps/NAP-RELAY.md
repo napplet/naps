@@ -276,3 +276,8 @@ The `mime` field on each `sidecar.resources` entry MUST be shell-classified by b
 - Scoped relay URLs SHOULD be validated by the shell to prevent SSRF-like abuse (e.g., napplets targeting internal network addresses via `wss://`).
 - Subscription filters SHOULD be validated to prevent resource exhaustion (e.g., unbounded subscriptions without `limit`).
 - Sidecar pre-resolution is **default OFF** for privacy reasons (see Sidecar Pre-Resolution § Default OFF privacy rationale). Pre-fetching byte resources referenced by events reveals user activity to upstream hosts before the user has chosen to render the event; this is the dominant fingerprinting vector on a relay-proxy surface and MUST NOT be enabled by default.
+
+## Changelog
+
+- `c9925dc` - Introduced NAP-RELAY as the relay proxy interface.
+- `cb8f8ea` - Aligned relay read events around resource sidecar metadata.
