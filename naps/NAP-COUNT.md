@@ -138,3 +138,8 @@ to fetching large event sets or returning misleading counts.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `9d097a0` - Introduced NAP-COUNT for runtime-owned event-count queries over Nostr filters.
+- `8995853` - Renamed the duplicated count operation to `query` / `count.query`.
