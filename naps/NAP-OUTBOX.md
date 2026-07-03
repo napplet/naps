@@ -36,77 +36,103 @@ every raw Nostr event it returns. Its sidecar carries optional
 `resources` and `relayHints`; relay hints replace NAP-OUTBOX's former top-level
 `relays` result map for returned events.
 
-```cddl
-NostrFilter = { * tstr => any }
-NostrEvent = { * tstr => any }
-EventTemplate = { * tstr => any }
-OutboxStrategy = "outbox" / "inbox" / "auto"
+Primitive references:
 
-; External type: RelayEventResult, owned by NAP-RELAY.
+| Name | Meaning |
+|------|---------|
+| `NostrFilter` | NIP-01 filter object. |
+| `NostrEvent` | NIP-01 signed event object. |
+| `EventTemplate` | Unsigned event template for shell signing. |
+| `RelayEventResult` | External type owned by NAP-RELAY. |
 
-OutboxEventOptions = {
-  ? author: tstr,
-  ? relays: [* tstr],
-  ? strategy: OutboxStrategy,
-  ? timeoutMs: uint,
-}
+Enumerations:
 
-OutboxQueryOptions = {
-  ? authors: [* tstr],
-  ? relays: [* tstr],
-  ? strategy: OutboxStrategy,
-  ? limit: uint,
-  ? timeoutMs: uint,
-}
+| Name | Values |
+|------|--------|
+| `OutboxStrategy` | `outbox`, `inbox`, `auto` |
+| `OutboxTarget.direction` | `read`, `write` |
+| `OutboxRelayPlan.source` | `nip65`, `cache`, `policy`, `fallback` |
 
-OutboxSubscribeOptions = {
-  ? authors: [* tstr],
-  ? relays: [* tstr],
-  ? strategy: OutboxStrategy,
-  ? limit: uint,
-  ? timeoutMs: uint,
-  ? live: bool,
-}
+`OutboxEventOptions`:
 
-OutboxPublishOptions = {
-  ? relays: [* tstr],
-  ? targetAuthors: [* tstr],
-  ? strategy: OutboxStrategy,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `author` | `tstr` | no | Author pubkey hint for relay discovery. |
+| `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
+| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
+| `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
 
-OutboxTarget = {
-  ? authors: [* tstr],
-  ? pubkey: tstr,
-  ? direction: "read" / "write",
-  ? strategy: OutboxStrategy,
-}
+`OutboxQueryOptions`:
 
-OutboxRelayPlan = {
-  relays: [* tstr],
-  source: "nip65" / "cache" / "policy" / "fallback",
-  ? missingAuthors: [* tstr],
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `authors` | list of `tstr` | no | Author pubkey hints for relay discovery. |
+| `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
+| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
+| `limit` | `uint` | no | Maximum number of events to return. |
+| `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
 
-OutboxEventResult = {
-  ? result: RelayEventResult,
-  ? incomplete: bool,
-  ? error: tstr,
-}
+`OutboxSubscribeOptions`:
 
-OutboxResult = {
-  events: [* RelayEventResult],
-  ? incomplete: bool,
-  ? error: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `authors` | list of `tstr` | no | Author pubkey hints for relay discovery. |
+| `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
+| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
+| `limit` | `uint` | no | Maximum stored events to backfill. |
+| `timeoutMs` | `uint` | no | Initial request timeout in milliseconds. |
+| `live` | `bool` | no | Whether the stream should stay open for live events. |
 
-OutboxPublishResult = {
-  ok: bool,
-  ? event: NostrEvent,
-  ? eventId: tstr,
-  ? relays: { * tstr => bool },
-  ? error: tstr,
-}
-```
+`OutboxPublishOptions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
+| `targetAuthors` | list of `tstr` | no | Recipient or referenced author pubkeys for inbox fanout. |
+| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
+
+`OutboxTarget`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `authors` | list of `tstr` | no | Author pubkeys for relay discovery. |
+| `pubkey` | `tstr` | no | Single pubkey target. |
+| `direction` | `read` or `write` | no | Relay direction to resolve. |
+| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
+
+`OutboxRelayPlan`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `relays` | list of `tstr` | yes | Candidate relay URLs. |
+| `source` | `nip65`, `cache`, `policy`, or `fallback` | yes | Source of the relay plan. |
+| `missingAuthors` | list of `tstr` | no | Authors whose relay lists could not be resolved. |
+
+`OutboxEventResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `result` | `RelayEventResult` | no | Matching event result when found. |
+| `incomplete` | `bool` | no | True when lookup results are partial. |
+| `error` | `tstr` | no | Error reason when lookup failed. |
+
+`OutboxResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `events` | list of `RelayEventResult` | yes | Deduplicated event results. |
+| `incomplete` | `bool` | no | True when results are partial. |
+| `error` | `tstr` | no | Error reason when the query failed. |
+
+`OutboxPublishResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | True when publish succeeded. |
+| `event` | `NostrEvent` | no | Signed event produced by the shell. |
+| `eventId` | `tstr` | no | Event ID of the signed event. |
+| `relays` | map of relay URL `tstr` to `bool` | no | Per-relay publish result. |
+| `error` | `tstr` | no | Error reason when publish failed. |
 
 **`getEvent(eventId, options?)`** -- Fetches one event by ID through shell-owned relay routing. If `options.author` is present, the shell SHOULD use that author's outbox relays as the primary read target. If no author is known, the shell MAY use relay hints, cache, policy relays, fallback relays, or relay intelligence. The shell validates the event ID and signature before returning it as `RelayEventResult`.
 
