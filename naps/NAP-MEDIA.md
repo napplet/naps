@@ -331,3 +331,8 @@ For shell-owned sessions:
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `d3adc87` - Introduced NAP-MEDIA for media session control.
+- `7eeac9f` - Added media session context associations for linking playback state to external context.
