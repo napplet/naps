@@ -60,261 +60,65 @@ filesystem, or signing access through this interface.
 root events returned while resolving mutable Hashtree references. `publishRoot`
 still returns its shell-created signed event as `NostrEvent`.
 
-```cddl
-HexHash = tstr
-HexKey = tstr
-HexPubkey = tstr
-NostrEvent = { * tstr => any }
-NostrEventId = tstr
-; External type: RelayEventResult, owned by NAP-RELAY.
+Primitive aliases and imported types:
 
-HashtreeRefKind = "nhash" / "cid" / "htree" / "npub-path"
-HashtreeEntryType = "blob" / "file" / "dir"
-HashtreeVisibility = "unencrypted" / "public" / "link-visible" / "private"
-HashtreeJobKind = "import" / "export"
-HashtreeJobState = "queued" / "running" / "complete" / "cancelled" / "error"
+| Name | Definition |
+|------|------------|
+| `HexHash` | hash encoded as lowercase hex |
+| `HexKey` | key material encoded as lowercase hex |
+| `HexPubkey` | 32-byte public key encoded as lowercase hex |
+| `NostrEvent` | Nostr event object |
+| `NostrEventId` | 32-byte event id encoded as lowercase hex |
+| `RelayEventResult` | external type owned by NAP-RELAY |
 
-HashtreeCapabilities = {
-  ? canReadImmutable: bool,
-  ? canResolveMutable: bool,
-  ? canWrite: bool,
-  ? canPublishRoots: bool,
-  ? canPin: bool,
-  ? canImportRuntimeFiles: bool,
-  ? canExportRuntimeFiles: bool,
-  ? supportsFips: bool,
-  ? supportsBlossom: bool,
-  ? supportsLocalStore: bool,
-  ? maxReadBytes: uint,
-  ? maxWriteBytes: uint,
-}
+Enums:
 
-HashtreeCid = {
-  hash: HexHash,
-  ? key: HexKey,
-  ? nhash: tstr,
-}
+| Name | Values |
+|------|--------|
+| `HashtreeRefKind` | `nhash`, `cid`, `htree`, `npub-path` |
+| `HashtreeEntryType` | `blob`, `file`, `dir` |
+| `HashtreeVisibility` | `unencrypted`, `public`, `link-visible`, `private` |
+| `HashtreeJobKind` | `import`, `export` |
+| `HashtreeJobState` | `queued`, `running`, `complete`, `cancelled`, `error` |
+| `HashtreeExportDestination` | `user-selected`, `temporary` |
 
-HashtreeRef = {
-  kind: HashtreeRefKind,
-  ? ref: tstr,
-  ? cid: HashtreeCid,
-  ? identifier: tstr,
-  ? treePath: tstr,
-  ? entryPath: tstr,
-  ? visibility: HashtreeVisibility,
-  ? shareSecret: HexKey,
-}
+Record fields:
 
-HashtreeRefResult = {
-  ok: bool,
-  ? ref: HashtreeRef,
-  ? error: tstr,
-  ? reason: tstr,
-}
+| Record | Required fields | Optional fields |
+|--------|-----------------|-----------------|
+| `HashtreeCapabilities` | none | `canReadImmutable: bool`, `canResolveMutable: bool`, `canWrite: bool`, `canPublishRoots: bool`, `canPin: bool`, `canImportRuntimeFiles: bool`, `canExportRuntimeFiles: bool`, `supportsFips: bool`, `supportsBlossom: bool`, `supportsLocalStore: bool`, `maxReadBytes: uint`, `maxWriteBytes: uint` |
+| `HashtreeCid` | `hash: HexHash` | `key: HexKey`, `nhash: tstr` |
+| `HashtreeRef` | `kind: HashtreeRefKind` | `ref: tstr`, `cid: HashtreeCid`, `identifier: tstr`, `treePath: tstr`, `entryPath: tstr`, `visibility: HashtreeVisibility`, `shareSecret: HexKey` |
+| `HashtreeRefResult` | `ok: bool` | `ref: HashtreeRef`, `error: tstr`, `reason: tstr` |
+| `HashtreeResolveOptions` | none | `shareSecret: HexKey`, `at: uint` |
+| `HashtreeResolvedRoot` | `cid: HashtreeCid` | `ref: HashtreeRef`, `rootResult: RelayEventResult`, `eventId: NostrEventId`, `author: HexPubkey`, `treeName: tstr`, `visibility: HashtreeVisibility` |
+| `HashtreeResolveResult` | `ok: bool` | `root: HashtreeResolvedRoot`, `error: tstr`, `reason: tstr` |
+| `HashtreeEntry` | `path: tstr`, `type: HashtreeEntryType`, `cid: HashtreeCid` | `name: tstr`, `size: uint`, `mime: tstr` |
+| `HashtreeEntryResult` | `ok: bool` | `entry: HashtreeEntry`, `error: tstr`, `reason: tstr` |
+| `HashtreeListOptions` | none | `recursive: bool`, `limit: uint` |
+| `HashtreeListResult` | `ok: bool`, `entries: list of HashtreeEntry` | `root: HashtreeResolvedRoot`, `truncated: bool`, `error: tstr`, `reason: tstr` |
+| `HashtreeReadOptions` | none | `offset: uint`, `length: uint`, `maxBytes: uint` |
+| `HashtreeReadResult` | `ok: bool` | `blob: bstr`, `entry: HashtreeEntry`, `root: HashtreeResolvedRoot`, `error: tstr`, `reason: tstr` |
+| `HashtreePutOptions` | none | `visibility: HashtreeVisibility`, `mime: tstr`, `filename: tstr`, `pin: bool` |
+| `HashtreePutBytesRequest` | `data: bstr` | `options: HashtreePutOptions` |
+| `HashtreeTreeEntryInput` | `path: tstr` | `data: bstr`, `cid: HashtreeCid`, `mime: tstr` |
+| `HashtreePutTreeRequest` | `entries: list of HashtreeTreeEntryInput` | `options: HashtreePutOptions` |
+| `HashtreePutResult` | `ok: bool` | `cid: HashtreeCid`, `entry: HashtreeEntry`, `size: uint`, `error: tstr`, `reason: tstr` |
+| `HashtreePublishRootRequest` | `cid: HashtreeCid`, `treeName: tstr` | `content: tstr`, `visibility: HashtreeVisibility`, `shareSecret: HexKey`, `relays: list of tstr` |
+| `HashtreePublishRootResult` | `ok: bool` | `eventId: NostrEventId`, `event: NostrEvent`, `ref: tstr`, `relays: map of relay URL to bool`, `error: tstr`, `reason: tstr` |
+| `HashtreeImportPublishOptions` | `treeName: tstr` | `content: tstr`, `visibility: HashtreeVisibility`, `shareSecret: HexKey`, `relays: list of tstr` |
+| `HashtreePickOptions` | none | `multiple: bool`, `directory: bool`, `suggestedName: tstr` |
+| `HashtreeRuntimeFileSet` | `runtimeFileSetId: tstr`, `files: list of HashtreeEntry`, `totalBytes: uint` | `displayName: tstr` |
+| `HashtreeFileSetResult` | `ok: bool` | `fileSet: HashtreeRuntimeFileSet`, `error: tstr`, `reason: tstr` |
+| `HashtreeImportRequest` | `runtimeFileSetId: tstr` | `visibility: HashtreeVisibility`, `pin: bool`, `publish: HashtreeImportPublishOptions` |
+| `HashtreeExportRequest` | `ref: tstr` | `destination: HashtreeExportDestination` |
+| `HashtreeJobAck` | `ok: bool` | `jobId: tstr`, `state: HashtreeJobState`, `error: tstr`, `reason: tstr` |
+| `HashtreeJobStatus` | `ok: bool`, `jobId: tstr`, `kind: HashtreeJobKind`, `state: HashtreeJobState`, `processedBytes: uint`, `totalBytes: uint`, `progress: number` | `cid: HashtreeCid`, `ref: tstr`, `runtimeFileSetId: tstr`, `error: tstr`, `reason: tstr` |
+| `HashtreePin` | `ref: tstr`, `cid: HashtreeCid` | `label: tstr`, `bytesStored: uint`, `createdAt: uint` |
+| `HashtreePinRequest` | `ref: tstr` | `label: tstr` |
+| `HashtreePinResult` | `ok: bool` | `pin: HashtreePin`, `error: tstr`, `reason: tstr` |
 
-HashtreeResolveOptions = {
-  ? shareSecret: HexKey,
-  ? at: uint,
-}
-
-HashtreeResolvedRoot = {
-  cid: HashtreeCid,
-  ? ref: HashtreeRef,
-  ? rootResult: RelayEventResult,
-  ? eventId: NostrEventId,
-  ? author: HexPubkey,
-  ? treeName: tstr,
-  ? visibility: HashtreeVisibility,
-}
-
-HashtreeResolveResult = {
-  ok: bool,
-  ? root: HashtreeResolvedRoot,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeEntry = {
-  path: tstr,
-  type: HashtreeEntryType,
-  cid: HashtreeCid,
-  ? name: tstr,
-  ? size: uint,
-  ? mime: tstr,
-}
-
-HashtreeEntryResult = {
-  ok: bool,
-  ? entry: HashtreeEntry,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeListOptions = {
-  ? recursive: bool,
-  ? limit: uint,
-}
-
-HashtreeListResult = {
-  ok: bool,
-  entries: [* HashtreeEntry],
-  ? root: HashtreeResolvedRoot,
-  ? truncated: bool,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeReadOptions = {
-  ? offset: uint,
-  ? length: uint,
-  ? maxBytes: uint,
-}
-
-HashtreeReadResult = {
-  ok: bool,
-  ? blob: bstr,
-  ? entry: HashtreeEntry,
-  ? root: HashtreeResolvedRoot,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreePutOptions = {
-  ? visibility: HashtreeVisibility, ; default "public"
-  ? mime: tstr,
-  ? filename: tstr,
-  ? pin: bool,
-}
-
-HashtreePutBytesRequest = {
-  data: bstr,
-  ? options: HashtreePutOptions,
-}
-
-HashtreeTreeEntryInput = {
-  path: tstr,
-  ? data: bstr,
-  ? cid: HashtreeCid,
-  ? mime: tstr,
-}
-
-HashtreePutTreeRequest = {
-  entries: [* HashtreeTreeEntryInput],
-  ? options: HashtreePutOptions,
-}
-
-HashtreePutResult = {
-  ok: bool,
-  ? cid: HashtreeCid,
-  ? entry: HashtreeEntry,
-  ? size: uint,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreePublishRootRequest = {
-  cid: HashtreeCid,
-  treeName: tstr,
-  ? content: tstr,
-  ? visibility: HashtreeVisibility,
-  ? shareSecret: HexKey,
-  ? relays: [* tstr],
-}
-
-HashtreePublishRootResult = {
-  ok: bool,
-  ? eventId: NostrEventId,
-  ? event: NostrEvent,
-  ? ref: tstr,
-  ? relays: { * tstr => bool },
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeImportPublishOptions = {
-  treeName: tstr,
-  ? content: tstr,
-  ? visibility: HashtreeVisibility,
-  ? shareSecret: HexKey,
-  ? relays: [* tstr],
-}
-
-HashtreePickOptions = {
-  ? multiple: bool,
-  ? directory: bool,
-  ? suggestedName: tstr,
-}
-
-HashtreeRuntimeFileSet = {
-  runtimeFileSetId: tstr,
-  files: [* HashtreeEntry],
-  totalBytes: uint,
-  ? displayName: tstr,
-}
-
-HashtreeFileSetResult = {
-  ok: bool,
-  ? fileSet: HashtreeRuntimeFileSet,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeImportRequest = {
-  runtimeFileSetId: tstr,
-  ? visibility: HashtreeVisibility,
-  ? pin: bool,
-  ? publish: HashtreeImportPublishOptions,
-}
-
-HashtreeExportRequest = {
-  ref: tstr,
-  ? destination: "user-selected" / "temporary",
-}
-
-HashtreeJobAck = {
-  ok: bool,
-  ? jobId: tstr,
-  ? state: HashtreeJobState,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreeJobStatus = {
-  ok: bool,
-  jobId: tstr,
-  kind: HashtreeJobKind,
-  state: HashtreeJobState,
-  processedBytes: uint,
-  totalBytes: uint,
-  progress: number,
-  ? cid: HashtreeCid,
-  ? ref: tstr,
-  ? runtimeFileSetId: tstr,
-  ? error: tstr,
-  ? reason: tstr,
-}
-
-HashtreePin = {
-  ref: tstr,
-  cid: HashtreeCid,
-  ? label: tstr,
-  ? bytesStored: uint,
-  ? createdAt: uint,
-}
-
-HashtreePinRequest = {
-  ref: tstr,
-  ? label: tstr,
-}
-
-HashtreePinResult = {
-  ok: bool,
-  ? pin: HashtreePin,
-  ? error: tstr,
-  ? reason: tstr,
-}
-```
+When `HashtreePutOptions.visibility` is omitted, the default is `public`.
 
 **`capabilities()`** -- Reports the runtime's Hashtree support for this
 napplet. Backend flags describe runtime policy, not direct napplet access.
