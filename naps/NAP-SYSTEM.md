@@ -303,3 +303,8 @@ media availability, and service health.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `58a8d69` - Introduced NAP-SYSTEM as a read-only runtime diagnostics surface.
+- `840acf1` - Removed browser-specific storage diagnostics so NAP-SYSTEM stays projection-neutral.
