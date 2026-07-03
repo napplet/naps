@@ -143,7 +143,7 @@ time. Recommended caps: 5 MiB input, 4096 x 4096 output, 2 s raster time.
 
 The runtime MAY hydrate resource cache entries before the napplet asks for them.
 The sidecar entry type is owned here. The carrier field is owned by the carrier
-domain, such as `relay.event.resources?`.
+domain, such as `RelayEventResult.sidecar.resources?` in NAP-RELAY.
 
 ```cddl
 ResourceSidecarEntry = {
@@ -169,8 +169,9 @@ SHOULD pass canonical URL strings.
 
 ## Coexistence
 
-- NAP-RELAY MAY carry `ResourceSidecarEntry[]` on `relay.event.resources?`.
-  NAP-RELAY owns that field and its default-off privacy policy.
+- NAP-RELAY MAY carry `ResourceSidecarEntry[]` on
+  `RelayEventResult.sidecar.resources?`. NAP-RELAY owns that field and its
+  default-off privacy policy.
 - NAP-IDENTITY profile `picture` and `banner` URLs are fetched through
   `resource.bytes` or `resource.bytesMany`.
 - NAP-MEDIA artwork URLs are fetched through `resource.bytes` or
