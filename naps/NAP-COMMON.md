@@ -11,6 +11,8 @@ Common Social Actions
 **Depends:**
 - `identity` — capability · required — user-authoritative actions use the current shell-user identity as the event author.
 - `relay` — capability · required — fetches kind 0 profiles and publishes kind 3 follow lists, kind 7 reactions, and kind 1984 reports.
+- `relay` — wire · required — imports `RelayEventResult` for raw profile event returns.
+- `resource` — wire · optional — imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding (NIP-5D):** `window.napplet.common` · `shell.supports("common")`
 
 ## Description
@@ -38,12 +40,17 @@ normalization.
 
 ### Schemas
 
+`RelayEventResult` is owned by NAP-RELAY. NAP-COMMON imports it by name for
+raw kind 0 profile events returned by `getProfile`. Shell-created action events
+remain plain `NostrEvent` values because they are not relay-read results.
+
 ```cddl
 Npub = tstr
 Nprofile = tstr
 HexPubkey = tstr
 NostrEventId = tstr
 NostrEvent = { * tstr => any }
+; External type: RelayEventResult, owned by NAP-RELAY.
 CommonPubkeyList = [Npub, * Npub]
 CommonProfileTarget = HexPubkey / Npub / Nprofile
 CommonNip19Type = "npub" / "note" / "nprofile" / "nevent" / "naddr" / "nrelay"
@@ -92,8 +99,7 @@ CommonProfileResult = {
   ok: bool,
   pubkey: HexPubkey,
   ? profile: CommonProfileData / null,
-  ? event: NostrEvent,
-  ? relays: [* tstr],
+  ? result: RelayEventResult,
   ? error: tstr,
 }
 
@@ -117,7 +123,7 @@ CommonReportTarget =
 |-----------|-------|
 | `encodeNip19` | Encodes public NIP-19 identifiers: `npub`, `note`, `nprofile`, `nevent`, `naddr`, `nrelay`. MUST reject `nsec`. |
 | `decodeNip19` | Decodes the same public types. MUST reject `nsec`, ignore unknown TLVs, and SHOULD reject strings longer than 5000 chars. |
-| `getProfile` | Accepts hex pubkey, `npub`, or `nprofile`. Normalizes to hex, treats `nprofile` relay TLVs as hints, queries latest kind 0, returns `profile: null` if not found. |
+| `getProfile` | Accepts hex pubkey, `npub`, or `nprofile`. Normalizes to hex, treats `nprofile` relay TLVs as hints, queries latest kind 0, returns the raw profile event as `RelayEventResult`, and returns `profile: null` if not found. |
 | `follows` | Returns hex pubkeys from the shell-user's current NIP-02 kind 3 follow list. Returns an empty array when no list is found. |
 | `follow` | Decodes each `npub`, merges new `p` tags into the current NIP-02 kind 3 list, preserves unrelated tags, signs, publishes. Idempotent. |
 | `unfollow` | Decodes each `npub`, removes matching `p` tags from the current kind 3 list, preserves unrelated tags, signs, publishes. Idempotent. |
@@ -148,7 +154,7 @@ MUST use `CommonReportTarget`.
 | `common.decodeNip19` | napplet -> shell | `id`, `value` |
 | `common.decodeNip19.result` | shell -> napplet | `id`, `ok`, `nip19Type?`, `hex?`, `pubkey?`, `eventId?`, `identifier?`, `relays?`, `author?`, `kind?`, `relay?`, `error?` |
 | `common.getProfile` | napplet -> shell | `id`, `target` |
-| `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `event?`, `relays?`, `error?` |
+| `common.getProfile.result` | shell -> napplet | `id`, `ok`, `pubkey`, `profile?`, `result?`, `error?` |
 | `common.follows` | napplet -> shell | `id` |
 | `common.follows.result` | shell -> napplet | `id`, `ok`, `pubkeys`, `error?` |
 | `common.follow` | napplet -> shell | `id`, `pubkeys` |
@@ -174,6 +180,8 @@ Result messages use `ok: false` plus `error`. Common errors:
 - MUST normalize NIP-19 helper results to hex fields for keys and event ids.
 - MUST resolve `getProfile` targets to hex before querying relays.
 - MUST query kind 0 replaceable metadata for `getProfile`.
+- SHOULD merge observed profile-event relay URLs into `RelayEventResult.sidecar.relayHints` when the shell can disclose them.
+- MAY include pre-resolved profile image resources in `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy policy and NAP-RESOURCE's fetch policy both apply.
 - MUST return hex pubkeys from `follows`.
 - MUST perform all signing and never expose signing keys.
 - MUST reject modifying operations when no shell-user signer is connected; `getProfile` MAY work signed out.
