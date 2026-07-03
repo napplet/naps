@@ -37,47 +37,49 @@ This shell-user identity is distinct from the NIP-5D napplet session identity. T
 
 ### Schemas
 
-```cddl
-RelayPermissions = {
-  read: bool,
-  write: bool,
-}
+`RelayPermissions` fields:
 
-RelayMap = {
-  * tstr => RelayPermissions,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `read` | yes | boolean |
+| `write` | yes | boolean |
 
-ProfileData = {
-  ? name: tstr,
-  ? displayName: tstr,
-  ? about: tstr,
-  ? picture: tstr,
-  ? banner: tstr,
-  ? nip05: tstr,
-  ? lud16: tstr,
-  ? website: tstr,
-}
-```
+`RelayMap` is a map from relay URL text to `RelayPermissions`.
+
+`ProfileData` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `name` | no | text |
+| `displayName` | no | text |
+| `about` | no | text |
+| `picture` | no | text |
+| `banner` | no | text |
+| `nip05` | no | text |
+| `lud16` | no | text |
+| `website` | no | text |
 
 **Resource resolution.** The `picture` and `banner` fields are URL strings. Napplets that need the bytes (for example, to render an `<img>` via an object URL) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. Napplets MUST NOT attempt direct `<img src="https://...">` loads — sandboxed napplets cannot make direct network requests under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`). Conformant shells expose every external byte resource through NAP-RESOURCE, including profile pictures and banners. The shell applies the standard NAP-RESOURCE policy to these fetches (private-IP block list at DNS-resolution time, MIME byte-sniffing, optional SVG rasterization, etc.).
 
-```cddl
-ZapReceipt = {
-  eventId: tstr,
-  sender: tstr,
-  amount: uint,
-  ? content: tstr,
-}
+`ZapReceipt` fields:
 
-Badge = {
-  id: tstr,
-  ? name: tstr,
-  ? description: tstr,
-  ? image: tstr,
-  ? thumbs: [* tstr],
-  awardedBy: tstr,
-}
-```
+| Field | Required | Type |
+|-------|----------|------|
+| `eventId` | yes | text |
+| `sender` | yes | text |
+| `amount` | yes | unsigned integer |
+| `content` | no | text |
+
+`Badge` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `name` | no | text |
+| `description` | no | text |
+| `image` | no | text |
+| `thumbs` | no | list of text |
+| `awardedBy` | yes | text |
 
 **`getPublicKey()`** -- Returns the user's hex-encoded public key, or the empty string when no user/signer is connected. This is the most basic identity query. Every shell that implements NAP-IDENTITY MUST support this method.
 
