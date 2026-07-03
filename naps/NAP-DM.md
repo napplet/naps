@@ -275,3 +275,7 @@ NAAT-DM names the `dm` handler role. It does not own the NAP-DM payload or API.
 - Hyprgate PR #233 uses temporary `him.*` spike wire for a Double Ratchet IM
   prototype. That wire is not NAP-DM and should migrate to this generic `dm`
   interface if this spec is accepted.
+
+## Changelog
+
+- `1d67fac` - Introduced NAP-DM as a generic runtime-mediated direct-message surface.
