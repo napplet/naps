@@ -138,3 +138,7 @@ reclaim it on destroy. State that must outlive the instance belongs in `shared`.
 - Storage values are strings only. The shell SHOULD NOT attempt to parse or execute stored content.
 - The shell MAY enforce ACL checks on `storage:read` and `storage:write` capabilities before processing storage requests.
 - Storage keys and values are visible to the shell. Napplets that need confidential storage should encrypt values before storing.
+
+## Changelog
+
+- `fe4a523` - Introduced NAP-STORAGE for scoped key-value storage.
