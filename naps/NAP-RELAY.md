@@ -9,7 +9,7 @@ Relay Proxy
 **NAP ID:** NAP-RELAY
 **Domain:** `relay`
 **Depends:**
-- `resource` — wire · optional — `relay.event.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain and imported here (see Sidecar Pre-Resolution).
+- `resource` — wire · optional — `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain and imported here (see Sidecar Pre-Resolution).
 **Web binding (NIP-5D):** `window.napplet.relay` · `shell.supports("relay")`
 
 ## Description
@@ -20,10 +20,10 @@ NAP-RELAY provides napplets with relay access through the shell. Sandboxed ifram
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `subscribe` | `filters` (`NostrFilter` or list), optional `options` (`RelaySubscribeOptions`) | `Subscription` handle | `relay.subscribe` plus `relay.event` / `relay.eose` |
+| `subscribe` | `filters` (`NostrFilter` or list), optional `options` (`RelaySubscribeOptions`) | `Subscription` handle streaming `RelayEventResult` | `relay.subscribe` plus `relay.event` / `relay.eose` |
 | `publish` | `template` (`EventTemplate`) | `NostrEvent` | `relay.publish` / `relay.publish.result` |
 | `publishEncrypted` | `template` (`EventTemplate`), `recipient` (`tstr`), optional `encryption` (`RelayEncryption`) | `NostrEvent` | `relay.publishEncrypted` / `relay.publishEncrypted.result` |
-| `query` | `filters` (`NostrFilter` or list) | list of `NostrEvent` | `relay.query` / `relay.query.result` |
+| `query` | `filters` (`NostrFilter` or list) | list of `RelayEventResult` | `relay.query` / `relay.query.result` |
 | `Subscription.close` | none | none | `relay.close` |
 
 ### Schemas
@@ -34,18 +34,32 @@ NostrEvent = { * tstr => any }
 EventTemplate = { * tstr => any }
 RelayEncryption = "nip44" / "nip04"
 
+RelayEventResult = {
+  event: NostrEvent,
+  ? sidecar: RelayEventSidecar,
+}
+
+RelayEventSidecar = {
+  ? resources: [* ResourceSidecarEntry],
+  ? relayHints: [* tstr],
+}
+
 RelaySubscribeOptions = {
   ? relay: tstr,
 }
 ```
 
-**`subscribe(filters, options?)`** -- Opens a live subscription. The shell queries its relay pool, streaming matching events back as `relay.event` messages. Returns a handle to listen for events and EOSE, and to close the subscription. When `options.relay` is provided, the subscription targets a specific relay (e.g., for NIP-29 group relays) instead of the shared pool.
+**`subscribe(filters, options?)`** -- Opens a live subscription. The shell queries its relay pool, streaming matching `RelayEventResult` records back as `relay.event` messages. Returns a handle to listen for results and EOSE, and to close the subscription. When `options.relay` is provided, the subscription targets a specific relay (e.g., for NIP-29 group relays) instead of the shared pool.
 
 **`publish(template)`** -- Publishes a Nostr event to the shell's relay pool. The shell signs the event template and broadcasts it. Returns the signed event. Napplets do not have direct access to signing keys.
 
 **`publishEncrypted(template, recipient, encryption?)`** -- Publishes an encrypted Nostr event. The shell encrypts the event content using the specified scheme (NIP-44 by default, NIP-04 as fallback), signs the event, and broadcasts it. The napplet provides plaintext content; the shell handles all cryptographic operations. This ensures the shell can inspect content before encryption, preventing exfiltration of encrypted data.
 
-**`query(filters)`** -- Convenience wrapper: subscribes, collects events until EOSE, then closes the subscription and resolves the Promise with the collected events.
+**`query(filters)`** -- Convenience wrapper: subscribes, collects event results until EOSE, then closes the subscription and resolves the Promise with the collected results.
+
+Read surfaces return `RelayEventResult`: the raw Nostr `event` plus optional
+sidecar metadata. Publish surfaces return the shell-signed `NostrEvent` directly
+because no read-side resource or relay hint sidecar applies.
 
 All methods are async because they cross the postMessage boundary. Requests include correlation IDs; the shell responds with matching IDs so the shim can resolve the correct Promise or route events to the correct subscription.
 
@@ -60,12 +74,12 @@ Relay operations use the NIP-5D wire format. Requests include an `id` field for 
 | `relay.publish` | napplet -> shell | `id`, `event` (EventTemplate) |
 | `relay.publishEncrypted` | napplet -> shell | `id`, `event` (EventTemplate), `recipient` (hex pubkey), `encryption`? ('nip44' or 'nip04') |
 | `relay.query` | napplet -> shell | `id`, `filters` (NostrFilter array) |
-| `relay.event` | shell -> napplet | `subId`, `event` (NostrEvent), `resources`? (ResourceSidecarEntry[]) |
+| `relay.event` | shell -> napplet | `subId`, `result` (RelayEventResult) |
 | `relay.eose` | shell -> napplet | `subId` |
 | `relay.closed` | shell -> napplet | `subId`, `reason`? (string) |
 | `relay.publish.result` | shell -> napplet | `id`, `ok` (boolean), `event`? (NostrEvent), `eventId`? (string), `error`? (string) |
 | `relay.publishEncrypted.result` | shell -> napplet | `id`, `ok` (boolean), `event`? (NostrEvent), `eventId`? (string), `error`? (string) |
-| `relay.query.result` | shell -> napplet | `id`, `events` (NostrEvent array) |
+| `relay.query.result` | shell -> napplet | `id`, `events` (RelayEventResult array) |
 
 ### NostrFilter
 
@@ -82,7 +96,7 @@ All filter fields are optional. Multiple filters in the `filters` array are OR-c
 **Subscribe:**
 ```
 -> { "type": "relay.subscribe", "id": "a1", "subId": "sub-1", "filters": [{ "kinds": [1], "limit": 50 }] }
-<- { "type": "relay.event", "subId": "sub-1", "event": { "id": "abc...", "pubkey": "def...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." } }
+<- { "type": "relay.event", "subId": "sub-1", "result": { "event": { "id": "abc...", "pubkey": "def...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." }, "sidecar": { "relayHints": ["wss://relay.example.com"] } } }
 <- { "type": "relay.eose", "subId": "sub-1" }
 ```
 
@@ -101,7 +115,7 @@ All filter fields are optional. Multiple filters in the `filters` array are OR-c
 **Query:**
 ```
 -> { "type": "relay.query", "id": "c3", "filters": [{ "authors": ["def..."], "kinds": [0], "limit": 1 }] }
-<- { "type": "relay.query.result", "id": "c3", "events": [{ "id": "xyz...", "pubkey": "def...", "kind": 0, "content": "{...}", "tags": [], "created_at": 1234567890, "sig": "..." }] }
+<- { "type": "relay.query.result", "id": "c3", "events": [{ "event": { "id": "xyz...", "pubkey": "def...", "kind": 0, "content": "{...}", "tags": [], "created_at": 1234567890, "sig": "..." }, "sidecar": { "relayHints": ["wss://relay.example.com"] } }] }
 ```
 
 **Close subscription:**
@@ -125,19 +139,39 @@ All filter fields are optional. Multiple filters in the `filters` array are OR-c
 
 ## Sidecar Pre-Resolution
 
-Shells MAY opportunistically pre-resolve byte resources referenced by an event before delivering the event to the subscribing napplet. When a shell has pre-fetched such resources, it MAY include them on the `relay.event` envelope in an optional `resources?: ResourceSidecarEntry[]` field. The napplet's subsequent `resource.bytes(url)` call (per NAP-RESOURCE) resolves from cache without a `postMessage` round-trip when the URL matches a sidecar entry.
+Shells MAY attach sidecar metadata to any `RelayEventResult`. The sidecar is for
+metadata about the raw event delivery. It is not part of the Nostr event and MUST
+NOT be written back into the event.
+
+When a shell has pre-fetched byte resources referenced by an event, it MAY include
+them in `sidecar.resources?: ResourceSidecarEntry[]`. The napplet's subsequent
+`resource.bytes(url)` call (per NAP-RESOURCE) resolves from cache without a
+`postMessage` round-trip when the URL matches a sidecar entry.
+
+When the shell knows where the event was observed or where follow-up reads are
+likely to succeed, it SHOULD include those relay URLs in
+`sidecar.relayHints?: [* tstr]`. Relay hints are advisory. They MUST NOT bypass
+shell relay policy, ACL checks, scoped relay validation, or relay selection.
 
 Pre-resolution is **OPTIONAL** with **default OFF** for privacy reasons documented below. Conformant shells MUST NOT enable sidecar pre-resolution by default.
 
 ### `ResourceSidecarEntry` shape
 
 `ResourceSidecarEntry` is owned by the `resource` domain (NAP-RESOURCE). `relay`
-**imports** the type to type its own `resources?` field; it MUST NOT redefine it.
+**imports** the type to type its own `sidecar.resources?` field; it MUST NOT redefine it.
 The owning shape is reproduced here for reference only — `resource` is normative:
 
 `ResourceSidecarEntry` contains the canonical URL, pre-fetched bytes, and
 shell-classified MIME value defined by NAP-RESOURCE. This spec references that
 record by name only.
+
+### Relay hints
+
+`sidecar.relayHints` contains relay URLs associated with the returned raw event.
+For subscription and query results, the shell SHOULD include every relay URL where
+it observed the event after deduplication. If the shell cannot disclose relay
+URLs because of policy, it MAY omit `relayHints` or return a policy-derived
+subset. Napplets MUST treat these as hints, not proof of canonical storage.
 
 ### Wire example (with sidecar)
 
@@ -147,30 +181,37 @@ Shell pre-resolved the author's avatar before delivering a kind 1 event:
 <- {
      "type": "relay.event",
      "subId": "sub-1",
-     "event": {
-       "id": "abc...",
-       "pubkey": "def...",
-       "kind": 1,
-       "content": "hello world",
-       "tags": [],
-       "created_at": 1234567890,
-       "sig": "..."
-     },
-     "resources": [
-       {
-         "url": "https://example.com/avatar.png",
-         "blob": <Blob 4321 bytes>,
-         "mime": "image/png"
+     "result": {
+       "event": {
+         "id": "abc...",
+         "pubkey": "def...",
+         "kind": 1,
+         "content": "hello world",
+         "tags": [],
+         "created_at": 1234567890,
+         "sig": "..."
+       },
+       "sidecar": {
+         "resources": [
+           {
+             "url": "https://example.com/avatar.png",
+             "blob": <Blob 4321 bytes>,
+             "mime": "image/png"
+           }
+         ],
+         "relayHints": ["wss://relay.example.com"]
        }
-     ]
+     }
    }
 ```
 
-The field is additive and backward-compatible: shells that omit it produce envelopes that parse identically; napplets that ignore it behave exactly as before. NIP-5D §Wire Format mandates that unrecognized fields are silently ignored.
+The sidecar is additive inside `RelayEventResult`: shells that omit it still
+deliver the same raw Nostr event, and napplets that ignore it can read
+`result.event` directly.
 
 ### Ordering semantics
 
-When `resources` is present and non-empty, conformant napplet shim implementations MUST hydrate their `resource.bytes` single-flight cache (per NAP-RESOURCE) from the entries BEFORE delivering the event to the subscribing napplet's event handler. This ordering is load-bearing: it allows a synchronous `napplet.resource.bytes(url)` lookup inside the napplet's event handler to resolve from cache without a `postMessage` round-trip.
+When `sidecar.resources` is present and non-empty, conformant napplet shim implementations MUST hydrate their `resource.bytes` single-flight cache (per NAP-RESOURCE) from the entries BEFORE delivering the event to the subscribing napplet's event handler. This ordering is load-bearing: it allows a synchronous `napplet.resource.bytes(url)` lookup inside the napplet's event handler to resolve from cache without a `postMessage` round-trip.
 
 If a `resources` entry's `url` is already present in the cache (e.g., from a prior fetch or a prior sidecar hydration), the shim MUST treat the existing cache entry as authoritative and discard the duplicate sidecar entry. This makes hydration idempotent and prevents a buggy shell from clobbering an in-flight fetch.
 
@@ -201,27 +242,28 @@ Shells SHOULD also provide users with control over:
 - Which URL hosts are eligible for pre-resolution (host allowlist).
 - Which napplets receive sidecar pre-resolution (per-napplet opt-in).
 
-Opt-out at any granularity MUST be honored. A user who opts out of sidecar pre-resolution for a specific napplet, kind, or host MUST receive `relay.event` envelopes with no `resources` field for the matching events; the shell MUST NOT silently downgrade to "we still fetched it but didn't tell you" -- if the user opted out, the fetch MUST NOT have happened.
+Opt-out at any granularity MUST be honored. A user who opts out of sidecar pre-resolution for a specific napplet, kind, or host MUST receive event results with no `sidecar.resources` field for the matching events; the shell MUST NOT silently downgrade to "we still fetched it but didn't tell you" -- if the user opted out, the fetch MUST NOT have happened.
 
 ### Coordination with NAP-RESOURCE
 
-The `mime` field on each sidecar entry MUST be shell-classified by byte-sniffing per the same rules as `resource.bytes.result` in NAP-RESOURCE. Shells MUST NOT populate sidecar `mime` from the upstream `Content-Type` header. SVG entries appearing in a sidecar MUST be rasterized to PNG/WebP per NAP-RESOURCE's SVG Handling rules before being placed on the wire -- the sidecar is not a bypass for the rasterization MUST, the private-IP block list MUST, or any other Default Resource Policy rule. Pre-resolution is "the same fetch, just earlier"; every safety property of `resource.bytes` MUST hold for sidecar entries too.
+The `mime` field on each `sidecar.resources` entry MUST be shell-classified by byte-sniffing per the same rules as `resource.bytes.result` in NAP-RESOURCE. Shells MUST NOT populate sidecar `mime` from the upstream `Content-Type` header. SVG entries appearing in a sidecar MUST be rasterized to PNG/WebP per NAP-RESOURCE's SVG Handling rules before being placed on the wire -- the sidecar is not a bypass for the rasterization MUST, the private-IP block list MUST, or any other Default Resource Policy rule. Pre-resolution is "the same fetch, just earlier"; every safety property of `resource.bytes` MUST hold for sidecar entries too.
 
 ## Shell Behavior
 
-- The shell MUST forward subscriptions to its relay pool and deliver matching events as `relay.event` messages to the subscribing napplet.
+- The shell MUST forward subscriptions to its relay pool and deliver matching events as `relay.event` messages carrying `RelayEventResult` records to the subscribing napplet.
 - The shell MUST send `relay.eose` when stored events for a subscription are exhausted.
 - The shell MUST honor `relay.close` by tearing down the subscription and ceasing event delivery for that `subId`.
 - The shell MUST sign event templates from `relay.publish`, forward the signed event to its relay pool, and respond with `relay.publish.result` containing the signed event.
 - The shell MUST encrypt content and sign event templates from `relay.publishEncrypted`, forward the signed encrypted event to its relay pool, and respond with `relay.publishEncrypted.result` containing the signed event.
 - The shell MUST decrypt incoming encrypted events (NIP-04/NIP-44) before delivering them to the napplet via `relay.event`. Napplets receive plaintext content.
-- The shell MUST respond to `relay.query` by collecting events until EOSE and returning them in `relay.query.result`.
+- The shell MUST respond to `relay.query` by collecting event results until EOSE and returning them in `relay.query.result`.
 - The shell MUST respond to every request with a result or lifecycle message carrying the same `id` or `subId`.
 - The shell MAY send `relay.closed` to indicate a subscription was terminated by the shell (e.g., due to an error, resource limit, or policy).
 - The shell MAY enforce ACL checks on relay read and relay write capabilities before processing subscribe or publish messages.
 - The shell MAY support scoped relay connections when the `relay` field is present, targeting a specific relay independently from the shared pool.
 - The shell MAY manage a relay pool internally -- which relays to connect to, reconnection strategy, and load balancing are implementation details.
-- The shell MAY opportunistically pre-resolve byte resources referenced by events and include them in `relay.event.resources`. Sidecar pre-resolution is **default OFF** per the Sidecar Pre-Resolution section; conformant shells MUST NOT enable it by default and SHOULD honor per-napplet / per-kind / per-host opt-out.
+- The shell SHOULD include event relay hints in `RelayEventResult.sidecar.relayHints` when it can disclose observed relay URLs.
+- The shell MAY opportunistically pre-resolve byte resources referenced by events and include them in `RelayEventResult.sidecar.resources`. Sidecar pre-resolution is **default OFF** per the Sidecar Pre-Resolution section; conformant shells MUST NOT enable it by default and SHOULD honor per-napplet / per-kind / per-host opt-out.
 
 ## Security Considerations
 
