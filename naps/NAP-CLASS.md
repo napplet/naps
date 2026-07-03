@@ -21,11 +21,11 @@ This NAP is voluntary. Napplets MUST gracefully degrade when `window.napplet.cla
 
 ## API Surface
 
-```cddl
-NappletClassState = {
-  ? class: uint, ; shell-assigned class number; absent until assigned or unsupported
-}
-```
+`NappletClassState`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `class` | `uint` | no | Shell-assigned class number; absent until assigned or unsupported. |
 
 Napplets read `window.napplet.class`. Before depending on the value, napplets SHOULD check `shell.supports('nap:class')`; a shell that does not advertise this capability will never populate the field. Once the field has been populated by the shell's `class.assigned` envelope, it MUST NOT change for the remainder of the napplet's lifetime.
 
