@@ -79,52 +79,58 @@ inc.emit("feed:open", payload)
 Consumers MUST accept the payload identically regardless of which path delivered
 it; this NAP defines the payload, not the choice of delivery path.
 
-Payload:
+Payload fields:
 
-```cddl
-FeedOpenPayload = {
-  filters: [1* NostrFilter], ; one or more NIP-01 filters, OR-combined
-  ? origin: FeedOrigin,      ; absent means consumer policy
-  ? title: tstr,             ; human-readable label hint
-  ? source: FeedSource,
-  ? behavior: FeedBehavior,
-}
+| Field | Required | Type | Semantics |
+|-------|----------|------|-----------|
+| `filters` | yes | non-empty list of `NostrFilter` | One or more NIP-01 filters, OR-combined. |
+| `origin` | no | `FeedOrigin` | Routing method; absent means consumer policy. |
+| `title` | no | text | Human-readable label hint. |
+| `source` | no | `FeedSource` | Advisory producer provenance. |
+| `behavior` | no | `FeedBehavior` | Window/focus hints. |
 
-FeedSource = {
-  ? napplet: tstr,   ; producer dTag, advisory
-  ? windowId: tstr,  ; producer window, advisory
-  ? requestId: tstr, ; opaque correlation id
-}
+`FeedSource` fields:
 
-FeedBehavior = {
-  ? focus: bool,     ; default true
-  ? newWindow: bool, ; default shell policy
-}
+| Field | Required | Type | Semantics |
+|-------|----------|------|-----------|
+| `napplet` | no | text | Producer dTag; advisory. |
+| `windowId` | no | text | Producer window; advisory. |
+| `requestId` | no | text | Opaque correlation id. |
 
-FeedOrigin = FeedRelayOrigin / FeedOutboxOrigin
+`FeedBehavior` fields:
 
-FeedRelayOrigin = {
-  type: "relay",
-  relays: [* tstr], ; query these relays
-}
+| Field | Required | Type | Semantics |
+|-------|----------|------|-----------|
+| `focus` | no | boolean | Whether the feed should take focus; defaults to `true`. |
+| `newWindow` | no | boolean | Request a new feed surface; defaults to shell policy. |
 
-FeedOutboxOrigin = {
-  type: "outbox",
-  ? authors: [* tstr],
-  ? strategy: "outbox" / "inbox" / "auto",
-}
+`FeedOrigin` variants:
 
-NostrFilter = {
-  ? ids: [* tstr],
-  ? authors: [* tstr],
-  ? kinds: [* uint],
-  ? since: uint,
-  ? until: uint,
-  ? limit: uint,
-  ? search: tstr,
-  * tstr => [* tstr], ; single-letter tag filters, e.g. "#t" or "#p"
-}
-```
+| Variant | Required fields | Optional fields | Semantics |
+|---------|-----------------|-----------------|-----------|
+| relay | `type: "relay"`, `relays: list of tstr` | none | Query the named relays. |
+| outbox | `type: "outbox"` | `authors: list of tstr`, `strategy: FeedOutboxStrategy` | Resolve authors' relays and query there. |
+
+`FeedOutboxStrategy` values:
+
+| Value | Semantics |
+|-------|-----------|
+| `outbox` | Use authors' write relays. |
+| `inbox` | Use authors' read relays. |
+| `auto` | Let the consumer choose. |
+
+`NostrFilter` fields:
+
+| Field | Required | Type | Semantics |
+|-------|----------|------|-----------|
+| `ids` | no | list of text | Event ids. |
+| `authors` | no | list of text | Author pubkeys. |
+| `kinds` | no | list of unsigned integers | Event kinds. |
+| `since` | no | unsigned integer | Lower created-at bound. |
+| `until` | no | unsigned integer | Upper created-at bound. |
+| `limit` | no | unsigned integer | Requested result cap. |
+| `search` | no | text | Search string. |
+| tag filters | no | list of text | Single-letter tag filters, e.g. `#t` or `#p`. |
 
 Fields:
 
