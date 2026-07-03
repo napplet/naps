@@ -248,3 +248,7 @@ The shell SHOULD return a structured `result` with `ok: false` when a transfer w
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `2c56394` - Introduced NAP-VALUE for shell-mediated value transfer.
