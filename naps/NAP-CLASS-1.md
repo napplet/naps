@@ -58,3 +58,7 @@ NAP-CLASS-1 is deliberately compatible with every other NAP a shell may choose t
 
 - `NAP-CLASS.md` — parent spec; defines the `class.assigned` envelope, the `window.napplet.class` runtime surface, and the authoring rules for track members including NAP-CLASS-1.
 - NIP-5D — Napplet wire format.
+
+## Changelog
+
+- `71ad6a1` - Introduced NAP-CLASS-1 as the strict baseline posture sub-track.
