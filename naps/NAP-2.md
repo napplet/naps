@@ -243,3 +243,7 @@ negotiated at runtime with `shell.supports()`.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `8c9b89c` - Introduced NAP-2 as the stream topic family.
