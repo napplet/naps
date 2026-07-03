@@ -34,90 +34,122 @@ or more of them behind the same `dm` surface.
 
 ### Schemas
 
-```cddl
-HexPubkey = tstr
-Timestamp = int
+Primitive aliases and enums:
 
-DmStatus = {
-  available: bool,
-  ? ownerPubkey: HexPubkey,
-  implementations: [* tstr],
-  capabilities: [* tstr],
-}
+| Name | Definition |
+|------|------------|
+| `HexPubkey` | 32-byte public key encoded as lowercase hex |
+| `Timestamp` | integer timestamp |
+| `DmConversationKind` | `direct`, `group` |
+| `DmMessageStatus` | `sent`, `delivered`, `received`, `failed` |
 
-DmConversationQuery = {
-  ? cursor: tstr,
-  ? limit: uint,
-}
+`DmStatus` fields:
 
-DmPeer = {
-  pubkey: HexPubkey,
-  ? label: tstr,
-  ? avatar: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `available` | yes | boolean |
+| `ownerPubkey` | no | `HexPubkey` |
+| `implementations` | yes | list of text |
+| `capabilities` | yes | list of text |
 
-DmConversation = {
-  id: tstr,
-  kind: "direct" / "group",
-  participants: [* DmPeer],
-  ? subject: tstr,
-  unread: uint,
-  ? updatedAt: Timestamp,
-}
+`DmConversationQuery` fields:
 
-DmConversationPage = {
-  conversations: [* DmConversation],
-  ? cursor: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `cursor` | no | text |
+| `limit` | no | unsigned integer |
 
-DmMessageQuery = {
-  conversationId: tstr,
-  ? cursor: tstr,
-  ? limit: uint,
-}
+`DmPeer` fields:
 
-DmMessage = {
-  id: tstr,
-  conversationId: tstr,
-  senderPubkey: HexPubkey,
-  createdAt: Timestamp,
-  content: tstr,
-  status: "sent" / "delivered" / "received" / "failed",
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `pubkey` | yes | `HexPubkey` |
+| `label` | no | text |
+| `avatar` | no | text |
 
-DmMessagePage = {
-  messages: [* DmMessage],
-  ? cursor: tstr,
-}
+`DmConversation` fields:
 
-DmSendRequest = {
-  ? conversationId: tstr,
-  recipients: [* HexPubkey],
-  content: tstr,
-  ? clientMessageId: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `kind` | yes | `DmConversationKind` |
+| `participants` | yes | list of `DmPeer` |
+| `subject` | no | text |
+| `unread` | yes | unsigned integer |
+| `updatedAt` | no | `Timestamp` |
 
-DmSendResult = {
-  ok: bool,
-  message: DmMessage,
-}
+`DmConversationPage` fields:
 
-DmSubscribeRequest = {
-  ? conversationId: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `conversations` | yes | list of `DmConversation` |
+| `cursor` | no | text |
 
-DmSubscription = {
-  subscriptionId: tstr,
-}
+`DmMessageQuery` fields:
 
-DmOk = {
-  ok: bool,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `conversationId` | yes | text |
+| `cursor` | no | text |
+| `limit` | no | unsigned integer |
 
-DmError = {
-  error: tstr,
-}
-```
+`DmMessage` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `conversationId` | yes | text |
+| `senderPubkey` | yes | `HexPubkey` |
+| `createdAt` | yes | `Timestamp` |
+| `content` | yes | text |
+| `status` | yes | `DmMessageStatus` |
+
+`DmMessagePage` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `messages` | yes | list of `DmMessage` |
+| `cursor` | no | text |
+
+`DmSendRequest` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `conversationId` | no | text |
+| `recipients` | yes | list of `HexPubkey` |
+| `content` | yes | text |
+| `clientMessageId` | no | text |
+
+`DmSendResult` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `message` | yes | `DmMessage` |
+
+`DmSubscribeRequest` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `conversationId` | no | text |
+
+`DmSubscription` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `subscriptionId` | yes | text |
+
+`DmOk` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+
+`DmError` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `error` | yes | text |
 
 `status` returns whether the runtime can currently service direct messages for
 the active user. `implementations` is advisory. Values are runtime labels, not
