@@ -33,50 +33,65 @@ for supported NIP-51 and NIP-65 lists only.
 
 ### Schemas
 
-```cddl
-ListRef = {
-  ? kind: uint,
-  ? type: tstr,
-  ? identifier: tstr, ; maps to NIP-51 "d" for addressable sets
-}
+Enumerations:
 
-ListItem = {
-  itemType: "pubkey" / "event" / "address" / "hashtag" / "word" /
-            "relay" / "emoji" / "server" / "url" / "group",
-  value: tstr,
-  ? relay: tstr,
-  ? marker: "read" / "write" / "read-write",
-  ? label: tstr,
-  ? visibility: "public" / "private",
-}
+| Name | Values |
+|------|--------|
+| `ListItem.itemType` | `pubkey`, `event`, `address`, `hashtag`, `word`, `relay`, `emoji`, `server`, `url`, `group` |
+| `ListItem.marker` | `read`, `write`, `read-write` |
+| `ListItem.visibility` | `public`, `private` |
 
-ListOptions = {
-  ? create: bool,
-  ? title: tstr,
-  ? description: tstr,
-  ? image: tstr,
-}
+`ListRef`:
 
-ListSupport = {
-  kind: uint,
-  type: tstr,
-  addressable: bool,
-  ? supportedItemTypes: [* tstr],
-  ? privateItems: bool,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `kind` | `uint` | conditional | Direct NIP-51 or NIP-65 event kind. |
+| `type` | `tstr` | conditional | Derived list type name. |
+| `identifier` | `tstr` | no | NIP-51 `d` tag for addressable sets. |
 
-ListMutationResult = {
-  ok: bool,
-  ? eventId: tstr,
-  ? event: { * tstr => any },
-  ? added: uint,
-  ? removed: uint,
-  ? skipped: uint,
-  ? error: tstr,
-  ? reason: tstr,
-  ? supported: [* ListSupport],
-}
-```
+`ListItem`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `itemType` | `ListItem.itemType` | yes | Kind of list item to add or remove. |
+| `value` | `tstr` | yes | Item value. |
+| `relay` | `tstr` | no | Relay hint for item types that carry one. |
+| `marker` | `ListItem.marker` | no | Relay read/write marker. |
+| `label` | `tstr` | no | Human-readable label or list-specific tag field. |
+| `visibility` | `ListItem.visibility` | no | Whether the item is public or private. |
+
+`ListOptions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `create` | `bool` | no | Whether the runtime may create a missing list. |
+| `title` | `tstr` | no | Title for a newly created list. |
+| `description` | `tstr` | no | Description for a newly created list. |
+| `image` | `tstr` | no | Image URL for a newly created list. |
+
+`ListSupport`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `kind` | `uint` | yes | Supported NIP-51 or NIP-65 event kind. |
+| `type` | `tstr` | yes | Supported derived list type. |
+| `addressable` | `bool` | yes | Whether the list requires an `identifier`. |
+| `supportedItemTypes` | list of `tstr` | no | Item types accepted for this list. |
+| `privateItems` | `bool` | no | Whether private items are supported. |
+
+`ListMutationResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the mutation succeeded. |
+| `eventId` | `tstr` | no | Published list event ID. |
+| `event` | Nostr event object | no | Signed list event produced by the runtime. |
+| `added` | `uint` | no | Number of items added. |
+| `removed` | `uint` | no | Number of items removed. |
+| `skipped` | `uint` | no | Number of items skipped. |
+| `error` | `tstr` | no | Machine-readable error code. |
+| `reason` | `tstr` | no | Human-readable refusal or failure reason. |
+| `supported` | list of `ListSupport` | no | Supported lists returned on unsupported requests. |
 
 Exactly one of `ListRef.kind` or `ListRef.type` MUST be present. Addressable
 sets MUST include `identifier`; the runtime writes it as the `"d"` tag.
