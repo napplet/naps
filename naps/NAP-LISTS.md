@@ -205,3 +205,8 @@ preserve existing list state without likely data loss.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `2c244b5` - Introduced NAP-LISTS for runtime-mediated NIP-51 list mutations.
+- `2efc16c` - Extended NAP-LISTS to cover NIP-65 relay-list mutations.
