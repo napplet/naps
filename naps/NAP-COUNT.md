@@ -27,32 +27,36 @@ aggregation, caching, approximation policy, and refusal handling.
 
 ### Schemas
 
-```cddl
-CountFilter = {
-  ? ids: [* tstr],
-  ? authors: [* tstr],
-  ? kinds: [* uint],
-  ? since: uint,
-  ? until: uint,
-  ? limit: uint,
-  * tstr => any, ; NIP-01 tag filters, e.g. "#e", "#p", "#q", "#a"
-}
+`CountFilter`:
 
-CountOptions = {
-  ? approximate: bool,
-  ? hll: bool,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ids` | list of `tstr` | no | Event IDs to count. |
+| `authors` | list of `tstr` | no | Author pubkeys to count. |
+| `kinds` | list of `uint` | no | Event kinds to count. |
+| `since` | `uint` | no | Lower timestamp bound. |
+| `until` | `uint` | no | Upper timestamp bound. |
+| `limit` | `uint` | no | NIP-01 filter limit. |
+| other `tstr` keys | any | no | NIP-01 tag filters, such as `#e`, `#p`, `#q`, or `#a`. |
 
-CountResult = {
-  ok: bool,
-  ? count: uint,
-  ? approximate: bool,
-  ? hll: tstr,
-  ? relays: [* tstr],
-  ? error: tstr,
-  ? reason: tstr,
-}
-```
+`CountOptions`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `approximate` | `bool` | no | Whether an approximate count is acceptable. |
+| `hll` | `bool` | no | Whether a HyperLogLog response is acceptable. |
+
+`CountResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the count request succeeded. |
+| `count` | `uint` | no | Count value when available. |
+| `approximate` | `bool` | no | True when `count` is approximate. |
+| `hll` | `tstr` | no | NIP-45-compatible HyperLogLog value when available. |
+| `relays` | list of `tstr` | no | Relay URLs used for the count when safe to disclose. |
+| `error` | `tstr` | no | Machine-readable error code. |
+| `reason` | `tstr` | no | Human-readable refusal or failure reason. |
 
 `filters` MUST be a non-empty list of `CountFilter`. Multiple filters are ORed
 and aggregated into one count, matching NIP-45 `COUNT` semantics.
