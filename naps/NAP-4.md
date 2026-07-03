@@ -132,3 +132,7 @@ filters.
 
 - Hyprgate Note Viewer napplet milestone v2.8 draft implementation:
   `napps/note-viewer` and `packages/utils/src/note-viewer-protocol.ts`
+
+## Changelog
+
+- `bb06a8e` - Introduced NAP-4 as the note-viewer open protocol.
