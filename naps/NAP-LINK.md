@@ -24,15 +24,17 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 ### Schemas
 
-```cddl
-LinkOpenOptions = {
-  ? label: tstr,
-}
+`LinkOpenOptions`:
 
-LinkOpenResult = {
-  status: "opened" / "denied",
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `label` | `tstr` | no | Human-readable prompt text supplied by the napplet. |
+
+`LinkOpenResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `status` | `opened` or `denied` | yes | Whether the shell accepted or refused the navigation request. |
 
 **`open(url, options?)`** -- Requests that the shell open `url` for the user. `url` MUST be an absolute URL. `label` is optional human-readable text for the shell prompt; it is not trusted policy input. Resolves with `"opened"` when the shell accepted the request and handed it to the user agent, or `"denied"` when user or shell policy refused it.
 
