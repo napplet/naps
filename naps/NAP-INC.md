@@ -31,29 +31,35 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 ### Schemas
 
-```cddl
-IncEvent = {
-  topic: tstr,
-  sender: tstr, ; sender dTag, per NIP-5D
-  ? payload: any,
-}
+`IncEvent` fields:
 
-ChannelHandle = {
-  id: tstr,   ; shell-assigned channel ID
-  peer: tstr, ; peer dTag
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `topic` | yes | text | Topic name. |
+| `sender` | yes | text | Sender dTag, per NIP-5D. |
+| `payload` | no | any | Topic payload. |
 
-ChannelEvent = {
-  channelId: tstr,
-  sender: tstr, ; sender dTag
-  ? payload: any,
-}
+`ChannelHandle` fields:
 
-ChannelInfo = {
-  id: tstr,
-  peer: tstr, ; peer dTag
-}
-```
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `id` | yes | text | Shell-assigned channel id. |
+| `peer` | yes | text | Peer dTag. |
+
+`ChannelEvent` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `channelId` | yes | text | Shell-assigned channel id. |
+| `sender` | yes | text | Sender dTag. |
+| `payload` | no | any | Channel payload. |
+
+`ChannelInfo` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `id` | yes | text | Shell-assigned channel id. |
+| `peer` | yes | text | Peer dTag. |
 
 **`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to the given topic. Fire-and-forget — there is no delivery confirmation. The shell identifies the sender via `MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered events.
 
