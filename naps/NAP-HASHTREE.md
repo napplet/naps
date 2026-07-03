@@ -355,3 +355,8 @@ result can be constructed.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `08c0396` - Introduced NAP-HASHTREE for runtime-mediated Hashtree document trees.
+- `3847b0f` - Changed resolved Hashtree root events to use relay-owned result shape and declared the relay dependency.
