@@ -393,3 +393,9 @@ Common error codes: `invalid-request`, `invalid-server`, `invalid-hash`,
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `03ea0db` - Introduced NAP-BLOSSOM as a constrained runtime capability for Blossom blob access.
+- `b6c1737` - Added runtime-owned Blossom server-list operations and ownership rules.
+- `d48052f` - Changed Blossom server-list events to use relay-owned result shape and declared the relay dependency.
