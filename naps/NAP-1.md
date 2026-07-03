@@ -104,3 +104,7 @@ negotiated at runtime with `shell.supports()`.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `c0e30db` - Introduced NAP-1 as the profile topic family.
