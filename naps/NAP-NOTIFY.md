@@ -32,40 +32,52 @@ Napplets do not render notifications themselves. The shell controls presentation
 
 ### Schemas
 
-```cddl
-NotificationPriority = "low" / "normal" / "high" / "urgent"
-NotifyControl = "toasts" / "badges" / "actions" / "channels" / "system"
+Enumerations:
 
-NotificationPayload = {
-  title: tstr,
-  ? body: tstr,
-  ? icon: tstr,
-  ? actions: [* NotificationAction],
-  ? channel: tstr,
-  ? priority: NotificationPriority,
-}
+| Name | Values |
+|------|--------|
+| `NotificationPriority` | `low`, `normal`, `high`, `urgent` |
+| `NotifyControl` | `toasts`, `badges`, `actions`, `channels`, `system` |
 
-NotificationResult = {
-  notificationId: tstr,
-  ? error: tstr,
-}
+`NotificationPayload`:
 
-NotificationAction = {
-  id: tstr,
-  label: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | `tstr` | yes | Notification title. |
+| `body` | `tstr` | no | Notification body text. |
+| `icon` | `tstr` | no | Icon URL or shell-understood icon reference. |
+| `actions` | list of `NotificationAction` | no | Action buttons. |
+| `channel` | `tstr` | no | Notification channel ID. |
+| `priority` | `NotificationPriority` | no | Notification urgency hint. |
 
-NotificationChannel = {
-  channelId: tstr,
-  label: tstr,
-  ? description: tstr,
-  ? defaultPriority: NotificationPriority,
-}
+`NotificationResult`:
 
-PermissionResult = {
-  granted: bool,
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `notificationId` | `tstr` | yes | Shell-assigned notification ID. |
+| `error` | `tstr` | no | Error reason when notification delivery failed. |
+
+`NotificationAction`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `tstr` | yes | Action identifier returned by `notify.action`. |
+| `label` | `tstr` | yes | User-visible action label. |
+
+`NotificationChannel`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `channelId` | `tstr` | yes | Channel identifier. |
+| `label` | `tstr` | yes | User-visible channel label. |
+| `description` | `tstr` | no | User-visible channel description. |
+| `defaultPriority` | `NotificationPriority` | no | Default priority for this channel. |
+
+`PermissionResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `granted` | `bool` | yes | Whether notification permission was granted. |
 
 **`send(notification)`** -- Send a notification to the shell. The shell decides how to render it (toast, system notification, etc.) based on priority, channel, and shell policy. Returns the assigned `notificationId`. The shell MAY reject the notification (e.g., permission denied, rate limited).
 
