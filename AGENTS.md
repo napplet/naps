@@ -168,6 +168,23 @@ One concern per branch, commit, and PR. Never tangle.
 | projection semantics | `projections/<host>.md` · README Projections table |
 | terminology | README glossary, then all references |
 
+## Changelog discipline
+
+Every NAP spec carries its history at the bottom under `## Changelog`.
+
+- Add one bullet per semantic commit-change: ``- `<short-sha>` - <summary>``.
+- Summarize all semantic changes from one commit in one bullet, even when the
+  commit touched multiple fields or operations.
+- Include only changes that affect the spec contract, boundary, dependencies,
+  operation names, wire shape, policy, or normative guidance.
+- Skip formatting-only, table/schema-notation-only, spelling-only,
+  changelog-only, and registry-pointer-only commits.
+- For a living PR NAP, keep the bottom of the PR body in the same `## Changelog`
+  format with the same bullets as the spec.
+- For a merged NAP edited in a later PR, append changelog bullets to the spec in
+  the same commit that changes the spec; mirror them in the PR body when the
+  change is under review.
+
 ## PR format — identical every time
 
 - **Branch:** kebab of the spec — `nap-relay`, `nap-storage`.
