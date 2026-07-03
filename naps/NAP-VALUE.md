@@ -29,71 +29,93 @@ Napplets never receive wallet credentials, NWC secrets, signing keys, or direct 
 
 ### Schemas
 
-```cddl
-ValueRail = "zap" / "lnurl" / tstr
-ValueTransferState = "pending" / "settled" / "failed" / "cancelled"
-NostrEvent = { * tstr => any }
+Primitive references:
 
-ValueRequest = {
-  rail: ValueRail,
-  amountMsat: uint,
-  ? comment: tstr,
-  target: ValueTarget,
-  ? metadata: { * tstr => any },
-}
+| Name | Meaning |
+|------|---------|
+| `NostrEvent` | NIP-01 signed event object. |
+| `ValueTarget` | One of `ZapTarget`, `LnurlTarget`, or `ValueExtensionTarget`. |
 
-ValueTarget = ZapTarget / LnurlTarget / ValueExtensionTarget
+Enumerations:
 
-ZapTarget = {
-  type: "zap",
-  ? pubkey: tstr,
-  ? eventId: tstr,
-  ? address: tstr,
-  ? relays: [* tstr],
-}
+| Name | Values |
+|------|--------|
+| `ValueRail` | `zap`, `lnurl`, or another rail name string. |
+| `ValueTransferState` | `pending`, `settled`, `failed`, `cancelled` |
+| `ZapTarget.type` | `zap` |
+| `LnurlTarget.type` | `lnurl` |
 
-LnurlTarget = {
-  type: "lnurl",
-  lnurl: tstr,
-}
+`ValueRequest`:
 
-ValueExtensionTarget = {
-  type: tstr,
-  * tstr => any,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `rail` | `ValueRail` | yes | Value rail to use. |
+| `amountMsat` | `uint` | yes | Transfer amount in millisatoshis for Lightning-compatible rails. |
+| `comment` | `tstr` | no | User-visible transfer comment. |
+| `target` | `ValueTarget` | yes | Transfer target. |
+| `metadata` | map of `tstr` to any JSON value | no | Rail-specific metadata. |
 
-ValueQuote = {
-  ok: bool,
-  amountMsat: uint,
-  rail: ValueRail,
-  ? feesMsat: uint,
-  ? expiresAt: uint,
-  ? error: tstr,
-}
+`ZapTarget`:
 
-ValueResult = {
-  ok: bool,
-  transferId: tstr,
-  status: ValueTransferState,
-  rail: ValueRail,
-  amountMsat: uint,
-  ? event: NostrEvent,
-  ? preimage: tstr,
-  ? error: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `zap` | yes | Target discriminator. |
+| `pubkey` | `tstr` | no | Recipient pubkey. |
+| `eventId` | `tstr` | no | Event being zapped. |
+| `address` | `tstr` | no | Addressable event being zapped. |
+| `relays` | list of `tstr` | no | Relay hints for zap request or receipt handling. |
 
-ValueStatus = {
-  ok: bool,
-  transferId: tstr,
-  status: ValueTransferState,
-  rail: ValueRail,
-  amountMsat: uint,
-  ? event: NostrEvent,
-  ? preimage: tstr,
-  ? error: tstr,
-  updatedAt: uint,
-}
-```
+`LnurlTarget`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `lnurl` | yes | Target discriminator. |
+| `lnurl` | `tstr` | yes | LNURL target. |
+
+`ValueExtensionTarget`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `tstr` | yes | Extension rail target discriminator. |
+| other `tstr` keys | any JSON value | no | Extension-specific target fields. |
+
+`ValueQuote`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the quote succeeded. |
+| `amountMsat` | `uint` | yes | Quoted amount in millisatoshis. |
+| `rail` | `ValueRail` | yes | Quoted rail. |
+| `feesMsat` | `uint` | no | Estimated fees in millisatoshis. |
+| `expiresAt` | `uint` | no | Expiration timestamp. |
+| `error` | `tstr` | no | Error reason when quote failed. |
+
+`ValueResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the transfer request was accepted or completed. |
+| `transferId` | `tstr` | yes | Shell-generated transfer identifier. |
+| `status` | `ValueTransferState` | yes | Current transfer state. |
+| `rail` | `ValueRail` | yes | Transfer rail. |
+| `amountMsat` | `uint` | yes | Transfer amount in millisatoshis. |
+| `event` | `NostrEvent` | no | Related Nostr event, such as a zap request or receipt. |
+| `preimage` | `tstr` | no | Payment preimage when available and safe to disclose. |
+| `error` | `tstr` | no | Error reason when transfer failed. |
+
+`ValueStatus`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ok` | `bool` | yes | Whether the status lookup succeeded. |
+| `transferId` | `tstr` | yes | Shell-generated transfer identifier. |
+| `status` | `ValueTransferState` | yes | Current transfer state. |
+| `rail` | `ValueRail` | yes | Transfer rail. |
+| `amountMsat` | `uint` | yes | Transfer amount in millisatoshis. |
+| `event` | `NostrEvent` | no | Related Nostr event, such as a zap request or receipt. |
+| `preimage` | `tstr` | no | Payment preimage when available and safe to disclose. |
+| `error` | `tstr` | no | Error reason when transfer failed. |
+| `updatedAt` | `uint` | yes | Timestamp of the latest status update. |
 
 **`send(request)`** -- Requests a value transfer. The shell presents any required consent UI, performs the transfer through its configured backend, and returns the initial result. For zap requests, the shell constructs and signs the kind 9734 zap request, pays the Lightning invoice, publishes any required Nostr event, and reports the resulting status.
 
