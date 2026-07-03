@@ -369,3 +369,8 @@ result can be constructed.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `3330324` - Introduced NAP-TORRENT for runtime-owned torrent jobs.
+- `3bc9c3a` - Changed torrent source events to use relay-owned result shape and declared the relay dependency.
