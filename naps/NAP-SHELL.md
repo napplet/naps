@@ -51,14 +51,15 @@ normative.
 
 ### Schemas
 
-```cddl
-ShellCapabilities = any ; runtime-internal shape sufficient to answer supports(domain, protocol?)
+`ShellCapabilities` is a runtime-internal value with whatever shape is
+sufficient to answer `supports(domain, protocol?)`.
 
-ShellEnvironment = {
-  capabilities: ShellCapabilities,
-  services: [* tstr],
-}
-```
+`ShellEnvironment` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `capabilities` | yes | `ShellCapabilities` |
+| `services` | yes | list of text |
 
 **`supports(domain, protocol?)`** — Returns whether the runtime offers `domain`,
 optionally narrowed to a specific numbered protocol within that domain.
