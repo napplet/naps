@@ -123,3 +123,7 @@ negotiated at runtime with `shell.supports()`.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `dd717a9` - Introduced NAP-3 as the chat topic family.
