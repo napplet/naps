@@ -289,3 +289,4 @@ If the shell returns partial results because some relay lists or relay connectio
 - `a1968b8` - Introduced NAP-OUTBOX for outbox-aware relay routing.
 - `20379e8` - Added single-event retrieval through `outbox.getEvent`.
 - `57db924` - Changed outbox event returns to use relay-owned result shape and declared the relay dependency.
+- `70515a5` - Removed `strategy` and `live` caller opt-ins from outbox options and examples.
