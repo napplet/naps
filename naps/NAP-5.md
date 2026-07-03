@@ -273,3 +273,7 @@ fulfills. The numbered protocol is negotiated at runtime with
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `ec0adad` - Introduced NAP-5 as the feed topic family.
