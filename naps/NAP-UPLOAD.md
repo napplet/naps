@@ -293,3 +293,8 @@ The shell SHOULD return a structured `result` with `ok: false` when an upload wa
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `5dd8458` - Introduced NAP-UPLOAD for shell-mediated file and blob upload.
+- `ef147c9` - Added `upload.info` rail introspection for supported upload rails and policy limits.
