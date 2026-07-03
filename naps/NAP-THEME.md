@@ -22,36 +22,44 @@ NAP-THEME provides napplets with read-only access to the shell's active theme. T
 
 ### Schemas
 
-```cddl
-ThemeColors = {
-  background: tstr, ; hex color, e.g. "#1a1a2e"
-  text: tstr,       ; hex color
-  primary: tstr,    ; hex color
-}
+`ThemeColors` fields:
 
-ThemeFont = {
-  name: tstr, ; font family name
-  url: tstr,  ; URL to font file
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `background` | yes | text | Hex color, e.g. `#1a1a2e`. |
+| `text` | yes | text | Hex color. |
+| `primary` | yes | text | Hex color. |
 
-ThemeBackground = {
-  url: tstr,  ; URL to background image/media
-  mode: tstr, ; CSS background-size value, e.g. "cover"
-  mime: tstr, ; MIME type, e.g. "image/jpeg"
-}
+`ThemeFont` fields:
 
-ThemeFonts = {
-  ? body: ThemeFont,
-  ? title: ThemeFont,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `name` | yes | text | Font family name. |
+| `url` | yes | text | URL to font file. |
 
-Theme = {
-  colors: ThemeColors,
-  ? fonts: ThemeFonts,
-  ? background: ThemeBackground,
-  ? title: tstr, ; human-readable theme name
-}
-```
+`ThemeBackground` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `url` | yes | text | URL to background image or media. |
+| `mode` | yes | text | CSS background-size value, e.g. `cover`. |
+| `mime` | yes | text | MIME type, e.g. `image/jpeg`. |
+
+`ThemeFonts` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `body` | no | `ThemeFont` |
+| `title` | no | `ThemeFont` |
+
+`Theme` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `colors` | yes | `ThemeColors` | Active color set. |
+| `fonts` | no | `ThemeFonts` | Optional font set. |
+| `background` | no | `ThemeBackground` | Optional background media. |
+| `title` | no | text | Human-readable theme name. |
 
 `theme.changed` is received as a message event, not via a method call. Napplets listen for it via the standard `postMessage` listener. There is no subscribe or unsubscribe mechanism — change notifications are automatic for all napplets that support NAP-THEME.
 
