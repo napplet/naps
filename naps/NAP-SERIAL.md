@@ -38,67 +38,73 @@ protocols built on top of this byte channel.
 
 ### Schemas
 
-```cddl
-SerialOpenRequest = {
-  ? filters: [* SerialPortFilter],
-  options: SerialOpenOptions,
-  ? label: tstr,
-}
+Enums:
 
-SerialPortFilter = {
-  ? usbVendorId: uint,
-  ? usbProductId: uint,
-  ? bluetoothServiceClassId: tstr / uint,
-}
+| Name | Values |
+|------|--------|
+| `SerialState` | `opening`, `open`, `closed` |
+| `SerialDataBits` | `7`, `8` |
+| `SerialStopBits` | `1`, `2` |
+| `SerialParity` | `none`, `even`, `odd` |
+| `SerialFlowControl` | `none`, `hardware` |
 
-SerialOpenOptions = {
-  baudRate: uint,
-  ? dataBits: 7 / 8,
-  ? stopBits: 1 / 2,
-  ? parity: "none" / "even" / "odd",
-  ? bufferSize: uint,
-  ? flowControl: "none" / "hardware",
-}
+`SerialOpenRequest` fields:
 
-SerialOpenResult = {
-  session: SerialSession,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `filters` | no | list of `SerialPortFilter` |
+| `options` | yes | `SerialOpenOptions` |
+| `label` | no | text |
 
-SerialState = "opening" / "open" / "closed"
+`SerialPortFilter` fields:
 
-SerialSession = {
-  id: tstr,
-  state: SerialState,
-  ? info: SerialPortInfo,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `usbVendorId` | no | unsigned integer |
+| `usbProductId` | no | unsigned integer |
+| `bluetoothServiceClassId` | no | text or unsigned integer |
 
-SerialPortInfo = {
-  ? usbVendorId: uint,
-  ? usbProductId: uint,
-  ? bluetoothServiceClassId: tstr / uint,
-  ? displayName: tstr,
-}
+`SerialOpenOptions` fields:
 
-SerialEvent = SerialStateEvent / SerialDataEvent / SerialClosedEvent
+| Field | Required | Type |
+|-------|----------|------|
+| `baudRate` | yes | unsigned integer |
+| `dataBits` | no | `SerialDataBits` |
+| `stopBits` | no | `SerialStopBits` |
+| `parity` | no | `SerialParity` |
+| `bufferSize` | no | unsigned integer |
+| `flowControl` | no | `SerialFlowControl` |
 
-SerialStateEvent = {
-  type: "state",
-  sessionId: tstr,
-  state: SerialState,
-}
+`SerialOpenResult` fields:
 
-SerialDataEvent = {
-  type: "data",
-  sessionId: tstr,
-  data: bstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `session` | yes | `SerialSession` |
 
-SerialClosedEvent = {
-  type: "closed",
-  sessionId: tstr,
-  ? reason: tstr,
-}
-```
+`SerialSession` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `state` | yes | `SerialState` |
+| `info` | no | `SerialPortInfo` |
+
+`SerialPortInfo` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `usbVendorId` | no | unsigned integer |
+| `usbProductId` | no | unsigned integer |
+| `bluetoothServiceClassId` | no | text or unsigned integer |
+| `displayName` | no | text |
+
+`SerialEvent` variants:
+
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| state | `type: "state"`, `sessionId: tstr`, `state: SerialState` | none |
+| data | `type: "data"`, `sessionId: tstr`, `data: bstr` | none |
+| closed | `type: "closed"`, `sessionId: tstr` | `reason: tstr` |
 
 **`open(request)`** asks the runtime to select and open a serial port. The
 runtime may use `filters`, `label`, and napplet policy to explain or narrow the
