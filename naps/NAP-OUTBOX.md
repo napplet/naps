@@ -131,7 +131,7 @@ Enumerations:
 
 **`query(filters, options?)`** -- Performs a one-shot outbox-aware query. The shell derives authors from `filters.authors`, `options.authors`, tag hints, or shell policy, resolves the relevant relays, queries them, deduplicates events by `id`, merges relay hints into each `RelayEventResult.sidecar.relayHints`, and returns the collected results.
 
-**`subscribe(filters, options?)`** -- Opens a live outbox-aware event stream. The shell MAY use relay EOSE messages internally to separate initial backfill from live delivery, but it MUST NOT expose relay EOSE to the napplet. Outbox routing may span multiple relays and may change over time, so there is no single napplet-facing EOSE boundary.
+**`subscribe(filters, options?)`** -- Opens a live outbox-aware event stream. Outbox routing may span multiple relays and may change over time, so the napplet-facing lifecycle is the subscription handle plus `outbox.close` and `outbox.closed`.
 
 **`publish(template, options?)`** -- Publishes a shell-signed event using outbox-aware relay fanout. For the shell-user's own event, this usually means the user's write relays. For directed events, the shell MAY include recipient inbox relays.
 
@@ -162,7 +162,6 @@ Key design notes:
 - `RelayEventResult.sidecar.resources` carries resource sidecars when the shell pre-resolves bytes under NAP-RESOURCE policy.
 - `options.relays` is a hint or policy override, not a command to bypass shell ACLs.
 - `outbox.getEvent` is a request; `outbox.event` remains the subscription push message.
-- `outbox.eose` is not defined. Relay EOSE is an internal routing detail.
 - The shell may internally use NAP-RELAY semantics, but napplets consume this higher-level outbox interface.
 
 ### Examples
@@ -255,7 +254,6 @@ If the shell returns partial results because some relay lists or relay connectio
 - The shell MUST validate event signatures before delivering events to napplets.
 - The shell MUST sign event templates submitted through `outbox.publish`; napplets do not receive signing keys.
 - The shell MUST respond to every request with a result or lifecycle message carrying the same `id` or `subId`.
-- The shell MUST NOT emit `outbox.eose`. Relay EOSE is an internal routing detail.
 - The shell MUST deliver matching subscription events as `outbox.event` until the napplet sends `outbox.close` or the shell terminates the stream with `outbox.closed`.
 - The shell SHOULD merge observed relay URLs into `RelayEventResult.sidecar.relayHints` after deduplication when it can disclose them.
 - The shell MAY include pre-resolved byte resources in `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy policy and NAP-RESOURCE's fetch policy both apply.
@@ -289,4 +287,4 @@ If the shell returns partial results because some relay lists or relay connectio
 - `a1968b8` - Introduced NAP-OUTBOX for outbox-aware relay routing.
 - `20379e8` - Added single-event retrieval through `outbox.getEvent`.
 - `57db924` - Changed outbox event returns to use relay-owned result shape and declared the relay dependency.
-- `70515a5` - Removed `strategy` and `live` caller opt-ins from outbox options and examples.
+- `70515a5` - Removed `strategy`, `live`, and `outbox.eose` caller-visible controls from outbox options, messages, and examples.
