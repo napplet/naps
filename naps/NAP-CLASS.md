@@ -118,3 +118,7 @@ NAPs that contribute to class determination document their own invariants (for e
 - NIP-5D — Napplet wire format (JSON envelope over `postMessage`); parent spec for this NAP.
 - `NAP-CLASS-1.md` — strict baseline posture; track member for `class: 1`.
 - `NAP-CLASS-2.md` — user-approved explicit-origin posture; track member for `class: 2`.
+
+## Changelog
+
+- `78f9157` - Introduced NAP-CLASS as the napplet class authority sub-track root.
