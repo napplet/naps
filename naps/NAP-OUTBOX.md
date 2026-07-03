@@ -49,7 +49,6 @@ Enumerations:
 
 | Name | Values |
 |------|--------|
-| `OutboxStrategy` | `outbox`, `inbox`, `auto` |
 | `OutboxTarget.direction` | `read`, `write` |
 | `OutboxRelayPlan.source` | `nip65`, `cache`, `policy`, `fallback` |
 
@@ -59,7 +58,6 @@ Enumerations:
 |-------|------|----------|-------------|
 | `author` | `tstr` | no | Author pubkey hint for relay discovery. |
 | `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
-| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
 | `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
 
 `OutboxQueryOptions`:
@@ -68,7 +66,6 @@ Enumerations:
 |-------|------|----------|-------------|
 | `authors` | list of `tstr` | no | Author pubkey hints for relay discovery. |
 | `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
-| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
 | `limit` | `uint` | no | Maximum number of events to return. |
 | `timeoutMs` | `uint` | no | Request timeout in milliseconds. |
 
@@ -78,10 +75,8 @@ Enumerations:
 |-------|------|----------|-------------|
 | `authors` | list of `tstr` | no | Author pubkey hints for relay discovery. |
 | `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
-| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
 | `limit` | `uint` | no | Maximum stored events to backfill. |
 | `timeoutMs` | `uint` | no | Initial request timeout in milliseconds. |
-| `live` | `bool` | no | Whether the stream should stay open for live events. |
 
 `OutboxPublishOptions`:
 
@@ -89,7 +84,6 @@ Enumerations:
 |-------|------|----------|-------------|
 | `relays` | list of `tstr` | no | Relay URL hints or policy override candidates. |
 | `targetAuthors` | list of `tstr` | no | Recipient or referenced author pubkeys for inbox fanout. |
-| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
 
 `OutboxTarget`:
 
@@ -98,7 +92,6 @@ Enumerations:
 | `authors` | list of `tstr` | no | Author pubkeys for relay discovery. |
 | `pubkey` | `tstr` | no | Single pubkey target. |
 | `direction` | `read` or `write` | no | Relay direction to resolve. |
-| `strategy` | `OutboxStrategy` | no | Relay-selection strategy. |
 
 `OutboxRelayPlan`:
 
@@ -180,7 +173,7 @@ Key design notes:
      "type": "outbox.getEvent",
      "id": "e1",
      "eventId": "ev1...",
-     "options": { "author": "ab12...", "strategy": "outbox", "timeoutMs": 3000 }
+     "options": { "author": "ab12...", "timeoutMs": 3000 }
    }
 <- {
      "type": "outbox.getEvent.result",
@@ -198,7 +191,7 @@ Key design notes:
      "type": "outbox.query",
      "id": "q1",
      "filters": [{ "authors": ["ab12..."], "kinds": [1], "limit": 20 }],
-     "options": { "strategy": "outbox", "timeoutMs": 3000 }
+     "options": { "timeoutMs": 3000 }
    }
 <- {
      "type": "outbox.query.result",
@@ -219,7 +212,7 @@ Key design notes:
      "id": "s1",
      "subId": "sub-1",
      "filters": [{ "authors": ["ab12..."], "kinds": [1], "limit": 50 }],
-     "options": { "strategy": "outbox", "live": true }
+     "options": { "timeoutMs": 3000 }
    }
 <- { "type": "outbox.event", "subId": "sub-1", "result": { "event": { "id": "ev1...", "pubkey": "ab12...", "kind": 1, "content": "hello", "tags": [], "created_at": 1234567890, "sig": "..." }, "sidecar": { "relayHints": ["wss://relay.example.com"] } } }
 ```
@@ -230,7 +223,7 @@ Key design notes:
      "type": "outbox.publish",
      "id": "p1",
      "event": { "kind": 1, "content": "hello from a napplet", "tags": [], "created_at": 1234567890 },
-     "options": { "strategy": "outbox" }
+     "options": { "targetAuthors": ["ab12..."] }
    }
 <- {
      "type": "outbox.publish.result",
@@ -277,7 +270,7 @@ If the shell returns partial results because some relay lists or relay connectio
 - Relay selection leaks user interest. Shells SHOULD limit broad outbox queries and apply user or napplet-specific policy for sensitive authors and filters.
 - `options.relays` MUST be treated as a hint subject to shell validation. Napplets MUST NOT be able to force connections to private network relays or disallowed hosts.
 - Event ID lookups without an author can become broad relay searches. Shells SHOULD enforce timeouts, fallback limits, and policy checks before expanding beyond hinted or known relays.
-- Unbounded author sets, missing limits, and broad live subscriptions can exhaust shell and relay resources. Shells SHOULD enforce limits, timeouts, and maximum subscription counts.
+- Unbounded author sets, missing limits, and broad subscriptions can exhaust shell and relay resources. Shells SHOULD enforce limits, timeouts, and maximum subscription counts.
 - Publishing remains shell-mediated. Shells SHOULD show consent UI or require prior policy approval before signing and publishing events.
 - Relay plans may reveal user relay preferences. Shells MAY redact relay URLs or return a policy-derived plan when a napplet is not trusted to inspect relay metadata.
 
