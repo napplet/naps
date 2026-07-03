@@ -40,101 +40,133 @@ local `cancel`, `pause`, and `resume` helpers backed by the matching operations.
 
 ### Schemas
 
-```cddl
-PowState = "queued" / "mining" / "paused" / "done" / "cancelled" / "error"
-NostrEvent = { * tstr => any }
-NostrTag = [* tstr]
+Primitive references:
 
-EventTemplate = {
-  kind: uint,
-  content: tstr,
-  ? tags: [* NostrTag],
-  ? created_at: uint,
-}
+| Name | Meaning |
+|------|---------|
+| `NostrEvent` | NIP-01 signed or unsigned event object. |
+| `NostrTag` | NIP-01 event tag list. |
 
-PowOptions = {
-  ? workers: uint,
-  ? priority: int,
-  ? timeoutMs: uint,
-  ? commitCreatedAt: bool,
-}
+Enumerations:
 
-PowStateChange = {
-  jobId: tstr,
-  state: PowState,
-  ? position: uint,
-}
+| Name | Values |
+|------|--------|
+| `PowState` | `queued`, `mining`, `paused`, `done`, `cancelled`, `error` |
+| `PowJobSummary.mode` | `mine`, `mineAndPublish` |
 
-WorkerStat = {
-  workerId: uint,
-  bestPow: uint,
-  hashes: uint,
-  hashRate: number,
-}
+`EventTemplate`:
 
-PowProgress = {
-  jobId: tstr,
-  target: uint,
-  state: PowState,
-  bestPow: uint,
-  ? bestNonce: tstr,
-  hashes: uint,
-  hashRate: number,
-  workers: [* WorkerStat],
-  elapsedMs: uint,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `kind` | `uint` | yes | Event kind to mine. |
+| `content` | `tstr` | yes | Event content to mine. |
+| `tags` | list of `NostrTag` | no | Event tags to mine. |
+| `created_at` | `uint` | no | Requested event timestamp. |
 
-PowWorkerHashrate = {
-  workerId: uint,
-  hashRate: number,
-}
+`PowOptions`:
 
-PowJobHashrate = {
-  jobId: tstr,
-  hashRate: number,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `workers` | `uint` | no | Requested worker count. |
+| `priority` | `int` | no | Scheduling priority. |
+| `timeoutMs` | `uint` | no | Mining timeout in milliseconds. |
+| `commitCreatedAt` | `bool` | no | Whether the runtime should commit `created_at` at mining start. |
 
-PowHashrate = {
-  hashRate: number,
-  workers: uint,
-  perWorker: [* PowWorkerHashrate],
-  byJob: [* PowJobHashrate],
-}
+`PowStateChange`:
 
-PowResult = {
-  jobId: tstr,
-  ok: bool,
-  event: NostrEvent,
-  pow: uint,
-  nonce: tstr,
-  hashes: uint,
-  elapsedMs: uint,
-  ? published: PowPublishResult,
-  ? error: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `state` | `PowState` | yes | New job state. |
+| `position` | `uint` | no | Queue position when state is `queued`. |
 
-PowPublishResult = {
-  eventId: tstr,
-  relays: { * tstr => bool },
-}
+`WorkerStat`:
 
-PowJobSummary = {
-  jobId: tstr,
-  target: uint,
-  state: PowState,
-  priority: int,
-  ? position: uint,
-  bestPow: uint,
-  hashRate: number,
-  kind: uint,
-  mode: "mine" / "mineAndPublish",
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `workerId` | `uint` | yes | Worker identifier. |
+| `bestPow` | `uint` | yes | Best leading-zero-bit count found by this worker. |
+| `hashes` | `uint` | yes | Hashes attempted by this worker. |
+| `hashRate` | `number` | yes | Worker hash rate in hashes per second. |
 
-PowError = {
-  jobId: tstr,
-  error: tstr,
-}
-```
+`PowProgress`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `target` | `uint` | yes | Target leading-zero-bit count. |
+| `state` | `PowState` | yes | Current job state. |
+| `bestPow` | `uint` | yes | Best leading-zero-bit count found so far. |
+| `bestNonce` | `tstr` | no | Nonce that produced `bestPow`. |
+| `hashes` | `uint` | yes | Total hashes attempted for this job. |
+| `hashRate` | `number` | yes | Job hash rate in hashes per second. |
+| `workers` | list of `WorkerStat` | yes | Per-worker progress. |
+| `elapsedMs` | `uint` | yes | Elapsed mining time in milliseconds. |
+
+`PowWorkerHashrate`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `workerId` | `uint` | yes | Worker identifier. |
+| `hashRate` | `number` | yes | Worker hash rate in hashes per second. |
+
+`PowJobHashrate`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `hashRate` | `number` | yes | Job hash rate in hashes per second. |
+
+`PowHashrate`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `hashRate` | `number` | yes | Total hash rate in hashes per second. |
+| `workers` | `uint` | yes | Active worker count. |
+| `perWorker` | list of `PowWorkerHashrate` | yes | Per-worker hash rates. |
+| `byJob` | list of `PowJobHashrate` | yes | Per-job hash rates. |
+
+`PowResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `ok` | `bool` | yes | Whether mining succeeded. |
+| `event` | `NostrEvent` | yes | Mined event. |
+| `pow` | `uint` | yes | Leading-zero-bit count achieved. |
+| `nonce` | `tstr` | yes | Nonce value that satisfied the target. |
+| `hashes` | `uint` | yes | Total hashes attempted. |
+| `elapsedMs` | `uint` | yes | Elapsed mining time in milliseconds. |
+| `published` | `PowPublishResult` | no | Publish outcome for `mineAndPublish`. |
+| `error` | `tstr` | no | Error reason when mining or publishing failed. |
+
+`PowPublishResult`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `eventId` | `tstr` | yes | Published event ID. |
+| `relays` | map of relay URL `tstr` to `bool` | yes | Per-relay publish result. |
+
+`PowJobSummary`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `target` | `uint` | yes | Target leading-zero-bit count. |
+| `state` | `PowState` | yes | Current job state. |
+| `priority` | `int` | yes | Scheduling priority. |
+| `position` | `uint` | no | Queue position when queued. |
+| `bestPow` | `uint` | yes | Best leading-zero-bit count found so far. |
+| `hashRate` | `number` | yes | Job hash rate in hashes per second. |
+| `kind` | `uint` | yes | Event kind being mined. |
+| `mode` | `mine` or `mineAndPublish` | yes | Job mode. |
+
+`PowError`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `jobId` | `tstr` | yes | Mining job identifier. |
+| `error` | `tstr` | yes | Error reason. |
 
 **`mine(template, target, opts?)`** — **Submits** a mining job and returns a `PowJob` handle immediately. The job is *enqueued*: depending on the shell's concurrency policy it begins mining at once or waits behind other jobs, reporting `state: "queued"` (with a queue `position`) until a worker slot frees. `job.started` resolves when mining actually begins; `job.completed` resolves with the mined **unsigned** event once `target` is met. The handle is valid the moment it is returned — `cancel`, `pause`, and queue inspection all work while the job is still queued.
 
