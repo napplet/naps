@@ -44,78 +44,102 @@ normalization.
 raw kind 0 profile events returned by `getProfile`. Shell-created action events
 remain plain `NostrEvent` values because they are not relay-read results.
 
-```cddl
-Npub = tstr
-Nprofile = tstr
-HexPubkey = tstr
-NostrEventId = tstr
-NostrEvent = { * tstr => any }
-; External type: RelayEventResult, owned by NAP-RELAY.
-CommonPubkeyList = [Npub, * Npub]
-CommonProfileTarget = HexPubkey / Npub / Nprofile
-CommonNip19Type = "npub" / "note" / "nprofile" / "nevent" / "naddr" / "nrelay"
+Primitive aliases:
 
-CommonNip19EncodeInput =
-  { type: "npub" / "note", hex: tstr } /
-  { type: "nprofile", pubkey: HexPubkey, ? relays: [* tstr] } /
-  { type: "nevent", eventId: NostrEventId, ? relays: [* tstr], ? author: HexPubkey, ? kind: uint } /
-  { type: "naddr", identifier: tstr, pubkey: HexPubkey, kind: uint, ? relays: [* tstr] } /
-  { type: "nrelay", relay: tstr }
+| Name | Definition |
+|------|------------|
+| `Npub` | NIP-19 `npub` string |
+| `Nprofile` | NIP-19 `nprofile` string |
+| `HexPubkey` | 32-byte public key encoded as lowercase hex |
+| `NostrEventId` | 32-byte event id encoded as lowercase hex |
+| `NostrEvent` | Nostr event object |
+| `CommonPubkeyList` | non-empty list of `Npub` values |
+| `CommonProfileTarget` | `HexPubkey`, `Npub`, or `Nprofile` |
+| `RelayEventResult` | external type owned by NAP-RELAY |
 
-CommonNip19EncodeResult = {
-  ok: bool,
-  ? value: tstr,
-  ? nip19Type: CommonNip19Type,
-  ? error: tstr,
-}
+Enums:
 
-CommonNip19DecodeResult = {
-  ok: bool,
-  ? nip19Type: CommonNip19Type,
-  ? hex: tstr,
-  ? pubkey: HexPubkey,
-  ? eventId: NostrEventId,
-  ? identifier: tstr,
-  ? relays: [* tstr],
-  ? author: HexPubkey,
-  ? kind: uint,
-  ? relay: tstr,
-  ? error: tstr,
-}
+| Name | Values |
+|------|--------|
+| `CommonNip19Type` | `npub`, `note`, `nprofile`, `nevent`, `naddr`, `nrelay` |
+| `CommonReaction` | `+`, `-`, or text |
+| `CommonReportReason` | `nudity`, `malware`, `profanity`, `illegal`, `spam`, `impersonation`, `other` |
 
-CommonProfileData = {
-  ? name: tstr,
-  ? displayName: tstr,
-  ? about: tstr,
-  ? picture: tstr,
-  ? banner: tstr,
-  ? nip05: tstr,
-  ? lud16: tstr,
-  ? website: tstr,
-  * tstr => any,
-}
+`CommonNip19EncodeInput` variants:
 
-CommonProfileResult = {
-  ok: bool,
-  pubkey: HexPubkey,
-  ? profile: CommonProfileData / null,
-  ? result: RelayEventResult,
-  ? error: tstr,
-}
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| `npub` | `type: "npub"`, `hex: tstr` | none |
+| `note` | `type: "note"`, `hex: tstr` | none |
+| `nprofile` | `type: "nprofile"`, `pubkey: HexPubkey` | `relays: list of tstr` |
+| `nevent` | `type: "nevent"`, `eventId: NostrEventId` | `relays: list of tstr`, `author: HexPubkey`, `kind: uint` |
+| `naddr` | `type: "naddr"`, `identifier: tstr`, `pubkey: HexPubkey`, `kind: uint` | `relays: list of tstr` |
+| `nrelay` | `type: "nrelay"`, `relay: tstr` | none |
 
-CommonActionResult = {
-  ok: bool,
-  ? eventId: tstr,
-  ? event: NostrEvent,
-  ? error: tstr,
-}
+`CommonNip19EncodeResult` fields:
 
-CommonReaction = "+" / "-" / tstr
-CommonReportReason = "nudity" / "malware" / "profanity" / "illegal" / "spam" / "impersonation" / "other"
-CommonReportTarget =
-  { type: "event", id: tstr, ? pubkey: tstr, ? relay: tstr } /
-  { type: "pubkey", pubkey: Npub / HexPubkey, ? relay: tstr }
-```
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `value` | no | text |
+| `nip19Type` | no | `CommonNip19Type` |
+| `error` | no | text |
+
+`CommonNip19DecodeResult` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `nip19Type` | no | `CommonNip19Type` |
+| `hex` | no | text |
+| `pubkey` | no | `HexPubkey` |
+| `eventId` | no | `NostrEventId` |
+| `identifier` | no | text |
+| `relays` | no | list of text |
+| `author` | no | `HexPubkey` |
+| `kind` | no | unsigned integer |
+| `relay` | no | text |
+| `error` | no | text |
+
+`CommonProfileData` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `name` | no | text |
+| `displayName` | no | text |
+| `about` | no | text |
+| `picture` | no | text |
+| `banner` | no | text |
+| `nip05` | no | text |
+| `lud16` | no | text |
+| `website` | no | text |
+| additional fields | no | any |
+
+`CommonProfileResult` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `pubkey` | yes | `HexPubkey` |
+| `profile` | no | `CommonProfileData` or null |
+| `result` | no | `RelayEventResult` |
+| `error` | no | text |
+
+`CommonActionResult` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `eventId` | no | text |
+| `event` | no | `NostrEvent` |
+| `error` | no | text |
+
+`CommonReportTarget` variants:
+
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| event | `type: "event"`, `id: tstr` | `pubkey: tstr`, `relay: tstr` |
+| pubkey | `type: "pubkey"`, `pubkey: Npub or HexPubkey` | `relay: tstr` |
 
 ### Operation Rules
 
