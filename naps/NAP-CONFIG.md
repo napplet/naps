@@ -333,3 +333,7 @@ Every napplet->shell request type either returns a correlated result message wit
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `8d671ab` - Introduced NAP-CONFIG for per-napplet declarative configuration.
