@@ -80,3 +80,7 @@ A user who denies the NAP-CLASS-2 consent prompt produces a napplet that is serv
 - `NAP-CLASS.md` — parent spec; defines the `class.assigned` envelope, the `window.napplet.class` runtime surface, and the authoring rules for track members including NAP-CLASS-2.
 - `NAP-CLASS-1.md` — sibling track member; the posture a denied NAP-CLASS-2 napplet is served under.
 - NIP-5D — Napplet wire format.
+
+## Changelog
+
+- `19feb49` - Introduced NAP-CLASS-2 as the user-approved explicit-origin posture sub-track.
