@@ -9,6 +9,8 @@
 **Depends:**
 - `identity` -- capability · required -- publishing mutable Hashtree roots uses the current shell-user identity as event author.
 - `relay` -- capability · required -- resolves and publishes Hashtree root events through the runtime relay surface.
+- `relay` -- wire · required -- imports `RelayEventResult` for resolved mutable-root event returns.
+- `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding (NIP-5D):** `window.napplet.hashtree` · `shell.supports("hashtree")`
 
 ## Description
@@ -54,12 +56,17 @@ filesystem, or signing access through this interface.
 
 ### Schemas
 
+`RelayEventResult` is owned by NAP-RELAY. NAP-HASHTREE imports it by name for
+root events returned while resolving mutable Hashtree references. `publishRoot`
+still returns its shell-created signed event as `NostrEvent`.
+
 ```cddl
 HexHash = tstr
 HexKey = tstr
 HexPubkey = tstr
 NostrEvent = { * tstr => any }
 NostrEventId = tstr
+; External type: RelayEventResult, owned by NAP-RELAY.
 
 HashtreeRefKind = "nhash" / "cid" / "htree" / "npub-path"
 HashtreeEntryType = "blob" / "file" / "dir"
@@ -114,7 +121,7 @@ HashtreeResolveOptions = {
 HashtreeResolvedRoot = {
   cid: HashtreeCid,
   ? ref: HashtreeRef,
-  ? rootEvent: NostrEvent,
+  ? rootResult: RelayEventResult,
   ? eventId: NostrEventId,
   ? author: HexPubkey,
   ? treeName: tstr,
@@ -319,7 +326,8 @@ MUST parse as the same immutable reference as `nhash`.
 **`resolve(ref, options?)`** -- Resolves immutable or mutable references to a
 root CID. For mutable references, the runtime queries Nostr root events, chooses
 the newest root using HTS-01 ordering, and derives public, link-visible, or
-private root keys when authorized.
+private root keys when authorized. Returned mutable-root events use
+`RelayEventResult`.
 
 **`stat(ref)`** -- Returns metadata for a blob, file, or directory without
 returning file bytes.
@@ -371,7 +379,7 @@ Hashtree CIDs. Pinning is a storage policy request, not a publication event.
 | `nhash` | `HashtreeCid.nhash` and immutable `parseRef` output |
 | MessagePack file/dir node | runtime-owned implementation behind `putTree`, `list`, and `read` |
 | CHK encryption | `visibility`, `key`, `shareSecret`, and runtime encryption policy |
-| kind `30064` root event | `publishRoot`, `resolve`, `HashtreeResolvedRoot.rootEvent` |
+| kind `30064` root event | `publishRoot`, `resolve`, `HashtreeResolvedRoot.rootResult` |
 | `d` tag | `treeName` |
 | `hash` tag | `HashtreeCid.hash` |
 | `key`, `encryptedKey`, `selfEncryptedKey` tags | root visibility and key recovery |
@@ -500,6 +508,11 @@ result can be constructed.
 - MUST sign root events as the current shell-user.
 - MUST choose relays, Blossom servers, FIPS peers, local caches, and fallback
   order by runtime policy.
+- SHOULD merge observed mutable-root relay URLs into
+  `RelayEventResult.sidecar.relayHints` when it can disclose them.
+- MAY include pre-resolved resources referenced by mutable-root events in
+  `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy
+  policy and NAP-RESOURCE's fetch policy both apply.
 - MUST NOT expose raw Blossom, FIPS, filesystem, or signing access through this
   interface.
 - MUST sanitize logical paths and reject absolute paths, `..`, and equivalent

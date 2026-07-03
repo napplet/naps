@@ -157,7 +157,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` |  | `resource` | Media session control and playback | Draft |
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` |  | — | Shell-rendered notifications | Draft |
 | [NAP-RESOURCE](https://github.com/napplet/naps/pull/13) | `resource` |  | — | Sandboxed resource fetching (https / blossom / nostr / data) | Draft |
-| [NAP-HASHTREE](naps/NAP-HASHTREE.md) | `hashtree` |  | `identity` `relay` | Runtime-mediated Hashtree document trees | Draft |
+| [NAP-HASHTREE](naps/NAP-HASHTREE.md) | `hashtree` |  | `identity` `relay` `resource` | Runtime-mediated Hashtree document trees | Draft |
 | [NAP-CONFIG](https://github.com/napplet/naps/pull/14) | `config` |  | — | Per-napplet declarative configuration (JSON Schema-driven) | Draft |
 | [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` |  | `relay` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
 | [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` |  | `relay` | Shell-mediated value transfer and zaps | Draft |
