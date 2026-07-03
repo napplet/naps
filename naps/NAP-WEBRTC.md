@@ -34,68 +34,52 @@ channel.
 
 ### Schemas
 
-```cddl
-WebrtcScope = WebrtcDirectScope / WebrtcRoomScope
+Enums:
 
-WebrtcDirectScope = {
-  type: "direct",
-  pubkey: tstr,
-}
+| Name | Values |
+|------|--------|
+| `WebrtcState` | `connecting`, `open`, `closed` |
+| `WebrtcPeerState` | `joined`, `left` |
 
-WebrtcRoomScope = {
-  type: "room",
-  room: tstr,
-  ? peers: [* tstr],
-}
+`WebrtcScope` variants:
 
-WebrtcOpenRequest = {
-  scope: WebrtcScope,
-  ? channel: tstr,
-  ? protocol: tstr,
-}
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| direct | `type: "direct"`, `pubkey: tstr` | none |
+| room | `type: "room"`, `room: tstr` | `peers: list of tstr` |
 
-WebrtcOpenResult = {
-  session: WebrtcSession,
-}
+`WebrtcOpenRequest` fields:
 
-WebrtcState = "connecting" / "open" / "closed"
+| Field | Required | Type |
+|-------|----------|------|
+| `scope` | yes | `WebrtcScope` |
+| `channel` | no | text |
+| `protocol` | no | text |
 
-WebrtcSession = {
-  id: tstr,
-  scope: WebrtcScope,
-  channel: tstr,
-  ? protocol: tstr,
-  state: WebrtcState,
-}
+`WebrtcOpenResult` fields:
 
-WebrtcEvent = WebrtcStateEvent / WebrtcPeerEvent / WebrtcMessageEvent / WebrtcClosedEvent
+| Field | Required | Type |
+|-------|----------|------|
+| `session` | yes | `WebrtcSession` |
 
-WebrtcStateEvent = {
-  type: "state",
-  sessionId: tstr,
-  state: WebrtcState,
-}
+`WebrtcSession` fields:
 
-WebrtcPeerEvent = {
-  type: "peer",
-  sessionId: tstr,
-  pubkey: tstr,
-  state: "joined" / "left",
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `scope` | yes | `WebrtcScope` |
+| `channel` | yes | text |
+| `protocol` | no | text |
+| `state` | yes | `WebrtcState` |
 
-WebrtcMessageEvent = {
-  type: "message",
-  sessionId: tstr,
-  from: tstr,
-  payload: any,
-}
+`WebrtcEvent` variants:
 
-WebrtcClosedEvent = {
-  type: "closed",
-  sessionId: tstr,
-  ? reason: tstr,
-}
-```
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| state | `type: "state"`, `sessionId: tstr`, `state: WebrtcState` | none |
+| peer | `type: "peer"`, `sessionId: tstr`, `pubkey: tstr`, `state: WebrtcPeerState` | none |
+| message | `type: "message"`, `sessionId: tstr`, `from: tstr`, `payload: any` | none |
+| closed | `type: "closed"`, `sessionId: tstr` | `reason: tstr` |
 
 **`open(request)`** — Requests a WebRTC session. For `direct`, the shell connects
 to one peer pubkey. For `room`, the shell announces presence to the room and may
