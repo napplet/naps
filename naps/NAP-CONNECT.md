@@ -164,12 +164,12 @@ The digest above can be verified independently with a one-liner such as `python3
 
 The napplet-side runtime surface is a single property `connect` mounted at `window.napplet.connect`:
 
-```cddl
-NappletConnect = {
-  granted: bool, ; true when all declared origins are granted for this (dTag, aggregateHash)
-  origins: [* tstr], ; user-approved origins; empty on denial or unsupported shells
-}
-```
+`NappletConnect`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `granted` | `bool` | yes | True when all declared origins are granted for this `(dTag, aggregateHash)`. |
+| `origins` | list of `tstr` | yes | User-approved origins; empty on denial or unsupported shells. |
 
 The shim populates `window.napplet.connect` synchronously at install time from a shell-injected `<meta name="napplet-connect-granted" content="...">` element in the served HTML. The meta tag's `content` attribute is a space-separated list of approved origins. An empty `content` value or an absent meta tag indicates `{ granted: false, origins: [] }`.
 
