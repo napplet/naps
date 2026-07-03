@@ -35,67 +35,83 @@ capability it reports.
 
 ### Schemas
 
-```cddl
-SystemHealth = "ok" / "degraded" / "unavailable" / "unknown"
+Enumerations:
 
-SystemNapStatus = {
-  domain: tstr,
-  supported: bool,
-  ? required: bool,
-  ? protocols: [* tstr],
-  ? health: SystemHealth,
-}
+| Name | Values |
+|------|--------|
+| `SystemHealth` | `ok`, `degraded`, `unavailable`, `unknown` |
 
-SystemServiceStatus = {
-  name: tstr,
-  available: bool,
-  health: SystemHealth,
-  ? message: tstr,
-}
+`SystemNapStatus`:
 
-SystemRelayStatus = {
-  url: tstr,
-  read: bool,
-  write: bool,
-  connected: bool,
-  health: SystemHealth,
-  ? latencyMs: number,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `domain` | `tstr` | yes | NAP domain. |
+| `supported` | `bool` | yes | Whether the domain is supported for this napplet. |
+| `required` | `bool` | no | Whether the domain is required by this napplet. |
+| `protocols` | list of `tstr` | no | Supported numbered protocol identifiers. |
+| `health` | `SystemHealth` | no | Runtime health for this domain. |
 
-SystemStorageStatus = {
-  available: bool,
-  health: SystemHealth,
-  ? bytesUsed: uint,
-  ? bytesQuota: uint,
-  ? itemCount: uint,
-  ? persistent: bool,
-  ? message: tstr,
-}
+`SystemServiceStatus`:
 
-SystemMediaStatus = {
-  available: bool,
-  health: SystemHealth,
-  ? audioOutput: SystemHealth,
-  ? audioInput: SystemHealth,
-  ? videoInput: SystemHealth,
-  ? playback: SystemHealth,
-  ? activeSessions: uint,
-  ? message: tstr,
-}
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `tstr` | yes | Runtime-defined service name. |
+| `available` | `bool` | yes | Whether the service is available. |
+| `health` | `SystemHealth` | yes | Service health. |
+| `message` | `tstr` | no | Optional diagnostic text. |
 
-SystemScopeSummary = {
-  name: tstr, ; e.g. "storage", "media", "relay", "cache"
-  available: bool,
-  health: SystemHealth,
-}
+`SystemRelayStatus`:
 
-SystemScopeStatus = {
-  name: tstr,
-  available: bool,
-  health: SystemHealth,
-  details: { * tstr => any },
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | `tstr` | yes | Relay URL. |
+| `read` | `bool` | yes | Whether reads are available. |
+| `write` | `bool` | yes | Whether writes are available. |
+| `connected` | `bool` | yes | Whether the runtime is currently connected. |
+| `health` | `SystemHealth` | yes | Relay health. |
+| `latencyMs` | `number` | no | Measured latency in milliseconds. |
+
+`SystemStorageStatus`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `available` | `bool` | yes | Whether the storage surface is available. |
+| `health` | `SystemHealth` | yes | Storage health. |
+| `bytesUsed` | `uint` | no | Approximate bytes used. |
+| `bytesQuota` | `uint` | no | Approximate byte quota. |
+| `itemCount` | `uint` | no | Approximate stored item count. |
+| `persistent` | `bool` | no | Whether storage is expected to persist. |
+| `message` | `tstr` | no | Optional diagnostic text. |
+
+`SystemMediaStatus`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `available` | `bool` | yes | Whether the media surface is available. |
+| `health` | `SystemHealth` | yes | Overall media health. |
+| `audioOutput` | `SystemHealth` | no | Audio-output health. |
+| `audioInput` | `SystemHealth` | no | Audio-input health. |
+| `videoInput` | `SystemHealth` | no | Video-input health. |
+| `playback` | `SystemHealth` | no | Playback health. |
+| `activeSessions` | `uint` | no | Active media session count. |
+| `message` | `tstr` | no | Optional diagnostic text. |
+
+`SystemScopeSummary`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `tstr` | yes | Scope name, such as `storage`, `media`, `relay`, or `cache`. |
+| `available` | `bool` | yes | Whether the scope is available. |
+| `health` | `SystemHealth` | yes | Scope health. |
+
+`SystemScopeStatus`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `tstr` | yes | Scope name. |
+| `available` | `bool` | yes | Whether the scope is available. |
+| `health` | `SystemHealth` | yes | Scope health. |
+| `details` | map of `tstr` to any JSON value | yes | Runtime-defined details scoped to this napplet. |
 
 Each method returns a snapshot. The runtime MAY cache, redact, or synthesize
 fields. Omitted optional fields mean "not reported", not zero.
