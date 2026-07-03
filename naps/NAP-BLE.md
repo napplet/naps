@@ -37,73 +37,117 @@ commands belong to the napplet or a higher-level protocol.
 
 ### Schemas
 
-```cddl
-BleUuid = tstr / uint
-BleSessionState = "opening" / "open" / "closed"
+Primitive aliases and enums:
 
-BleOpenRequest = {
-  ? filters: [* BleDeviceFilter],
-  ? exclusionFilters: [* BleDeviceFilter],
-  ? acceptAllDevices: bool,
-  ? optionalServices: [* BleUuid],
-  ? label: tstr,
-}
+| Name | Definition |
+|------|------------|
+| `BleUuid` | text or unsigned integer UUID reference |
+| `BleSessionState` | `opening`, `open`, `closed` |
+| `BleWriteResponse` | `with-response`, `without-response`, `auto` |
 
-BleDeviceFilter = {
-  ? services: [* BleUuid],
-  ? name: tstr,
-  ? namePrefix: tstr,
-  ? manufacturerData: [* { companyIdentifier: uint, ? dataPrefix: bstr, ? mask: bstr }],
-  ? serviceData: [* { service: BleUuid, ? dataPrefix: bstr, ? mask: bstr }],
-}
+`BleOpenRequest` fields:
 
-BleOpenResult = {
-  session: BleSession,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `filters` | no | list of `BleDeviceFilter` |
+| `exclusionFilters` | no | list of `BleDeviceFilter` |
+| `acceptAllDevices` | no | boolean |
+| `optionalServices` | no | list of `BleUuid` |
+| `label` | no | text |
 
-BleSession = {
-  id: tstr,
-  state: BleSessionState,
-  device: BleDeviceInfo,
-}
+`BleDeviceFilter` fields:
 
-BleDeviceInfo = {
-  id: tstr, ; runtime-scoped, opaque
-  ? name: tstr,
-  ? services: [* tstr],
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `services` | no | list of `BleUuid` |
+| `name` | no | text |
+| `namePrefix` | no | text |
+| `manufacturerData` | no | list of `BleManufacturerDataFilter` |
+| `serviceData` | no | list of `BleServiceDataFilter` |
 
-BleService = {
-  uuid: tstr,
-  characteristics: [* BleCharacteristic],
-}
+`BleManufacturerDataFilter` fields:
 
-BleCharacteristic = {
-  uuid: tstr,
-  properties: {
-    ? read: bool,
-    ? write: bool,
-    ? writeWithoutResponse: bool,
-    ? notify: bool,
-    ? indicate: bool,
-  },
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `companyIdentifier` | yes | unsigned integer |
+| `dataPrefix` | no | bytes |
+| `mask` | no | bytes |
 
-BleAttribute = {
-  service: BleUuid,
-  characteristic: BleUuid,
-  ? descriptor: BleUuid,
-}
+`BleServiceDataFilter` fields:
 
-BleWriteOptions = {
-  ? response: "with-response" / "without-response" / "auto",
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `service` | yes | `BleUuid` |
+| `dataPrefix` | no | bytes |
+| `mask` | no | bytes |
 
-BleEvent =
-  { type: "state", sessionId: tstr, state: BleSessionState } /
-  { type: "notification", sessionId: tstr, target: BleAttribute, data: bstr } /
-  { type: "closed", sessionId: tstr, ? reason: tstr }
-```
+`BleOpenResult` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `session` | yes | `BleSession` |
+
+`BleSession` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | text |
+| `state` | yes | `BleSessionState` |
+| `device` | yes | `BleDeviceInfo` |
+
+`BleDeviceInfo` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `id` | yes | runtime-scoped opaque text |
+| `name` | no | text |
+| `services` | no | list of text |
+
+`BleService` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `uuid` | yes | text |
+| `characteristics` | yes | list of `BleCharacteristic` |
+
+`BleCharacteristic` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `uuid` | yes | text |
+| `properties` | yes | `BleCharacteristicProperties` |
+
+`BleCharacteristicProperties` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `read` | no | boolean |
+| `write` | no | boolean |
+| `writeWithoutResponse` | no | boolean |
+| `notify` | no | boolean |
+| `indicate` | no | boolean |
+
+`BleAttribute` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `service` | yes | `BleUuid` |
+| `characteristic` | yes | `BleUuid` |
+| `descriptor` | no | `BleUuid` |
+
+`BleWriteOptions` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `response` | no | `BleWriteResponse` |
+
+`BleEvent` variants:
+
+| Variant | Required fields | Optional fields |
+|---------|-----------------|-----------------|
+| state | `type: "state"`, `sessionId: tstr`, `state: BleSessionState` | none |
+| notification | `type: "notification"`, `sessionId: tstr`, `target: BleAttribute`, `data: bstr` | none |
+| closed | `type: "closed"`, `sessionId: tstr` | `reason: tstr` |
 
 `BleUuid` requests MAY use assigned names, 16-bit or 32-bit numbers, or
 canonical UUID strings. Results MUST use canonical lowercase UUID strings.
