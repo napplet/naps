@@ -251,3 +251,7 @@ Messages referencing an unknown `notificationId` (e.g., `notify.dismiss` for an 
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `6312406` - Introduced NAP-NOTIFY for shell-rendered notifications.
