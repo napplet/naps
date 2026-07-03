@@ -251,3 +251,7 @@ States (1) and (2) are the common paths in modern shells. States (3) and (4) are
 - `NAP-RESOURCE` — Sibling NAP providing shell-mediated read-only byte fetching. Authors SHOULD default to NAP-RESOURCE for everything it can express and reach for NAP-CONNECT only when direct network access is genuinely required.
 - WHATWG URL — Origin format and Punycode IDN conversion rules.
 - WHATWG Fetch, Mixed Content — Browser-level mixed-content enforcement (HTTPS shells cannot fetch HTTP origins; `localhost` / `127.0.0.1` secure-context exceptions).
+
+## Changelog
+
+- `fdf6c3e` - Introduced NAP-CONNECT for user-gated direct network access.
