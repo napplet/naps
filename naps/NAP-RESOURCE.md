@@ -214,3 +214,12 @@ SHOULD pass canonical URL strings.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `558f6cc` - Introduced NAP-RESOURCE as a runtime-mediated resource fetch surface for https, blossom, nostr, and data URLs with shell-owned policy and sidecar metadata.
+- `c876e7b` - Added `bytesMany` for batched resource reads while preserving per-URL policy, MIME, cache, quota, and error handling.
+- `23cf33c` - Removed downstream implementation-location guidance so the spec stays implementation-neutral.
+- `1c41cb6` - Added Hashtree URL support as a runtime-fetchable resource scheme.
+- `8e75ead` - Added `resource.info` scheme introspection for supported schemes, MIME policy, caps, and bulk limits.
+- `8c0645d` - Changed resource sidecars to reference relay-owned `RelayEventResult` instead of redefining relay event shape.
