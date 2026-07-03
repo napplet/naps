@@ -9,6 +9,8 @@
 **Depends:**
 - `identity` -- capability · optional -- authenticated Blossom requests and BUD-03 server-list mutations use the current shell-user identity.
 - `relay` -- capability · optional -- BUD-03 server-list helpers read and publish kind `10063` events through the runtime relay surface.
+- `relay` -- wire · optional -- imports `RelayEventResult` for BUD-03 server-list event returns.
+- `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding (NIP-5D):** `window.napplet.blossom` · `shell.supports("blossom")`
 
 ## Description
@@ -46,6 +48,9 @@ where the shell chooses NIP-96, Blossom, or another rail.
 
 ### Schemas
 
+`RelayEventResult` is owned by NAP-RELAY. NAP-BLOSSOM imports it by name for
+kind `10063` server-list events returned by the server-list helpers.
+
 ```cddl
 HexSha256 = tstr
 HexPubkey = tstr
@@ -56,7 +61,7 @@ ErrorCode = tstr
 NostrTag = [* tstr]
 
 BlossomAuthMode = "auto" / "required" / "none"
-NostrEvent = { * tstr => any }
+; External type: RelayEventResult, owned by NAP-RELAY.
 
 BlossomBlobCheckRequest = {
   server: ServerUrl,
@@ -199,7 +204,7 @@ BlossomServerListResult = {
   ok: bool,
   servers: [* ServerUrl],
   ? eventId: tstr,
-  ? event: NostrEvent,
+  ? result: RelayEventResult,
   ? error: ErrorCode,
 }
 
@@ -251,7 +256,8 @@ acts on exactly one hash. Multiple authorization `x` tags, if the shell creates
 them, MUST NOT be treated as a multi-delete request.
 
 **`servers()`** -- Returns the shell-user's ordered BUD-03 server list from the
-latest kind `10063` event. Returns an empty list when no list exists. This is a
+latest kind `10063` event. When the source event is returned, it is returned as
+`RelayEventResult`. Returns an empty list when no list exists. This is a
 Blossom-specific helper for the user's preferred upload/retrieval servers, not a
 generic list editor.
 
@@ -321,8 +327,10 @@ Key design notes:
 - `headers.reason` carries BUD `X-Reason` diagnostics only. Napplets MUST NOT
   branch on it.
 - BUD-03 server-list helpers are shell-owned read/replace mutations over kind
-  `10063`. Runtimes MAY implement them using the same internal machinery as a
-  generic list API, but NAP-BLOSSOM exposes the Blossom-specific verbs directly.
+  `10063`. Returned server-list events use `RelayEventResult` so resource
+  sidecars and relay hints follow the same shape as other raw event returns.
+  Runtimes MAY implement them using the same internal machinery as a generic
+  list API, but NAP-BLOSSOM exposes the Blossom-specific verbs directly.
 - Local helpers (`parseUri`, `formatUri`) do not send wire messages.
 
 ### Examples
@@ -412,6 +420,8 @@ Common error codes: `invalid-request`, `invalid-server`, `invalid-hash`,
   zero `server` tags.
 - The shell MUST preserve the caller-visible BUD-03 server ordering exactly in
   `servers`, `addServer`, `removeServer`, and `reorderServers` results.
+- The shell SHOULD merge observed BUD-03 relay URLs into
+  `RelayEventResult.sidecar.relayHints` when it can disclose them.
 - The shell MUST reject server-list mutation requests with `not-signed-in` when
   no shell-user signer is connected.
 - The shell MAY prompt, deny, rate-limit, cache, redact diagnostics, or route by
