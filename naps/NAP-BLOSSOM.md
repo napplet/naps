@@ -51,171 +51,95 @@ where the shell chooses NIP-96, Blossom, or another rail.
 `RelayEventResult` is owned by NAP-RELAY. NAP-BLOSSOM imports it by name for
 kind `10063` server-list events returned by the server-list helpers.
 
-```cddl
-HexSha256 = tstr
-HexPubkey = tstr
-ServerUrl = tstr
-BlobExtension = tstr
-MimeType = tstr
-ErrorCode = tstr
-NostrTag = [* tstr]
+Primitive aliases and enums:
 
-BlossomAuthMode = "auto" / "required" / "none"
-; External type: RelayEventResult, owned by NAP-RELAY.
+| Name | Definition |
+|------|------------|
+| `HexSha256` | SHA-256 digest encoded as lowercase hex |
+| `HexPubkey` | 32-byte public key encoded as lowercase hex |
+| `ServerUrl` | Blossom server URL |
+| `BlobExtension` | blob filename extension text |
+| `MimeType` | MIME type text |
+| `ErrorCode` | machine-readable error text |
+| `NostrTag` | list of text tag fields |
+| `RelayEventResult` | external type owned by NAP-RELAY |
+| `BlossomAuthMode` | `auto`, `required`, `none` |
 
-BlossomBlobCheckRequest = {
-  server: ServerUrl,
-  sha256: HexSha256,
-  ? extension: BlobExtension,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,         ; prompt text hint; shell-owned and diagnostic only
-}
+Request records:
 
-BlossomGetRequest = {
-  server: ServerUrl,
-  sha256: HexSha256,
-  ? extension: BlobExtension,
-  ? range: tstr,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+| Record | Required fields | Optional fields |
+|--------|-----------------|-----------------|
+| `BlossomBlobCheckRequest` | `server: ServerUrl`, `sha256: HexSha256` | `extension: BlobExtension`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomGetRequest` | `server: ServerUrl`, `sha256: HexSha256` | `extension: BlobExtension`, `range: tstr`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomCheckRequest` | `server: ServerUrl`, `sha256: HexSha256`, `size: uint`, `type: MimeType` | `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomUploadRequest` | `server: ServerUrl`, `data: bstr` | `sha256: HexSha256`, `type: MimeType`, `size: uint`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomMirrorRequest` | `server: ServerUrl`, `url: tstr` | `sha256: HexSha256`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomMediaRequest` | `server: ServerUrl`, `data: bstr` | `sha256: HexSha256`, `type: MimeType`, `size: uint`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomListRequest` | `server: ServerUrl`, `pubkey: HexPubkey` | `cursor: HexSha256`, `limit: uint`, `auth: BlossomAuthMode`, `purpose: tstr` |
+| `BlossomDeleteRequest` | `server: ServerUrl`, `sha256: HexSha256` | `extension: BlobExtension`, `auth: BlossomAuthMode`, `purpose: tstr` |
 
-BlossomCheckRequest = {
-  server: ServerUrl,
-  sha256: HexSha256,
-  size: uint,
-  type: MimeType,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+When `auth` is omitted, shells use `auto`. `purpose` is shell-owned diagnostic
+prompt text only.
 
-BlossomUploadRequest = {
-  server: ServerUrl,
-  data: bstr,
-  ? sha256: HexSha256,
-  ? type: MimeType,
-  ? size: uint,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+`BlossomHeaders` fields:
 
-BlossomMirrorRequest = {
-  server: ServerUrl,
-  url: tstr,
-  ? sha256: HexSha256,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `contentType` | no | `MimeType` |
+| `contentLength` | no | unsigned integer |
+| `acceptRanges` | no | text |
+| `sunset` | no | text |
+| `reason` | no | text |
 
-BlossomMediaRequest = {
-  server: ServerUrl,
-  data: bstr,
-  ? sha256: HexSha256,
-  ? type: MimeType,
-  ? size: uint,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+`BlossomDescriptor` fields:
 
-BlossomListRequest = {
-  server: ServerUrl,
-  pubkey: HexPubkey,
-  ? cursor: HexSha256,
-  ? limit: uint,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `url` | yes | text |
+| `sha256` | yes | `HexSha256` |
+| `size` | yes | unsigned integer |
+| `type` | yes | `MimeType` |
+| `uploaded` | yes | unsigned integer |
+| `nip94` | no | list of `NostrTag` |
+| additional fields | no | any |
 
-BlossomDeleteRequest = {
-  server: ServerUrl,
-  sha256: HexSha256,
-  ? extension: BlobExtension,
-  ? auth: BlossomAuthMode, ; default "auto"
-  ? purpose: tstr,
-}
+Result records:
 
-BlossomHeaders = {
-  ? contentType: MimeType,
-  ? contentLength: uint,
-  ? acceptRanges: tstr,
-  ? sunset: tstr,
-  ? reason: tstr,
-}
+| Record | Required fields | Optional fields |
+|--------|-----------------|-----------------|
+| `BlossomBlobCheckResult` | `ok: bool`, `status: uint`, `headers: BlossomHeaders` | `error: ErrorCode` |
+| `BlossomBytesResult` | `ok: bool`, `status: uint` | `blob: bstr`, `headers: BlossomHeaders`, `error: ErrorCode` |
+| `BlossomCheckResult` | `ok: bool`, `status: uint` | `headers: BlossomHeaders`, `error: ErrorCode` |
+| `BlossomDescriptorResult` | `ok: bool`, `status: uint` | `descriptor: BlossomDescriptor`, `error: ErrorCode` |
+| `BlossomListResult` | `ok: bool`, `status: uint`, `blobs: list of BlossomDescriptor` | `cursor: HexSha256`, `error: ErrorCode` |
+| `BlossomDeleteResult` | `ok: bool`, `status: uint` | `error: ErrorCode` |
 
-BlossomDescriptor = {
-  url: tstr,
-  sha256: HexSha256,
-  size: uint,
-  type: MimeType,
-  uploaded: uint,
-  ? nip94: [* NostrTag],
-  * tstr => any,
-}
+`BlossomAddServerRequest` fields:
 
-BlossomBlobCheckResult = {
-  ok: bool,
-  status: uint,
-  headers: BlossomHeaders,
-  ? error: ErrorCode,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `server` | yes | `ServerUrl` |
+| `position` | no | unsigned integer |
 
-BlossomBytesResult = {
-  ok: bool,
-  status: uint,
-  ? blob: bstr,
-  ? headers: BlossomHeaders,
-  ? error: ErrorCode,
-}
+`BlossomServerListResult` fields:
 
-BlossomCheckResult = {
-  ok: bool,
-  status: uint,
-  ? headers: BlossomHeaders,
-  ? error: ErrorCode,
-}
+| Field | Required | Type |
+|-------|----------|------|
+| `ok` | yes | boolean |
+| `servers` | yes | list of `ServerUrl` |
+| `eventId` | no | text |
+| `result` | no | `RelayEventResult` |
+| `error` | no | `ErrorCode` |
 
-BlossomDescriptorResult = {
-  ok: bool,
-  status: uint,
-  ? descriptor: BlossomDescriptor,
-  ? error: ErrorCode,
-}
+`BlossomUri` fields:
 
-BlossomListResult = {
-  ok: bool,
-  status: uint,
-  blobs: [* BlossomDescriptor],
-  ? cursor: HexSha256,
-  ? error: ErrorCode,
-}
-
-BlossomDeleteResult = {
-  ok: bool,
-  status: uint,
-  ? error: ErrorCode,
-}
-
-BlossomAddServerRequest = {
-  server: ServerUrl,
-  ? position: uint,
-}
-
-BlossomServerListResult = {
-  ok: bool,
-  servers: [* ServerUrl],
-  ? eventId: tstr,
-  ? result: RelayEventResult,
-  ? error: ErrorCode,
-}
-
-BlossomUri = {
-  sha256: HexSha256,
-  extension: BlobExtension,
-  servers: [* ServerUrl],
-  authors: [* HexPubkey],
-  ? size: uint,
-}
-```
+| Field | Required | Type |
+|-------|----------|------|
+| `sha256` | yes | `HexSha256` |
+| `extension` | yes | `BlobExtension` |
+| `servers` | yes | list of `ServerUrl` |
+| `authors` | yes | list of `HexPubkey` |
+| `size` | no | unsigned integer |
 
 **`check(request)`** -- Checks whether `server` has the blob identified by
 `sha256`, using the BUD-01 `HEAD /<sha256>` endpoint under the hood. Returns
