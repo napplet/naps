@@ -33,54 +33,64 @@ The two are orthogonal (N:M): one protocol may serve several archetypes, and one
 
 ### Schemas
 
-```cddl
-IntentBehavior = {
-  ? focus: bool,
-  ? newWindow: bool,
-  ? reuse: bool,
-}
+`IntentBehavior` fields:
 
-IntentOpenOptions = {
-  ? protocol: tstr,
-  ? handler: tstr,
-  ? behavior: IntentBehavior,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `focus` | no | boolean | Focus the target surface. |
+| `newWindow` | no | boolean | Request a new window instead of reuse. |
+| `reuse` | no | boolean | Permit reuse of an existing matching window. |
 
-IntentRequest = {
-  archetype: tstr, ; role slug, e.g. "note"
-  ? action: tstr,  ; default "open"
-  ? protocol: tstr, ; NAP-N id shaping payload
-  ? payload: any,   ; opaque, typed by protocol
-  ? handler: tstr,  ; "default", "choose", or a specific napplet dTag
-  ? behavior: IntentBehavior,
-}
+`IntentOpenOptions` fields:
 
-IntentCandidate = {
-  dTag: tstr, ; napplet that can fulfill the archetype
-  ? title: tstr,
-  actions: [* tstr],
-  protocols: [* tstr],
-  ? isDefault: bool,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `protocol` | no | text | NAP-N id shaping the payload. |
+| `handler` | no | text | `default`, `choose`, or a specific napplet dTag. |
+| `behavior` | no | `IntentBehavior` | Window/focus hints. |
 
-IntentAvailability = {
-  archetype: tstr,
-  available: bool,
-  candidates: [* IntentCandidate],
-  hasDefault: bool,
-}
+`IntentRequest` fields:
 
-IntentResult = {
-  ok: bool,
-  archetype: tstr,
-  action: tstr,
-  handled: bool,
-  ? handler: tstr, ; dTag of the napplet that handled it
-  ? windowId: tstr,
-  ? protocol: tstr,
-  ? error: tstr,
-}
-```
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `archetype` | yes | text | Role slug, e.g. `note`. |
+| `action` | no | text | Defaults to `open`. |
+| `protocol` | no | text | NAP-N id shaping the payload. |
+| `payload` | no | any | Opaque; typed by `protocol`. |
+| `handler` | no | text | `default`, `choose`, or a specific napplet dTag. |
+| `behavior` | no | `IntentBehavior` | Window/focus hints. |
+
+`IntentCandidate` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `dTag` | yes | text | Napplet that can fulfill the archetype. |
+| `title` | no | text | Human-readable handler label. |
+| `actions` | yes | list of text | Supported actions. |
+| `protocols` | yes | list of text | Supported payload protocols. |
+| `isDefault` | no | boolean | Whether this candidate is the user's default. |
+
+`IntentAvailability` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `archetype` | yes | text |
+| `available` | yes | boolean |
+| `candidates` | yes | list of `IntentCandidate` |
+| `hasDefault` | yes | boolean |
+
+`IntentResult` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | Whether dispatch completed. |
+| `archetype` | yes | text | Requested role slug. |
+| `action` | yes | text | Dispatched action. |
+| `handled` | yes | boolean | Whether a handler accepted the dispatch. |
+| `handler` | no | text | dTag of the napplet that handled it. |
+| `windowId` | no | text | Shell-assigned window id. |
+| `protocol` | no | text | Payload protocol used for delivery. |
+| `error` | no | text | Failure reason. |
 
 **`invoke(request)`** — Asks the shell to dispatch `action` (default `"open"`) to a napplet of `archetype` with `payload`. The shell resolves the archetype to a handler (the user's default, the napplet named in `handler`, or a user choice when `handler: "choose"`), creates or focuses its window, and delivers the payload using the named `protocol` (or the archetype's recommended default when `protocol` is omitted). The `action` is carried as a field, not encoded into the message type, so new actions never expand the wire surface. Returns once the handler has been resolved and the window created; delivery to the handler MAY complete asynchronously.
 
