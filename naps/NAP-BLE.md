@@ -248,3 +248,7 @@ The runtime is the policy boundary.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `5f44ca1` - Introduced NAP-BLE as a portable BLE GATT access surface.
