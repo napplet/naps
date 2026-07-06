@@ -117,6 +117,14 @@ Enumerations:
 | `incomplete` | `bool` | no | True when results are partial. |
 | `error` | `tstr` | no | Error reason when the query failed. |
 
+`OutboxSubscription`:
+
+| Member | Type | Required | Description |
+|--------|------|----------|-------------|
+| `on("event", cb)` | function | yes | Registers a callback for `outbox.event` deliveries. The callback receives `RelayEventResult`. |
+| `on("closed", cb)` | function | yes | Registers a callback for `outbox.closed`. The callback receives optional `reason`. |
+| `close()` | function | yes | Closes the subscription by sending `outbox.close` for the handle's subscription ID. |
+
 `OutboxPublishResult`:
 
 | Field | Type | Required | Description |
