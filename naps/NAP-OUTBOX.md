@@ -322,3 +322,4 @@ If the shell returns partial results because some relay lists or relay connectio
 - `57db924` - Changed outbox event returns to use relay-owned result shape and declared the relay dependency.
 - `70515a5` - Removed `strategy`, `live`, and `outbox.eose` caller-visible controls from outbox options, messages, and examples.
 - `e575906` - Restored the `OutboxSubscription` handle definition for `event`, `closed`, and `close()` lifecycle methods.
+- `0648a60` - Replaced inferred publish routing with explicit `toOutbox`, `toInboxes`, and validated `relays` fanout.
