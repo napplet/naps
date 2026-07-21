@@ -26,14 +26,14 @@ NAP-{NAME}
 
 ### Schemas
 
-Use CDDL-style notation. See AGENTS.md -> Interface schema format.
+Use schema tables. See AGENTS.md -> Interface schema format.
 
-```cddl
-ResultType = {
-  field: tstr,
-  ? optionalField: bool,
-}
-```
+`ResultType` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `field` | yes | text | {meaning} |
+| `optionalField` | no | boolean | {meaning} |
 
 {Brief description of each method: what it does, what it returns, error conditions.}
 
