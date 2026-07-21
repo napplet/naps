@@ -10,8 +10,8 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 
 | Path | What |
 |------|------|
-| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP-WORD / NAP-N registries |
-| [naps/](naps/) | All spec definitions — `NAP-<WORD>.md` interfaces, `NAP-<N>.md` wire formats |
+| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP registry, archetype registry |
+| [naps/](naps/) | Runtime-provided NAP interface definitions — `NAP-<WORD>.md` |
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
 | [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
 | [ARCHETYPES.md](ARCHETYPES.md) + [naat/](naat/) | Archetype roles |
@@ -33,12 +33,12 @@ however useful it seems.
 | Kind | Is | Owns | Discovery |
 |------|-----|------|-----------|
 | **NAP-WORD** | runtime-provided | an **API surface** | `shell.supports("<domain>")` |
-| **NAP-N** | napplet-agreed | **message semantics** | `shell.supports("<domain>", "NAP-N")` |
-| **NAAT** | a **role name + boundary** | nothing (not a NAP); *recommends* a NAP-N | manifest `["archetype", …]` |
+| **Convention** | napplet-agreed | **message semantics** | topic/action names and handler metadata |
+| **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["archetype", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
-- A NAP is **runtime-provided AND an API** (NAP-WORD) **or** **napplet-agreed AND
-  message semantics** (NAP-N). Never both; never neither.
+- A NAP is **runtime-provided AND an API** (NAP-WORD). Napplet-agreed message
+  semantics are conventions, not NAPs.
 - Transport and host detail (`postMessage`, iframes, `window.napplet.*`) live in a
   **projection**, never in a NAP.
 - Manifests reference bare **domains** (`relay`), never spec ids (`NAP-RELAY`).
@@ -102,7 +102,7 @@ A dependency never moves the boundary. A NAP still owns only its own surface;
 ## Terminology
 
 Use [glossary](README.md#glossary) terms verbatim — *seam, napplet, runtime/shell,
-NAP, domain, projection, NAP-WORD, NAP-N, NAAT*. No synonyms, no new coinages. To
+NAP, domain, projection, NAP-WORD, convention, NAAT*. No synonyms, no new coinages. To
 rename: change the glossary first, then every use, in one commit.
 
 ## Voice
@@ -207,4 +207,4 @@ existential threat to the goal.
 
 NIP-style informal. Fork → add a spec under `naps/` from its template → open a PR.
 dskvr merges when it makes sense and has ≥1 implementation. NAP-WORD names and NAAT
-slugs are first-come, maintainer-approved; NAP-N numbers are assigned on merge.
+slugs are first-come, maintainer-approved. Numbered NAPs are not assigned.

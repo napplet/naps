@@ -23,7 +23,7 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | `emit` | `topic` (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
 | `on` | `topic` (`tstr`), event handler for `IncEvent` | `Subscription` handle | `inc.subscribe` / `inc.subscribe.result` |
 | `channel.open` | `target` (`tstr`, peer dTag) | `ChannelHandle` | `inc.channel.open` / `inc.channel.open.result` |
-| `channel.list` | none | list of `ChannelInfo` | `inc.channel.list` / `inc.channel.list.result` |
+| `channel.list` | none | `[* ChannelInfo]` | `inc.channel.list` / `inc.channel.list.result` |
 | `channel.broadcast` | `payload` (`any`) | none | `inc.channel.broadcast` |
 | `ChannelHandle.emit` | `payload` (`any`) | none | `inc.channel.emit` |
 | `ChannelHandle.on` | event handler for `ChannelEvent` | `Subscription` handle | `inc.channel.event` |
@@ -31,41 +31,38 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 ### Schemas
 
-`IncEvent` fields:
+```
+IncEvent = {
+  topic: tstr,
+  sender: tstr,
+  ? payload: any,
+}
 
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `topic` | yes | text | Topic name. |
-| `sender` | yes | text | Sender dTag, per NIP-5D. |
-| `payload` | no | any | Topic payload. |
+ChannelHandle = {
+  id: tstr,
+  peer: tstr,
+}
 
-`ChannelHandle` fields:
+ChannelEvent = {
+  channelId: tstr,
+  sender: tstr,
+  ? payload: any,
+}
 
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `id` | yes | text | Shell-assigned channel id. |
-| `peer` | yes | text | Peer dTag. |
+ChannelInfo = {
+  id: tstr,
+  peer: tstr,
+}
+```
 
-`ChannelEvent` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `channelId` | yes | text | Shell-assigned channel id. |
-| `sender` | yes | text | Sender dTag. |
-| `payload` | no | any | Channel payload. |
-
-`ChannelInfo` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `id` | yes | text | Shell-assigned channel id. |
-| `peer` | yes | text | Peer dTag. |
+`sender` and `peer` are napplet `dTag` values. `id` and `channelId` are
+shell-assigned opaque identifiers.
 
 **`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to the given topic. Fire-and-forget — there is no delivery confirmation. The shell identifies the sender via `MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered events.
 
 **`on(topic, callback)`** — Subscribes to messages on a topic. The callback receives an `IncEvent` with the topic, sender `dTag`, and payload. Returns a `Subscription` handle with a `close()` method to unsubscribe. Multiple subscriptions to the same topic are independent.
 
-**`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the promise rejects. The shell validates once on open — subsequent messages flow without per-message checking.
+**`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the request fails. The shell validates once on open — subsequent messages flow without per-message checking.
 
 **`channel.list()`** — Returns the list of active channels for this napplet.
 

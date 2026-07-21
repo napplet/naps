@@ -15,7 +15,7 @@ contracts.
 - [Layering](#layering)
 - [Projections](#projections)
 - [How it works](#how-it-works)
-- [The three axes](#the-three-axes)
+- [The two axes](#the-two-axes)
 - [Boundary rule](#boundary-rule)
 - [Governance](#governance)
 - [Templates](#templates)
@@ -32,7 +32,7 @@ contracts.
 | **Domain** | A capability's short name (`relay`, `intent`); how a NAP is referenced and discovered. |
 | **Projection** (binding) | A mapping of the seam onto one concrete host (web, native, WASM, …). |
 | **NAP-WORD** | An interface spec — an API the runtime offers. One canonical spec per name. |
-| **NAP-N** | A wire-format spec — message semantics napplets agree on. Multiple competing specs allowed. |
+| **Convention** | An unnumbered message shape napplets agree to use. Usually named by topic/action, e.g. `note:open`. Not a NAP. |
 | **NAAT** | A *Napplet Archetype*: a canonical role name (`note`, `feed`) with a boundary. Not a NAP. |
 
 ## What is a napplet?
@@ -98,11 +98,10 @@ The mechanics below live at the seam and are described projection-neutrally; the
 [web projection](projections/web.md) shows how each is realized in the browser.
 
 **Discovery.** A runtime advertises the capabilities it provides; a napplet
-checks for one before using it — by domain, optionally with a numbered protocol:
+checks for one before using it by domain:
 
 ```
 shell.supports("relay")          // is the relay capability available?
-shell.supports("inc", "NAP-2")   // …and does it speak the NAP-2 wire format?
 ```
 
 A napplet also declares the capabilities it needs in its NIP-5A manifest
@@ -124,10 +123,11 @@ by the runtime on the napplet's behalf, gated by per-napplet capability policy.
 Napplet identity — the `(dTag, aggregateHash)` tuple — is assigned by the runtime
 from the manifest, not negotiated by the napplet.
 
-## The three axes
+## The two axes
 
-A complete napplet ecosystem needs three orthogonal things: what the runtime
-*offers*, what napplets *say to each other*, and what kind of napplet each *is*.
+A complete napplet ecosystem needs two governed things: what the runtime
+*offers*, and what kind of napplet each *is*. Cross-napplet message shapes are
+conventions. They are not assigned NAP numbers.
 
 ### NAP-WORD — interfaces (*what the runtime offers*)
 
@@ -165,73 +165,58 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
-| *[NAP-CLASS-1](https://github.com/napplet/naps/pull/17)* | *`class`* |  | *—* | *Strict baseline posture (sub-track)* | *Deferred* |
-| *[NAP-CLASS-2](https://github.com/napplet/naps/pull/18)* | *`class`* |  | *—* | *User-approved explicit-origin posture (sub-track)* | *Deferred* |
 | *[NAP-CONNECT](https://github.com/napplet/naps/pull/19)* | *`connect`* |  | *—* | *User-gated direct network access* | *Deferred* |
 
-### NAP-N — wire formats (*what napplets say to each other*)
+### Conventions — message shapes (*what napplets say to each other*)
 
-Numbered sequentially (`NAP-1`, `NAP-2`, …). Multiple competing specs are allowed
-per domain — they define the *semantics of messages* napplets exchange, not an
-API the runtime provides. Napplets negotiate them at runtime via
-`shell.supports("<domain>", "NAP-N")`. Existing protocols cover cross-napplet
-navigation (opening a profile, a note, a DM) and stream coordination; example
-domains include feed rendering, chat, and collaborative editing.
+Cross-napplet message shapes are unnumbered conventions. They are named by the
+topic or action they carry, such as `profile:open`, `note:open`, `chat:open-dm`,
+`feed:open`, or `stream:switch`. Napplets converge by using the same topic names
+and payload fields. The registry does not assign sequence numbers for them.
 
-In a NAP-N exchange the **producer** is the napplet that emits a topic and the **consumer** is the napplet that receives and acts on it — reached directly or, by archetype, via the runtime.
+In a convention exchange the **producer** is the napplet that emits a topic and
+the **consumer** is the napplet that receives and acts on it, reached directly or,
+by archetype, via the runtime.
 
-A NAP-N that shapes an archetype open payload declares `Serves: <slug>/<action>`,
-so it self-registers against a [NAAT](ARCHETYPES.md) without editing the registry.
-
-| NAP ID | Topics | Deps | Description | Status |
-|--------|--------|------|-------------|--------|
-| [NAP-1](https://github.com/napplet/naps/pull/21) | `profile:*` | `inc` | Profile topic family (`profile:open`) | Draft |
-| [NAP-2](https://github.com/napplet/naps/pull/26) | `stream:*` | `inc` | Stream topic family (channel switch, context sync) | Draft |
-| [NAP-3](https://github.com/napplet/naps/pull/27) | `chat:*` | `inc` | Chat topic family (`chat:open-dm`) | Draft |
-| [NAP-4](https://github.com/napplet/naps/pull/28) | `note:open` | `inc` `relay` | Note viewer open protocol | Draft |
-| [NAP-5](https://github.com/napplet/naps/pull/36) | `feed:*` | `inc` | Feed topic family (`feed:open`) | Draft |
-
-All NAP-N protocols ride [NAP-INC](https://github.com/napplet/naps/pull/5); a
-napplet negotiates one at runtime with `shell.supports("inc", "NAP-N")`.
+A convention that shapes an archetype open payload is advertised on the
+archetype tag and by `intent.available()` handler metadata. No registry edit is
+required before two napplets can try a compatible payload.
 
 ### NAAT — archetypes (*what kind of napplet this is*)
 
-A NAAT is neither an interface nor a wire format, just a name and a boundary.
+A NAAT is neither an interface nor a payload convention, just a name and a boundary.
 Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
 to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
-with a `["archetype", "<slug>", "<NAP-N>"]` manifest tag, and napplets invoke
+with a `["archetype", "<slug>", "<convention>"]` manifest tag, and napplets invoke
 each other by role through [NAP-INTENT](naps/NAP-INTENT.md). A napplet with no
 archetype tag is fully valid — it simply isn't invokable by role.
 
 ## Boundary rule
 
-An interface (NAP-WORD) is **runtime-provided** AND defines an **API surface**. A
-protocol (NAP-N) is **napplet-agreed** AND defines **message semantics**. An
-archetype (NAAT) is a **canonical role name** with a **boundary**, owning neither
-an API nor a payload — it only *recommends* a NAP-N as its default open contract.
-Both NAP criteria must apply for a NAP; edge cases are judged pragmatically by the
-maintainer.
+A NAP is **runtime-provided** AND defines an **API surface**. A convention is
+**napplet-agreed** AND defines **message semantics**. An archetype (NAAT) is a
+**canonical role name** with a **boundary**, owning neither an API nor a payload.
+Only runtime-provided API surfaces are NAPs.
 
 ## Governance
 
 NIP-style informal process:
 
 - Fork this repo, add a markdown file under [`naps/`](naps/) following the
-  appropriate template, open a PR. Every NAP spec — NAP-WORD interfaces and
-  numbered NAP-N wire formats — lives in `naps/`; templates and registries
-  (`README.md`, `ARCHETYPES.md`) stay at the repo root.
+  interface template, open a PR. Every NAP spec is a named runtime capability
+  contract. Templates and registries (`README.md`, `ARCHETYPES.md`) stay at the
+  repo root.
 - Community discusses via PR comments.
 - Maintainer (dskvr) merges when the spec makes sense and has at least one
   implementation.
 - No formal stages, review committees, or voting.
 - NAP-WORD names and NAAT slugs are first-come-first-served but must be approved
   by the maintainer.
-- NAP-N numbers are assigned sequentially on merge.
 
 ## Templates
 
 - Interface proposals: [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
-- Protocol proposals: [NAP-N-TEMPLATE.md](NAP-N-TEMPLATE.md)
+- Convention notes: [CONVENTION-TEMPLATE.md](CONVENTION-TEMPLATE.md)
 - Archetype proposals: [naat/TEMPLATE.md](naat/TEMPLATE.md) + a row in [ARCHETYPES.md](ARCHETYPES.md)
 
 ## References
