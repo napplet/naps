@@ -23,7 +23,7 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | `emit` | `topic` (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
 | `on` | `topic` (`tstr`), event handler for `IncEvent` | `Subscription` handle | `inc.subscribe` / `inc.subscribe.result` |
 | `channel.open` | `target` (`tstr`, peer dTag) | `ChannelHandle` | `inc.channel.open` / `inc.channel.open.result` |
-| `channel.list` | none | `[* ChannelInfo]` | `inc.channel.list` / `inc.channel.list.result` |
+| `channel.list` | none | list of `ChannelInfo` | `inc.channel.list` / `inc.channel.list.result` |
 | `channel.broadcast` | `payload` (`any`) | none | `inc.channel.broadcast` |
 | `ChannelHandle.emit` | `payload` (`any`) | none | `inc.channel.emit` |
 | `ChannelHandle.on` | event handler for `ChannelEvent` | `Subscription` handle | `inc.channel.event` |
@@ -31,29 +31,35 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 ### Schemas
 
-```
-IncEvent = {
-  topic: tstr,
-  sender: tstr,
-  ? payload: any,
-}
+`IncEvent` fields:
 
-ChannelHandle = {
-  id: tstr,
-  peer: tstr,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `topic` | yes | text | Topic name. |
+| `sender` | yes | text | Sender dTag, per NIP-5D. |
+| `payload` | no | any | Topic payload. |
 
-ChannelEvent = {
-  channelId: tstr,
-  sender: tstr,
-  ? payload: any,
-}
+`ChannelHandle` fields:
 
-ChannelInfo = {
-  id: tstr,
-  peer: tstr,
-}
-```
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `id` | yes | text | Shell-assigned channel id. |
+| `peer` | yes | text | Peer dTag. |
+
+`ChannelEvent` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `channelId` | yes | text | Shell-assigned channel id. |
+| `sender` | yes | text | Sender dTag. |
+| `payload` | no | any | Channel payload. |
+
+`ChannelInfo` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `id` | yes | text | Shell-assigned channel id. |
+| `peer` | yes | text | Peer dTag. |
 
 `sender` and `peer` are napplet `dTag` values. `id` and `channelId` are
 shell-assigned opaque identifiers.
@@ -123,24 +129,24 @@ Key design notes:
 
 **Emit:**
 ```
--> { "type": "inc.emit", "topic": "profile:open", "payload": { "pubkey": "abc123..." } }
+-> { "type": "inc.emit", "topic": "napplet:profile/open?pubkey=abc123..." }
 ```
 No response — fire-and-forget.
 
 **Subscribe:**
 ```
--> { "type": "inc.subscribe", "id": "a1", "topic": "profile:open" }
+-> { "type": "inc.subscribe", "id": "a1", "topic": "napplet:profile/open" }
 <- { "type": "inc.subscribe.result", "id": "a1" }
 ```
 
 **Event delivery:**
 ```
-<- { "type": "inc.event", "topic": "profile:open", "sender": "social-feed", "payload": { "pubkey": "abc123..." } }
+<- { "type": "inc.event", "topic": "napplet:profile/open?pubkey=abc123...", "sender": "social-feed" }
 ```
 
 **Unsubscribe:**
 ```
--> { "type": "inc.unsubscribe", "topic": "profile:open" }
+-> { "type": "inc.unsubscribe", "topic": "napplet:profile/open" }
 ```
 
 **Open channel:**
@@ -204,8 +210,7 @@ Topics use a prefix convention to signal direction and scope:
 | Prefix | Direction | Meaning |
 |--------|-----------|---------|
 | `shell:*` | napplet -> shell | Commands sent by a napplet to the shell (e.g., `shell:state-get`) |
-| `napplet:*` | shell -> napplet | Responses/notifications from shell to napplet (e.g., `napplet:state-response`) |
-| `{domain}:*` | bidirectional | Domain-scoped messages between napplets (e.g., `profile:open`, `chat:open-dm`) |
+| `napplet:<archetype>/<intent>[...?params]` | bidirectional | Archetype-scoped messages between napplets (e.g., `napplet:profile/open?pubkey=<pubkey>`, `napplet:dm/open`) |
 
 These conventions are advisory. The shell routes by topic match, not by prefix parsing. A napplet can subscribe to any topic regardless of prefix.
 

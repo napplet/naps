@@ -1,12 +1,12 @@
-{topic}:{action} Convention
-===========================
+napplet:{archetype}/{intent} Convention
+=======================================
 
 {Title}
 -------
 
 `draft`
 
-**Convention:** `{topic}:{action}`
+**Convention:** `napplet:{archetype}/{intent}[...?params]`
 **Depends:** {by domain when a runtime capability is required}
 - `inc` — capability · optional — may be delivered as an INC topic event.
 - {any further domains, e.g. `relay` when the payload expects relay-backed lookup}
@@ -24,7 +24,7 @@ defines the semantic meaning of the payload content.
 
 ### Schemas
 
-{Define records and enums in CDDL-style notation.}
+{Define records and enums as tables: field, required, type, and notes.}
 
 ## Behavior
 
@@ -35,7 +35,7 @@ defines the semantic meaning of the payload content.
 Napplets discover support for this convention through handler metadata, usually:
 
 ```
-["archetype", "{slug}", "{topic}:{action}"]
+["archetype", "{slug}", "napplet:{archetype}/{intent}"]
 ```
 
 or through `intent.available()` candidate `conventions`.

@@ -33,7 +33,7 @@ however useful it seems.
 | Kind | Is | Owns | Discovery |
 |------|-----|------|-----------|
 | **NAP-WORD** | runtime-provided | an **API surface** | `shell.supports("<domain>")` |
-| **Convention** | napplet-agreed | **message semantics** | topic/action names and handler metadata |
+| **Convention** | napplet-agreed | **message semantics** | `napplet:<archetype>/<intent>[...?params]` names and handler metadata |
 | **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["archetype", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
@@ -123,10 +123,9 @@ Use this format instead:
 
 - **Operations table** for the napplet-facing API: operation, parameters,
   result, and corresponding wire messages.
-- **Schemas block** for records and enums, written in CDDL-style notation
-  (RFC 8610): `tstr`, `bool`, `int`, `uint`, `number`, `null`, `any`, arrays as
-  `[* T]`, maps as `{ * tstr => T }`, optional fields as `? field: T`, and
-  alternatives as `"a" / "b"`.
+- **Schema tables** for records and enums: field, required, type, and notes.
+- Use language-neutral types: `text`, `boolean`, `integer`, `number`, `null`,
+  `any`, `list of T`, `map of text to T`, and quoted string alternatives.
 - Use record names like `IntentRequest` or `Theme`, but do not use `interface`,
   `type`, `Promise`, `readonly`, `unknown`, or language-specific collection
   syntax.

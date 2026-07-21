@@ -1,6 +1,6 @@
 # NAAT-NOTE · `note`
 
-**Recommended open contract:** `note:open`
+**Recommended open contract:** `napplet:note/open`
 **Actions:** open
 
 A napplet that displays a single Nostr event in focused detail — the event, its author, and its reply thread.

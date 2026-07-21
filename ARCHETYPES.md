@@ -4,7 +4,7 @@ NAAT: Napplet Archetypes
 A **NAAT** (Nostr Applet ArcheType) is a shared *role* a napplet can fulfill — `note`, `feed`, `profile`, `pet`. It is the role axis of the napplet ecosystem, orthogonal to runtime-provided NAP interfaces:
 
 - **NAP** — shell-provided API surfaces (`window.napplet.*`). *What the runtime offers.*
-- **Convention** — unnumbered topic/action payload shapes. *What napplets say to each other.*
+- **Convention** — unnumbered `napplet:<archetype>/<intent>[...?params]` payload shapes. *What napplets say to each other.*
 - **NAAT** — canonical role identities. *What kind of napplet this is.*
 
 A NAAT is deliberately **not** a NAP: it is neither an interface nor a payload convention. It is a name and a boundary.
@@ -15,7 +15,7 @@ This file is the **registry** — the index of every archetype. Each archetype's
 
 1. A napplet **declares the roles it fulfills** in its NIP-5A manifest:
    ```
-   ["archetype", "note", "note:open"]      // role slug, then accepted convention(s)
+   ["archetype", "note", "napplet:note/open"]      // role slug, then accepted convention(s)
    ```
    A napplet may declare several archetype tags. A napplet with **no** archetype tag is fully valid — it simply cannot be opened *by role*. "Weird" single-purpose napplets are first-class.
 
@@ -33,7 +33,7 @@ This file is the **registry** — the index of every archetype. Each archetype's
 
 ## Archetype vs. convention
 
-A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the topic/action names they accept, and callers choose one a handler reports via `available()`. The recommendation is a convenience and an interop floor, not a mandate.
+A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the `napplet:<archetype>/<intent>[...?params]` names they accept, and callers choose one a handler reports via `available()`. The recommendation is a convenience and an interop floor, not a mandate.
 
 ## Entry schema
 
@@ -54,9 +54,9 @@ Same informal process as NAPs: open a PR that adds a row to the registry below *
 
 | NAAT ID | Slug | Definition | Recommended open contract | Status |
 |---------|------|------------|---------------------------|--------|
-| [NAAT-NOTE](naat/note.md) | `note` | Displays a single Nostr event in focused detail | `note:open` | Draft |
-| [NAAT-PROFILE](naat/profile.md) | `profile` | Displays a user's profile and activity | `profile:open` | Draft |
-| [NAAT-DM](naat/dm.md) | `dm` | Opens a direct-message conversation with a person | `chat:open-dm` | Draft |
+| [NAAT-NOTE](naat/note.md) | `note` | Displays a single Nostr event in focused detail | `napplet:note/open` | Draft |
+| [NAAT-PROFILE](naat/profile.md) | `profile` | Displays a user's profile and activity | `napplet:profile/open` | Draft |
+| [NAAT-DM](naat/dm.md) | `dm` | Opens a direct-message conversation with a person | `napplet:dm/open` | Draft |
 | [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | *(none yet)* | Draft |
 | NAAT-FEED-IMAGES | 'feed-images' | A scrolling list of many images, aggregated from events by some criteria | *(none yet)* | Draft |
 | NAAT-FEED-VIDEOS | 'feed-videos' | A scrolling list of many videos, aggregates from events by some criteria | *(none yet)* | Draft |

@@ -32,7 +32,7 @@ contracts.
 | **Domain** | A capability's short name (`relay`, `intent`); how a NAP is referenced and discovered. |
 | **Projection** (binding) | A mapping of the seam onto one concrete host (web, native, WASM, …). |
 | **NAP-WORD** | An interface spec — an API the runtime offers. One canonical spec per name. |
-| **Convention** | An unnumbered message shape napplets agree to use. Usually named by topic/action, e.g. `note:open`. Not a NAP. |
+| **Convention** | An unnumbered message shape napplets agree to use. Usually named as `napplet:<archetype>/<intent>[...?params]`, e.g. `napplet:note/open`. Not a NAP. |
 | **NAAT** | A *Napplet Archetype*: a canonical role name (`note`, `feed`) with a boundary. Not a NAP. |
 
 ## What is a napplet?
@@ -169,10 +169,11 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 
 ### Conventions — message shapes (*what napplets say to each other*)
 
-Cross-napplet message shapes are unnumbered conventions. They are named by the
-topic or action they carry, such as `profile:open`, `note:open`, `chat:open-dm`,
-`feed:open`, or `stream:switch`. Napplets converge by using the same topic names
-and payload fields. The registry does not assign sequence numbers for them.
+Cross-napplet message shapes are unnumbered conventions. They are named as
+`napplet:<archetype>/<intent>[...?params]`, such as `napplet:profile/open`,
+`napplet:note/open`, `napplet:dm/open`, `napplet:feed/open`, or
+`napplet:stream/switch`. Napplets converge by using the same topic names and
+payload fields. The registry does not assign sequence numbers for them.
 
 In a convention exchange the **producer** is the napplet that emits a topic and
 the **consumer** is the napplet that receives and acts on it, reached directly or,

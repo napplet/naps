@@ -14,7 +14,7 @@ Archetype Intent Dispatcher
 
 NAP-INTENT provides napplets with a shell-mediated interface for invoking *another* napplet by its **archetype** — a shared role name such as `note`, `profile`, or `emoji-list` (see [ARCHETYPES.md](../ARCHETYPES.md)). A napplet describes *what role* it wants, *what action* to perform, and *what payload* to deliver; the shell resolves the role to an installed napplet, applies the user's default-handler preference, creates or focuses the window, and delivers the payload. This is the napplet equivalent of an operating system's implicit intents with a "default application": the caller names a role and an action, never a specific napplet.
 
-The model maps directly onto a proven pattern (Android-style implicit intents): the **archetype** is the intent category, the **action** is the intent action, the **payload** is the extras, and the user's default handler is the default app. NAP-INTENT standardizes the **envelope**, not the payload. The `payload` is opaque and MAY be tagged by a `convention` field naming the unnumbered topic/action payload shape, such as `note:open` or `profile:open`. This keeps routing and parsing independent without forcing developers through a numbered registry before napplets can interoperate:
+The model maps directly onto a proven pattern (Android-style implicit intents): the **archetype** is the intent category, the **action** is the intent action, the **payload** is the extras, and the user's default handler is the default app. NAP-INTENT standardizes the **envelope**, not the payload. The `payload` is opaque and MAY be tagged by a `convention` field naming the unnumbered `napplet:<archetype>/<intent>[...?params]` payload shape, such as `napplet:note/open` or `napplet:profile/open?pubkey=<pubkey>`. This keeps routing and parsing independent without forcing developers through a numbered registry before napplets can interoperate:
 
 - **archetype** — *routing*: which napplet should handle this, and whose default applies.
 - **convention** — *parsing*: what payload shape the handler expects.
@@ -28,59 +28,69 @@ The two are orthogonal (N:M): one convention may serve several archetypes, and o
 | `invoke` | `request` (`IntentRequest`) | `IntentResult` | `intent.invoke` / `intent.invoke.result` |
 | `open` | `archetype` (`tstr`), optional `payload` (`any`), optional `opts` (`IntentOpenOptions`) | `IntentResult` | sugar over `intent.invoke` with action `"open"` |
 | `available` | `archetype` (`tstr`) | `IntentAvailability` | `intent.available` / `intent.available.result` |
-| `handlers` | none | `[* IntentAvailability]` | `intent.handlers` / `intent.handlers.result` |
+| `handlers` | none | list of `IntentAvailability` | `intent.handlers` / `intent.handlers.result` |
 | `onChanged` | handler for `IntentAvailability` | `Subscription` handle | `intent.changed` |
 
 ### Schemas
 
-```
-IntentBehavior = {
-  ? focus: bool,
-  ? newWindow: bool,
-  ? reuse: bool,
-}
+`IntentBehavior` fields:
 
-IntentOpenOptions = {
-  ? convention: tstr,
-  ? handler: "default" / "choose" / tstr,
-  ? behavior: IntentBehavior,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `focus` | no | boolean | Focus the target surface. |
+| `newWindow` | no | boolean | Request a new window instead of reuse. |
+| `reuse` | no | boolean | Permit reuse of an existing matching window. |
 
-IntentRequest = {
-  archetype: tstr,
-  ? action: tstr,
-  ? convention: tstr,
-  ? payload: any,
-  ? handler: "default" / "choose" / tstr,
-  ? behavior: IntentBehavior,
-}
+`IntentOpenOptions` fields:
 
-IntentCandidate = {
-  dTag: tstr,
-  ? title: tstr,
-  actions: [* tstr],
-  conventions: [* tstr],
-  ? isDefault: bool,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `convention` | no | text | Unnumbered convention shaping the payload. |
+| `handler` | no | text | `default`, `choose`, or a specific napplet dTag. |
+| `behavior` | no | `IntentBehavior` | Window/focus hints. |
 
-IntentAvailability = {
-  archetype: tstr,
-  available: bool,
-  candidates: [* IntentCandidate],
-  hasDefault: bool,
-}
+`IntentRequest` fields:
 
-IntentResult = {
-  ok: bool,
-  archetype: tstr,
-  action: tstr,
-  handled: bool,
-  ? handler: tstr,
-  ? windowId: tstr,
-  ? convention: tstr,
-  ? error: tstr,
-}
-```
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `archetype` | yes | text | Role slug, e.g. `note`. |
+| `action` | no | text | Defaults to `open`. |
+| `convention` | no | text | Unnumbered convention shaping the payload. |
+| `payload` | no | any | Opaque; typed by `convention`. |
+| `handler` | no | text | `default`, `choose`, or a specific napplet dTag. |
+| `behavior` | no | `IntentBehavior` | Window/focus hints. |
+
+`IntentCandidate` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `dTag` | yes | text | Napplet that can fulfill the archetype. |
+| `title` | no | text | Human-readable handler label. |
+| `actions` | yes | list of text | Supported actions. |
+| `conventions` | yes | list of text | Supported payload conventions. |
+| `isDefault` | no | boolean | Whether this candidate is the user's default. |
+
+`IntentAvailability` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `archetype` | yes | text |
+| `available` | yes | boolean |
+| `candidates` | yes | list of `IntentCandidate` |
+| `hasDefault` | yes | boolean |
+
+`IntentResult` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | Whether dispatch completed. |
+| `archetype` | yes | text | Requested role slug. |
+| `action` | yes | text | Dispatched action. |
+| `handled` | yes | boolean | Whether a handler accepted the dispatch. |
+| `handler` | no | text | dTag of the napplet that handled it. |
+| `windowId` | no | text | Shell-assigned window id. |
+| `convention` | no | text | Payload convention used for delivery. |
+| `error` | no | text | Failure reason. |
 
 `action` defaults to `open` when omitted. `payload` is opaque and shaped by
 `convention` when present.
@@ -113,7 +123,7 @@ Key design notes:
 - Request/result pairs use `id` for correlation.
 - The **action is a field** (`request.action`), never part of the message type. `intent.invoke` is the single dispatch verb for `open`, `edit`, `pick`, `share`, and any future action.
 - `intent.changed` is a shell push message and has no `id`.
-- The shell delivers `payload` to the resolved handler using the named `convention`'s ordinary delivery mechanism — typically an INC topic event (e.g., `note:open`), or initial state passed at instantiation for a cold-started handler. NAP-INTENT governs resolution, default handling, and window lifecycle; the convention governs the payload shape.
+- The shell delivers `payload` to the resolved handler using the named `convention`'s ordinary delivery mechanism — typically an INC topic event (e.g., `napplet:note/open`), or initial state passed at instantiation for a cold-started handler. NAP-INTENT governs resolution, default handling, and window lifecycle; the convention governs the payload shape.
 - `convention` and `archetype` are independent. The shell MUST NOT assume a one-to-one mapping between them.
 
 ### Examples
@@ -128,7 +138,7 @@ Key design notes:
        "archetype": "emoji-list",
        "available": true,
        "candidates": [
-         { "dTag": "emojilistr", "title": "Emoji List Maker", "actions": ["open"], "conventions": ["emoji-list:open"], "isDefault": true }
+         { "dTag": "emojilistr", "title": "Emoji List Maker", "actions": ["open"], "conventions": ["napplet:emoji-list/open"], "isDefault": true }
        ],
        "hasDefault": true
      }
@@ -153,7 +163,7 @@ Key design notes:
        "handled": true,
        "handler": "emojilistr",
        "windowId": "win-12",
-       "convention": "emoji-list:open"
+       "convention": "napplet:emoji-list/open"
      }
    }
 ```
@@ -166,12 +176,12 @@ Key design notes:
      "request": {
        "archetype": "note",
        "action": "open",
-       "convention": "note:open",
+       "convention": "napplet:note/open",
        "payload": { "target": { "type": "event", "id": "abc..." } }
      }
    }
 <- { "type": "intent.invoke.result", "id": "i2",
-     "result": { "ok": true, "archetype": "note", "action": "open", "handled": true, "handler": "noteview", "windowId": "win-13", "convention": "note:open" } }
+     "result": { "ok": true, "archetype": "note", "action": "open", "handled": true, "handler": "noteview", "windowId": "win-13", "convention": "napplet:note/open" } }
 ```
 
 **No handler installed:**

@@ -1,6 +1,6 @@
 # NAAT-{WORD} · `{slug}`
 
-**Recommended open contract:** {convention, e.g. `note:open` — or "(none yet)"}
+**Recommended open contract:** {convention, e.g. `napplet:note/open` — or "(none yet)"}
 **Actions:** open
 
 {Definition — one sentence: what a napplet of this role does.}

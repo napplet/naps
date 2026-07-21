@@ -1,6 +1,6 @@
 # NAAT-PROFILE · `profile`
 
-**Recommended open contract:** `profile:open`
+**Recommended open contract:** `napplet:profile/open`
 **Actions:** open
 
 A napplet that displays a user's profile — metadata, and a view of their activity or relationships.

@@ -1,6 +1,6 @@
 # NAAT-DM · `dm`
 
-**Recommended open contract:** `chat:open-dm`
+**Recommended open contract:** `napplet:dm/open`
 **Actions:** open
 
 A napplet that opens a direct-message conversation with a specific person.
