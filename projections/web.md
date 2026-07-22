@@ -18,7 +18,7 @@ schemas, error models, trust boundaries) do not change between projections.
 | Host | Napplets run as `sandbox="allow-scripts"` iframes |
 | Carrier | Messages travel over `postMessage` |
 | Surface | Capabilities appear on a `window.napplet.*` object |
-| Discovery | `shell.supports("<domain>")`, optionally `shell.supports("<domain>", "NAP-N")` |
+| Discovery | `shell.supports("<domain>")` |
 | Identity | Runtime verifies `MessageEvent.source` and binds each message to a napplet |
 
 ## Domain surfacing

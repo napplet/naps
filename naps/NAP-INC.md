@@ -61,11 +61,14 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | `id` | yes | text | Shell-assigned channel id. |
 | `peer` | yes | text | Peer dTag. |
 
+`sender` and `peer` are napplet `dTag` values. `id` and `channelId` are
+shell-assigned opaque identifiers.
+
 **`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to the given topic. Fire-and-forget — there is no delivery confirmation. The shell identifies the sender via `MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered events.
 
 **`on(topic, callback)`** — Subscribes to messages on a topic. The callback receives an `IncEvent` with the topic, sender `dTag`, and payload. Returns a `Subscription` handle with a `close()` method to unsubscribe. Multiple subscriptions to the same topic are independent.
 
-**`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the promise rejects. The shell validates once on open — subsequent messages flow without per-message checking.
+**`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the request fails. The shell validates once on open — subsequent messages flow without per-message checking.
 
 **`channel.list()`** — Returns the list of active channels for this napplet.
 
@@ -126,24 +129,24 @@ Key design notes:
 
 **Emit:**
 ```
--> { "type": "inc.emit", "topic": "profile:open", "payload": { "pubkey": "abc123..." } }
+-> { "type": "inc.emit", "topic": "napplet:profile/open?pubkey=abc123..." }
 ```
 No response — fire-and-forget.
 
 **Subscribe:**
 ```
--> { "type": "inc.subscribe", "id": "a1", "topic": "profile:open" }
+-> { "type": "inc.subscribe", "id": "a1", "topic": "napplet:profile/open" }
 <- { "type": "inc.subscribe.result", "id": "a1" }
 ```
 
 **Event delivery:**
 ```
-<- { "type": "inc.event", "topic": "profile:open", "sender": "social-feed", "payload": { "pubkey": "abc123..." } }
+<- { "type": "inc.event", "topic": "napplet:profile/open?pubkey=abc123...", "sender": "social-feed" }
 ```
 
 **Unsubscribe:**
 ```
--> { "type": "inc.unsubscribe", "topic": "profile:open" }
+-> { "type": "inc.unsubscribe", "topic": "napplet:profile/open" }
 ```
 
 **Open channel:**
@@ -207,8 +210,7 @@ Topics use a prefix convention to signal direction and scope:
 | Prefix | Direction | Meaning |
 |--------|-----------|---------|
 | `shell:*` | napplet -> shell | Commands sent by a napplet to the shell (e.g., `shell:state-get`) |
-| `napplet:*` | shell -> napplet | Responses/notifications from shell to napplet (e.g., `napplet:state-response`) |
-| `{domain}:*` | bidirectional | Domain-scoped messages between napplets (e.g., `profile:open`, `chat:open-dm`) |
+| `napplet:<archetype>/<intent>[...?params]` | bidirectional | Archetype-scoped messages between napplets (e.g., `napplet:profile/open?pubkey=<pubkey>`, `napplet:dm/open`) |
 
 These conventions are advisory. The shell routes by topic match, not by prefix parsing. A napplet can subscribe to any topic regardless of prefix.
 
