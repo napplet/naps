@@ -299,7 +299,7 @@ Sender identity is shell-enforced via `MessageEvent.source` mapping to napplet i
 ### Topics
 
 - Topic namespaces are not enforced — any napplet can emit on any topic. The shell MAY restrict topics via ACL.
-- Payloads are opaque to the shell. Receiving napplets are responsible for validating payload content.
+- After convention URI transposition, payloads are opaque to topic routing. Receiving napplets are responsible for validating payload content.
 - Sender exclusion prevents echo loops but does not prevent a napplet from emitting messages on any topic. Receivers should check the `sender` dTag if sender identity matters for their use case.
 
 ### Channels
@@ -313,3 +313,4 @@ Sender identity is shell-enforced via `MessageEvent.source` mapping to napplet i
 - `cdeaec3` - Introduced NAP-INC topic and channel communication.
 - `6461e4b` - Adopted unnumbered convention topics for napplet messages.
 - `f24a708` - Separated stable topic identity from per-message payload data.
+- `8782bb1` - Added runtime transposition from convention URI parameters to topic payload data.
