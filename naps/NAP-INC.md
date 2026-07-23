@@ -36,7 +36,7 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `topic` | yes | text | Opaque topic name. Matched by exact string equality. |
-| `sender` | yes | text | Sender dTag, per NIP-5D. |
+| `sender` | yes | text | Runtime-attested emitting napplet dTag. |
 | `payload` | no | any | Per-message data. |
 
 `ChannelHandle` fields:
@@ -67,9 +67,9 @@ shell-assigned opaque identifiers.
 **`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to
 the given topic. A napplet MAY supply a convention URI as `topic`; the runtime
 transposes its query parameters into `payload` before routing. Fire-and-forget —
-there is no delivery confirmation. The shell identifies the sender via
-`MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered
-events.
+there is no delivery confirmation. The runtime derives `sender` from the
+authenticated emitting endpoint and includes its dTag in delivered events. The
+emitter cannot set or override `sender`.
 
 **`on(topic, callback)`** — Subscribes to messages on a topic. The callback receives an `IncEvent` with the topic, sender `dTag`, and payload. Returns a `Subscription` handle with a `close()` method to unsubscribe. Multiple subscriptions to the same topic are independent.
 
@@ -261,7 +261,9 @@ query transposition happens before topic routing, never as part of matching.
 
 - The shell MUST route `inc.emit` messages to all napplets subscribed to the exact same complete topic string.
 - The shell MUST copy the emitted `topic` unchanged into each delivered `inc.event`.
-- The shell MUST identify the sender via `MessageEvent.source` and include the sender's `dTag` in delivered `inc.event` messages (per NIP-5D identity model).
+- The runtime MUST derive `sender` from the authenticated emitting endpoint and
+  include its dTag in delivered `inc.event` messages. It MUST ignore or reject
+  caller-supplied sender data.
 - The shell MUST NOT deliver `inc.event` back to the emitting napplet (sender exclusion).
 - The shell MUST respond to `inc.subscribe` with `inc.subscribe.result` carrying the same `id`.
 - The shell MUST honor `inc.unsubscribe` by removing the subscription for that topic.
@@ -294,7 +296,9 @@ Both are part of the same `inc` namespace and share the NIP-5D wire format. A na
 
 ## Security Considerations
 
-Sender identity is shell-enforced via `MessageEvent.source` mapping to napplet identity (per NIP-5D). There is no per-message signing — the shell's sender identification is the trust boundary. `MessageEvent.source` is unforgeable within the same browsing context.
+Sender identity is runtime-enforced from the authenticated emitting endpoint.
+There is no per-message signing. Runtime sender identification is the trust
+boundary. A projection defines how its authenticated endpoint is bound.
 
 ### Topics
 
