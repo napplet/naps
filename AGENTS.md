@@ -33,7 +33,7 @@ however useful it seems.
 | Kind | Is | Owns | Discovery |
 |------|-----|------|-----------|
 | **NAP-WORD** | runtime-provided | an **API surface** | `shell.supports("<domain>")` |
-| **Convention** | napplet-agreed | **message semantics** | `napplet:<archetype>/<intent>[...?params]` names and handler metadata |
+| **Convention** | napplet-agreed | **message semantics** | queryless `napplet:<archetype>/<intent>` identity in handler metadata |
 | **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["archetype", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
@@ -43,6 +43,24 @@ however useful it seems.
   **projection**, never in a NAP.
 - Manifests reference bare **domains** (`relay`), never spec ids (`NAP-RELAY`).
 - Cannot place a change cleanly on one side? **Stop and surface it.** Do not guess.
+
+### Convention URI invariant
+
+Developers invoke a convention as
+`napplet:<archetype>/<intent>[...?params]`. The queryless path is the stable
+convention identity. Handler metadata and subscriptions MUST use that stable
+identity.
+
+The query is shallow payload sugar. A runtime-provided binding MUST transpose
+each unique, percent-decoded `name=value` pair into a text payload field before
+routing or handler resolution. It MUST NOT coerce scalar types. `+` is a literal
+plus sign. Fragments, malformed percent-encoding, repeated names, and mixing
+query parameters with an explicit payload are invalid. Structured or non-text
+data uses the explicit payload.
+
+Transposition precedes routing. Routers match the resulting stable identity by
+exact equality. They MUST NOT parse, normalize, prefix-match, or wildcard-match
+convention identities.
 
 ### Two leaks to catch on sight
 
