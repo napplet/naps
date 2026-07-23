@@ -225,22 +225,24 @@ Assume the opener dTag is `music-controller` and the target dTag is
 `media-player`:
 
 ```
--> { "type": "inc.channel.open", "id": "ch1", "target": "media-player" }
+opener -> { "type": "inc.channel.open", "id": "ch1", "target": "media-player" }
 target <- { "type": "inc.channel.opened", "channelId": "c-abc", "peer": "music-controller" }
-<- { "type": "inc.channel.open.result", "id": "ch1", "channelId": "c-abc", "peer": "media-player" }
+opener <- { "type": "inc.channel.open.result", "id": "ch1", "channelId": "c-abc", "peer": "media-player" }
 ```
 
 The opener and target bindings each materialize a `ChannelHandle` for `c-abc`.
 
 **Channel emit:**
 ```
--> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "command": "play", "track": 3 } }
+opener -> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "command": "play", "track": 3 } }
+target <- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "music-controller", "payload": { "command": "play", "track": 3 } }
 ```
 No response — fire-and-forget.
 
-**Channel event delivery:**
+**Target reply:**
 ```
-<- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "media-player", "payload": { "status": "playing", "track": 3 } }
+target -> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "status": "playing", "track": 3 } }
+opener <- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "media-player", "payload": { "status": "playing", "track": 3 } }
 ```
 
 **Channel broadcast:**
@@ -280,10 +282,10 @@ No response — fire-and-forget.
 
 `inc.channel.open.result` MAY include an `error` field if the channel cannot be opened. When `error` is present, no channel was created.
 
-A successful `inc.channel.open.result` means the runtime created both endpoint
-handles and enqueued the target's `inc.channel.opened` notification. It does not
-mean the target registered an application handler or accepted the channel's
-application semantics.
+A successful `inc.channel.open.result` means the runtime created channel state
+for both endpoints and enqueued the target's `inc.channel.opened` notification.
+It does not mean the target registered an application handler or accepted the
+channel's application semantics.
 
 ## Topic Conventions
 
@@ -329,11 +331,11 @@ query transposition happens before topic routing, never as part of matching.
 - The runtime MUST enqueue `inc.channel.opened` for the target before it sends a
   successful `inc.channel.open.result` to the opener.
 - The runtime-provided binding MUST materialize a `ChannelHandle` from
-  `inc.channel.opened` and retain it until a `channel.onOpened` handler receives
-  it.
+  `inc.channel.opened` and retain it until at least one `channel.onOpened`
+  handler receives it.
 - The runtime-provided binding MUST retain incoming `inc.channel.event` messages
-  until a `ChannelHandle.on` handler is registered for that channel. It MUST NOT
-  silently discard buffered channel messages.
+  until at least one `ChannelHandle.on` handler is registered for that channel.
+  It MUST NOT silently discard buffered channel messages.
 - The runtime-provided binding MUST retain the terminal `inc.channel.closed`
   record. A later `ChannelHandle.onClosed` registration MUST receive it.
 - A runtime MAY bound unopened-handle or message buffers. On overflow it MUST
@@ -387,3 +389,4 @@ boundary. A projection defines how its authenticated endpoint is bound.
 - `f24a708` - Separated stable topic identity from per-message payload data.
 - `8782bb1` - Added runtime transposition from convention URI parameters to topic payload data.
 - `13fed4b` - Made sender attestation runtime-derived and carrier-neutral.
+- `6446441` - Made channel handles symmetric with target attachment, delivery ordering, and terminal notification.
