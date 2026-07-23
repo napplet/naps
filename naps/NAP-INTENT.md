@@ -410,3 +410,4 @@ a second result to the source.
 
 - `ad0847b` - Introduced archetype-based intent dispatch with action as data.
 - `6461e4b` - Adopted unnumbered convention identities for payload shapes.
+- `6c0d731` - Made convention URIs authoritative and delivery lifecycle-independent while preserving manifest-derived handler discovery.
