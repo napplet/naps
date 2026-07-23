@@ -274,3 +274,9 @@ Sender identity is shell-enforced via `MessageEvent.source` mapping to napplet i
 - Channel authorization is validated once on `inc.channel.open`. After open, messages flow without per-message shell validation. A compromised browser extension could forge messages on an open channel — this is an accepted trust boundary, the same as topic-based INC.
 - Channel IDs are opaque. Napplets cannot enumerate or guess other channels' IDs. This prevents channel hijacking.
 - `inc.channel.broadcast` reaches all open channel peers. Napplets SHOULD NOT send sensitive data via broadcast. For confidential communication, use a named channel with a specific target.
+
+## Changelog
+
+- `cdeaec3` - Introduced NAP-INC topic and channel communication.
+- `6461e4b` - Adopted unnumbered convention topics for napplet messages.
+- `f24a708` - Separated stable topic identity from per-message payload data.
