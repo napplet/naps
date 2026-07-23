@@ -318,3 +318,4 @@ boundary. A projection defines how its authenticated endpoint is bound.
 - `6461e4b` - Adopted unnumbered convention topics for napplet messages.
 - `f24a708` - Separated stable topic identity from per-message payload data.
 - `8782bb1` - Added runtime transposition from convention URI parameters to topic payload data.
+- `13fed4b` - Made sender attestation runtime-derived and carrier-neutral.
