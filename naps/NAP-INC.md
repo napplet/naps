@@ -35,9 +35,9 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `topic` | yes | text | Topic name. |
+| `topic` | yes | text | Opaque topic name. Matched by exact string equality. |
 | `sender` | yes | text | Sender dTag, per NIP-5D. |
-| `payload` | no | any | Topic payload. |
+| `payload` | no | any | Per-message data. |
 
 `ChannelHandle` fields:
 
@@ -129,7 +129,7 @@ Key design notes:
 
 **Emit:**
 ```
--> { "type": "inc.emit", "topic": "napplet:profile/open?pubkey=abc123..." }
+-> { "type": "inc.emit", "topic": "napplet:profile/open", "payload": { "pubkey": "abc123..." } }
 ```
 No response — fire-and-forget.
 
@@ -141,7 +141,7 @@ No response — fire-and-forget.
 
 **Event delivery:**
 ```
-<- { "type": "inc.event", "topic": "napplet:profile/open?pubkey=abc123...", "sender": "social-feed" }
+<- { "type": "inc.event", "topic": "napplet:profile/open", "sender": "social-feed", "payload": { "pubkey": "abc123..." } }
 ```
 
 **Unsubscribe:**
@@ -210,15 +210,24 @@ Topics use a prefix convention to signal direction and scope:
 | Prefix | Direction | Meaning |
 |--------|-----------|---------|
 | `shell:*` | napplet -> shell | Commands sent by a napplet to the shell (e.g., `shell:state-get`) |
-| `napplet:<archetype>/<intent>[...?params]` | bidirectional | Archetype-scoped messages between napplets (e.g., `napplet:profile/open?pubkey=<pubkey>`, `napplet:dm/open`) |
+| `napplet:<archetype>/<intent>` | bidirectional | Archetype-scoped messages between napplets (e.g., `napplet:profile/open`, `napplet:dm/open`) |
 
-These conventions are advisory. The shell routes by topic match, not by prefix parsing. A napplet can subscribe to any topic regardless of prefix.
+The topic is the stable message identity. The payload carries per-message data.
+A convention producer MUST emit the same topic that consumers subscribe to and
+MUST carry parameters in `payload`, not append them to the topic.
+
+These prefixes are advisory. Except for an explicitly intercepted shell topic,
+the shell treats the complete topic as opaque text. It MUST NOT parse, decode,
+normalize, prefix-match, or wildcard-match a topic for routing. Therefore
+`napplet:profile/open?pubkey=abc123` is a distinct topic and does not match a
+subscription to `napplet:profile/open`.
 
 ## Shell Behavior
 
 ### Topic routing
 
-- The shell MUST route `inc.emit` messages to all napplets subscribed to the matching topic.
+- The shell MUST route `inc.emit` messages to all napplets subscribed to the exact same complete topic string.
+- The shell MUST copy the emitted `topic` unchanged into each delivered `inc.event`.
 - The shell MUST identify the sender via `MessageEvent.source` and include the sender's `dTag` in delivered `inc.event` messages (per NIP-5D identity model).
 - The shell MUST NOT deliver `inc.event` back to the emitting napplet (sender exclusion).
 - The shell MUST respond to `inc.subscribe` with `inc.subscribe.result` carrying the same `id`.
