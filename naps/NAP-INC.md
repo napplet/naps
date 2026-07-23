@@ -20,7 +20,7 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `emit` | `topic` (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
+| `emit` | `topic` or convention URI (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
 | `on` | `topic` (`tstr`), event handler for `IncEvent` | `Subscription` handle | `inc.subscribe` / `inc.subscribe.result` |
 | `channel.open` | `target` (`tstr`, peer dTag) | `ChannelHandle` | `inc.channel.open` / `inc.channel.open.result` |
 | `channel.list` | none | list of `ChannelInfo` | `inc.channel.list` / `inc.channel.list.result` |
@@ -64,9 +64,35 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 `sender` and `peer` are napplet `dTag` values. `id` and `channelId` are
 shell-assigned opaque identifiers.
 
-**`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to the given topic. Fire-and-forget — there is no delivery confirmation. The shell identifies the sender via `MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered events.
+**`emit(topic, payload?)`** — Broadcasts a message to all napplets subscribed to
+the given topic. A napplet MAY supply a convention URI as `topic`; the runtime
+transposes its query parameters into `payload` before routing. Fire-and-forget —
+there is no delivery confirmation. The shell identifies the sender via
+`MessageEvent.source` (per NIP-5D) and includes the sender's `dTag` in delivered
+events.
 
 **`on(topic, callback)`** — Subscribes to messages on a topic. The callback receives an `IncEvent` with the topic, sender `dTag`, and payload. Returns a `Subscription` handle with a `close()` method to unsubscribe. Multiple subscriptions to the same topic are independent.
+
+### Convention URI transposition
+
+The developer-facing convention URI is
+`napplet:<archetype>/<intent>[...?params]`. Its path is the stable topic. Its
+query is shallow payload sugar.
+
+When `emit` receives a convention URI with a query, the runtime MUST:
+
+1. Remove the query from the routed topic.
+2. Percent-decode each unique `name=value` pair as text.
+3. Place those pairs in a map of text to text and use that map as `payload`.
+
+The runtime MUST NOT coerce query values to boolean, number, or null. A `+` is a
+literal plus sign, not a space. A convention URI with a fragment, malformed
+percent-encoding, a repeated name, or an explicit `payload` argument alongside
+query parameters MUST be rejected before emission. Structured or non-text data
+MUST use the explicit `payload` argument with a queryless topic.
+
+This transposition is part of the `emit` operation. Topic routing still uses
+exact equality over the resulting stable topic.
 
 **`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the request fails. The shell validates once on open — subsequent messages flow without per-message checking.
 
@@ -97,6 +123,7 @@ INC operations use the NIP-5D wire format (`{ "type": "domain.action", ...payloa
 Key design notes:
 
 - `inc.emit` has no `id` field — it is fire-and-forget with no acknowledgment.
+- `inc.emit` carries the stable topic and transposed payload, not the developer-facing convention URI.
 - `inc.subscribe` uses `id` for correlation so the shim can confirm the subscription was registered.
 - `inc.subscribe.result` confirms registration by echoing the `id`.
 - `inc.unsubscribe` is fire-and-forget (no `id`, no result message).
@@ -127,7 +154,13 @@ Key design notes:
 
 ### Examples
 
-**Emit:**
+**Emit a convention URI:**
+```
+emit("napplet:profile/open?pubkey=abc123...")
+```
+
+The runtime transposes the call before sending the wire message:
+
 ```
 -> { "type": "inc.emit", "topic": "napplet:profile/open", "payload": { "pubkey": "abc123..." } }
 ```
@@ -212,15 +245,15 @@ Topics use a prefix convention to signal direction and scope:
 | `shell:*` | napplet -> shell | Commands sent by a napplet to the shell (e.g., `shell:state-get`) |
 | `napplet:<archetype>/<intent>` | bidirectional | Archetype-scoped messages between napplets (e.g., `napplet:profile/open`, `napplet:dm/open`) |
 
-The topic is the stable message identity. The payload carries per-message data.
-A convention producer MUST emit the same topic that consumers subscribe to and
-MUST carry parameters in `payload`, not append them to the topic.
+The routed topic is the stable message identity. The payload carries per-message
+data. A convention producer MAY use the full convention URI when calling
+`emit`; the runtime MUST transpose it before routing. Consumers subscribe to the
+stable topic without query parameters.
 
 These prefixes are advisory. Except for an explicitly intercepted shell topic,
 the shell treats the complete topic as opaque text. It MUST NOT parse, decode,
 normalize, prefix-match, or wildcard-match a topic for routing. Therefore
-`napplet:profile/open?pubkey=abc123` is a distinct topic and does not match a
-subscription to `napplet:profile/open`.
+query transposition happens before topic routing, never as part of matching.
 
 ## Shell Behavior
 
