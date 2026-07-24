@@ -4,7 +4,7 @@ NAAT: Napplet Archetypes
 A **NAAT** (Nostr Applet ArcheType) is a shared *role* a napplet can fulfill — `note`, `feed`, `profile`, `pet`. It is the role axis of the napplet ecosystem, orthogonal to runtime-provided NAP interfaces:
 
 - **NAP** — shell-provided API surfaces (`window.napplet.*`). *What the runtime offers.*
-- **Convention** — unnumbered `napplet:<archetype>/<intent>[...?params]` payload shapes. *What napplets say to each other.*
+- **Convention** — unnumbered `napplet:<archetype>/<intent>` payload shapes; an invocation MAY append `?params` as payload sugar. *What napplets say to each other.*
 - **NAAT** — canonical role identities. *What kind of napplet this is.*
 
 A NAAT is deliberately **not** a NAP: it is neither an interface nor a payload convention. It is a name and a boundary.
@@ -25,15 +25,15 @@ This file is the **registry** — the index of every archetype. Each archetype's
      const { available } = await napplet.intent.available("pet");
      if (available) showButton();
    }
-   napplet.intent.open("pet", { /* payload, if a handler advertises one */ });
+   napplet.intent.invoke("napplet:pet/open");
    ```
    The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
 
-3. The **slug** (`note`) is the identifier used everywhere — in the manifest tag and in `intent.open(archetype)`. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
+3. The **slug** (`note`) is the role identifier used in the manifest tag and in the convention URI (`napplet:note/open`). The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
 
 ## Archetype vs. convention
 
-A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the `napplet:<archetype>/<intent>[...?params]` names they accept, and callers choose one a handler reports via `available()`. The recommendation is a convenience and an interop floor, not a mandate.
+A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query parameters become payload data and are never advertised. The recommendation is a convenience and an interop floor, not a mandate.
 
 ## Entry schema
 

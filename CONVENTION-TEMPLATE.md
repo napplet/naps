@@ -6,10 +6,10 @@ napplet:{archetype}/{intent} Convention
 
 `draft`
 
-**Convention:** `napplet:{archetype}/{intent}[...?params]`
-**Depends:** {by domain when a runtime capability is required}
-- `inc` — capability · optional — may be delivered as an INC topic event.
-- {any further domains, e.g. `relay` when the payload expects relay-backed lookup}
+**Convention:** `napplet:{archetype}/{intent}`
+**Invocation:** `napplet:{archetype}/{intent}[...?params]`
+**Depends:** {omit when carrier-independent; otherwise list semantic capability dependencies by domain}
+- {e.g. `relay` when behavior calls `relay.query`; `inc` and `intent` are carriers, not dependencies}
 **Archetype:** {optional — role + action this convention commonly serves, e.g. `note/open`. See ARCHETYPES.md.}
 
 ## Description
@@ -22,6 +22,11 @@ Messages follow the carrier used by the caller and handler. When delivered over
 NAP-INC or a projection wire, envelopes use `domain.action` form. This convention
 defines the semantic meaning of the payload content.
 
+The convention identity is queryless. Invocation query parameters are shallow
+payload sugar: the runtime binding percent-decodes unique `name=value` pairs as
+text payload fields without scalar coercion. This convention MUST name every
+supported query field. Structured or non-text data uses the explicit payload.
+
 ### Schemas
 
 {Define records and enums as tables: field, required, type, and notes.}
@@ -32,7 +37,8 @@ defines the semantic meaning of the payload content.
 
 ## Discovery
 
-Napplets discover support for this convention through handler metadata, usually:
+Napplets discover the stable, queryless convention identity through handler
+metadata, usually:
 
 ```
 ["archetype", "{slug}", "napplet:{archetype}/{intent}"]
