@@ -23,10 +23,12 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | `emit` | `topic` or convention URI (`tstr`), optional `payload` (`any`) | none | `inc.emit` |
 | `on` | `topic` (`tstr`), event handler for `IncEvent` | `Subscription` handle | `inc.subscribe` / `inc.subscribe.result` |
 | `channel.open` | `target` (`tstr`, peer dTag) | `ChannelHandle` | `inc.channel.open` / `inc.channel.open.result` |
+| `channel.onOpened` | handler for inbound `ChannelHandle` | `Subscription` handle | `inc.channel.opened` |
 | `channel.list` | none | list of `ChannelInfo` | `inc.channel.list` / `inc.channel.list.result` |
 | `channel.broadcast` | `payload` (`any`) | none | `inc.channel.broadcast` |
 | `ChannelHandle.emit` | `payload` (`any`) | none | `inc.channel.emit` |
 | `ChannelHandle.on` | event handler for `ChannelEvent` | `Subscription` handle | `inc.channel.event` |
+| `ChannelHandle.onClosed` | handler for `ChannelClosed` | `Subscription` handle | `inc.channel.closed` |
 | `ChannelHandle.close` | none | none | `inc.channel.close` |
 
 ### Schemas
@@ -53,6 +55,13 @@ Under the NIP-5D iframe transport, sandboxed napplets cannot communicate directl
 | `channelId` | yes | text | Shell-assigned channel id. |
 | `sender` | yes | text | Sender dTag. |
 | `payload` | no | any | Channel payload. |
+
+`ChannelClosed` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `channelId` | yes | text | Shell-assigned channel id. |
+| `reason` | no | text | Runtime-supplied terminal reason. |
 
 `ChannelInfo` fields:
 
@@ -94,9 +103,23 @@ MUST use the explicit `payload` argument with a queryless topic.
 This transposition is part of the `emit` operation. Topic routing still uses
 exact equality over the resulting stable topic.
 
-**`channel.open(target)`** — Opens a point-to-point channel to a napplet identified by its dTag. The shell validates the target and checks ACL on open. Returns a `ChannelHandle` on success. If the target is not found or ACL-denied, the request fails. The shell validates once on open — subsequent messages flow without per-message checking.
+**`channel.open(target)`** — Opens a point-to-point channel to a napplet
+identified by its dTag. The shell validates the target and checks ACL on open.
+The opener receives a `ChannelHandle`. Before reporting success, the runtime
+MUST enqueue `inc.channel.opened` for the target. If the target is not found,
+has no live endpoint, cannot receive the notification, or is ACL-denied, the
+request fails. The shell validates once on open. Subsequent messages flow
+without per-message authorization.
 
-**`channel.list()`** — Returns the list of active channels for this napplet.
+**`channel.onOpened(callback)`** — Receives a `ChannelHandle` when a peer opens
+a channel to this napplet. The handle identifies the same channel as the
+opener's handle and supports the same `emit`, `on`, `onClosed`, and `close`
+operations. Its `peer` is the runtime-attested opener dTag. This notification is
+not an authorization prompt. The runtime has already applied channel ACL.
+
+**`channel.list()`** — Returns informational snapshots of this napplet's active
+inbound and outbound channels. `ChannelInfo` is not a handle and does not attach
+the caller to a channel.
 
 **`channel.broadcast(payload)`** — Sends a message to all open channel peers at once. Fire-and-forget.
 
@@ -104,7 +127,14 @@ exact equality over the resulting stable topic.
 
 **`ChannelHandle.on(callback)`** — Receives messages from the channel peer. The callback receives a `ChannelEvent` with `channelId`, sender `dTag`, and `payload`.
 
-**`ChannelHandle.close()`** — Tears down the channel. Both sides are notified via `inc.channel.closed`.
+**`ChannelHandle.onClosed(callback)`** — Receives the terminal `ChannelClosed`
+record when either endpoint closes the channel or the runtime tears it down. A
+handler registered after closure MUST be invoked with the retained terminal
+record.
+
+**`ChannelHandle.close()`** — Tears down the channel. Either endpoint may close.
+Both handles become terminal and their `onClosed` handlers are notified via
+`inc.channel.closed`.
 
 ## Wire Protocol
 
@@ -135,6 +165,7 @@ Key design notes:
 |------|-----------|----------------|
 | `inc.channel.open` | napplet -> shell | `id`, `target` (dTag string) |
 | `inc.channel.open.result` | shell -> napplet | `id`, `channelId`?, `peer`? (dTag), `error`? |
+| `inc.channel.opened` | shell -> target napplet | `channelId`, `peer` (dTag) |
 | `inc.channel.emit` | napplet -> shell | `channelId`, `payload`? |
 | `inc.channel.event` | shell -> napplet | `channelId`, `sender` (dTag), `payload`? |
 | `inc.channel.broadcast` | napplet -> shell | `payload`? |
@@ -146,6 +177,12 @@ Key design notes:
 Key design notes:
 
 - `inc.channel.open` uses `id` for correlation; the result returns a shell-assigned `channelId`.
+- `inc.channel.opened` is a target-side push with no request `id`. It carries
+  the same `channelId`; `peer` is the runtime-attested opener dTag.
+- The runtime MUST enqueue `inc.channel.opened` for the target before sending a
+  successful `inc.channel.open.result` to the opener.
+- For each endpoint, handle creation MUST precede any `inc.channel.event` or
+  `inc.channel.closed` for that channel.
 - `inc.channel.emit` has no `id` field — fire-and-forget like `inc.emit`.
 - `inc.channel.event` has no `id` field — shell-initiated delivery, carries `channelId` + `sender`.
 - `inc.channel.broadcast` has no `id` field — fire-and-forget to all open channel peers.
@@ -183,20 +220,29 @@ No response — fire-and-forget.
 ```
 
 **Open channel:**
+
+Assume the opener dTag is `music-controller` and the target dTag is
+`media-player`:
+
 ```
--> { "type": "inc.channel.open", "id": "ch1", "target": "media-player" }
-<- { "type": "inc.channel.open.result", "id": "ch1", "channelId": "c-abc", "peer": "media-player" }
+opener -> { "type": "inc.channel.open", "id": "ch1", "target": "media-player" }
+target <- { "type": "inc.channel.opened", "channelId": "c-abc", "peer": "music-controller" }
+opener <- { "type": "inc.channel.open.result", "id": "ch1", "channelId": "c-abc", "peer": "media-player" }
 ```
+
+The opener and target bindings each materialize a `ChannelHandle` for `c-abc`.
 
 **Channel emit:**
 ```
--> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "command": "play", "track": 3 } }
+opener -> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "command": "play", "track": 3 } }
+target <- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "music-controller", "payload": { "command": "play", "track": 3 } }
 ```
 No response — fire-and-forget.
 
-**Channel event delivery:**
+**Target reply:**
 ```
-<- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "media-player", "payload": { "status": "playing", "track": 3 } }
+target -> { "type": "inc.channel.emit", "channelId": "c-abc", "payload": { "status": "playing", "track": 3 } }
+opener <- { "type": "inc.channel.event", "channelId": "c-abc", "sender": "media-player", "payload": { "status": "playing", "track": 3 } }
 ```
 
 **Channel broadcast:**
@@ -235,6 +281,11 @@ No response — fire-and-forget.
 ```
 
 `inc.channel.open.result` MAY include an `error` field if the channel cannot be opened. When `error` is present, no channel was created.
+
+A successful `inc.channel.open.result` means the runtime created channel state
+for both endpoints and enqueued the target's `inc.channel.opened` notification.
+It does not mean the target registered an application handler or accepted the
+channel's application semantics.
 
 ## Topic Conventions
 
@@ -275,6 +326,21 @@ query transposition happens before topic routing, never as part of matching.
 - The shell MUST respond to `inc.channel.open` with `inc.channel.open.result` carrying the same `id`.
 - The shell MUST assign a `channelId` (opaque identifier) on successful channel open.
 - The shell MUST validate that the target dTag exists and has a live napplet endpoint before opening a channel.
+- The runtime MUST derive the opener dTag from its authenticated endpoint. The
+  opener cannot set or override `peer` in `inc.channel.opened`.
+- The runtime MUST enqueue `inc.channel.opened` for the target before it sends a
+  successful `inc.channel.open.result` to the opener.
+- The runtime-provided binding MUST materialize a `ChannelHandle` from
+  `inc.channel.opened` and retain it until at least one `channel.onOpened`
+  handler receives it.
+- The runtime-provided binding MUST retain incoming `inc.channel.event` messages
+  until at least one `ChannelHandle.on` handler is registered for that channel.
+  It MUST NOT silently discard buffered channel messages.
+- The runtime-provided binding MUST retain the terminal `inc.channel.closed`
+  record. A later `ChannelHandle.onClosed` registration MUST receive it.
+- A runtime MAY bound unopened-handle or message buffers. On overflow it MUST
+  close the channel and notify both endpoints instead of silently dropping the
+  handle or messages.
 - The shell MUST forward `inc.channel.emit` messages to the channel peer as `inc.channel.event`.
 - The shell MUST NOT perform per-message validation on channel messages after open — only the initial open is validated once (auth-on-open model).
 - The shell MUST send `inc.channel.closed` to both sides when a channel is torn down (graceful close, iframe removal, or ACL revocation).
@@ -309,6 +375,10 @@ boundary. A projection defines how its authenticated endpoint is bound.
 ### Channels
 
 - Channel authorization is validated once on `inc.channel.open`. After open, messages flow without per-message shell validation. A compromised browser extension could forge messages on an open channel — this is an accepted trust boundary, the same as topic-based INC.
+- An inbound `ChannelHandle` means runtime ACL permitted the channel. It does
+  not imply application-level consent. The target MAY close it immediately.
+- Unclaimed inbound handles and buffered messages consume runtime resources.
+  The runtime SHOULD rate-limit opens and bound buffers per napplet.
 - Channel IDs are opaque. Napplets cannot enumerate or guess other channels' IDs. This prevents channel hijacking.
 - `inc.channel.broadcast` reaches all open channel peers. Napplets SHOULD NOT send sensitive data via broadcast. For confidential communication, use a named channel with a specific target.
 
@@ -319,3 +389,4 @@ boundary. A projection defines how its authenticated endpoint is bound.
 - `f24a708` - Separated stable topic identity from per-message payload data.
 - `8782bb1` - Added runtime transposition from convention URI parameters to topic payload data.
 - `13fed4b` - Made sender attestation runtime-derived and carrier-neutral.
+- `6446441` - Made channel handles symmetric with target attachment, delivery ordering, and terminal notification.
