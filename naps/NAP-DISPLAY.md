@@ -139,3 +139,7 @@ no pixels.
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `62f2d8b` - Introduced NAP-DISPLAY for runtime-controlled device discovery and RGB pixel updates.
