@@ -395,3 +395,4 @@ shell-internal; it imposes no additional capability requirement on the caller.
 
 - `ad0847b` - Introduced archetype-based intent dispatch with action as data.
 - `6461e4b` - Adopted unnumbered convention identities for payload shapes.
+- `efd51ef` - Added bare naddr URI-fragment recommendations, normalized handler hints, publisher-scoped handler addresses, and user-default-first resolution with discovery and fallback.
