@@ -22,10 +22,15 @@ Messages follow the carrier used by the caller and handler. When delivered over
 NAP-INC or a projection wire, envelopes use `domain.action` form. This convention
 defines the semantic meaning of the payload content.
 
-The convention identity is queryless. Invocation query parameters are shallow
+The convention identity is queryless and fragment-free. Invocation query parameters are shallow
 payload sugar: the runtime binding percent-decodes unique `name=value` pairs as
 text payload fields without scalar coercion. This convention MUST name every
 supported query field. Structured or non-text data uses the explicit payload.
+
+NAP-INTENT URI invocations MAY append `#<naddr>` to recommend a handler under
+[NAP-INTENT](naps/NAP-INTENT.md). The fragment is shell-only selection metadata,
+not a convention field. It MUST NOT appear in payload schemas, advertised
+convention identities, or subscriptions. Other carriers reject fragments.
 
 ### Schemas
 
@@ -37,7 +42,7 @@ supported query field. Structured or non-text data uses the explicit payload.
 
 ## Discovery
 
-Napplets discover the stable, queryless convention identity through handler
+Napplets discover the stable, queryless and fragment-free convention identity through handler
 metadata, usually:
 
 ```

@@ -29,11 +29,20 @@ This file is the **registry** — the index of every archetype. Each archetype's
    ```
    The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
 
+   An invocation MAY append `#<naddr>` to recommend a kind `35129` napplet.
+   The recommendation is shell-only selection metadata. It does not override
+   the user's applicable default, authorize installation, or change the role.
+   The shell MAY offer discovery and installation when the recommendation is
+   not installed. See [NAP-INTENT](naps/NAP-INTENT.md).
+
 3. The **slug** (`note`) is the role identifier used in the manifest tag and in the convention URI (`napplet:note/open`). The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
 
 ## Archetype vs. convention
 
 A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query parameters become payload data and are never advertised. The recommendation is a convenience and an interop floor, not a mandate.
+
+Handler fragments are never advertised either. Convention identities in
+manifest metadata and subscriptions MUST be queryless and fragment-free.
 
 ## Entry schema
 

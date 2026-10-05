@@ -85,7 +85,7 @@ same contract everywhere; only the host idiom changes.
 
 | Projection | Status | Spec |
 |------------|--------|------|
-| **Web** — iframes + `postMessage`, URI-to-payload binding on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
+| **Web** — iframes + `postMessage`, URI-to-payload binding and intent handler hints on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
 | WASM (host imports) | Possible | — |
 
@@ -147,7 +147,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | NAP ID | Domain | req. | Deps | Description | Status |
 |--------|--------|------|------|-------------|--------|
 | [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | — | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Active |
-| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | — | Invoke a napplet by archetype (default-handler dispatch) | Active |
+| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | — | Invoke a napplet by archetype (user defaults; optional `naddr` recommendation) | Draft |
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
@@ -182,12 +182,27 @@ query parameters into text payload fields before routing or handler resolution.
 Structured or non-text data uses the explicit payload. Routers match only the
 resulting stable identity, by exact equality.
 
+For [NAP-INTENT](naps/NAP-INTENT.md) URI invocations only, a caller MAY append
+`#<naddr>` after the path or query to recommend a handler:
+
+```text
+napplet:profile/open?pubkey=abc123…#<naddr>
+```
+
+`<naddr>` stands for one bare `naddr1…` identifying a kind `35129` napplet under
+[NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md). The binding
+extracts its coordinate and relay hints into `handlerHint`; the fragment never
+becomes convention identity or payload. An applicable user default wins. The
+shell MAY discover an uninstalled recommendation and offer installation under
+its policy. An unusable recommendation falls back to normal handler resolution.
+Other convention-URI operations reject fragments.
+
 In a convention exchange the **producer** is the napplet that invokes the
 convention and the **consumer** is the napplet that receives and acts on it,
 reached directly or, by archetype, via the runtime.
 
 A convention that shapes an archetype open payload is advertised by its stable,
-queryless identity on the archetype tag and in `intent.available()` handler
+queryless, fragment-free identity on the archetype tag and in `intent.available()` handler
 metadata. No registry edit is required before two napplets can try a compatible
 payload.
 

@@ -49,15 +49,35 @@ A developer MAY pass
 `napplet:<archetype>/<intent>[...?params]` to a `window.napplet.*` operation that
 accepts a convention URI. Before `postMessage`, the web binding:
 
-1. removes the query from the stable convention identity,
-2. percent-decodes each unique `name=value` pair as text, and
-3. places those pairs in the operation's payload object.
+1. extracts any NAP-INTENT handler fragment into `handlerHint` as specified below,
+2. removes the query from the stable convention identity,
+3. percent-decodes each unique `name=value` pair as text, and
+4. places those pairs in the operation's payload object.
 
 The binding MUST NOT coerce scalar types or apply form-encoding semantics: `+`
-is a literal plus sign. It MUST reject fragments, malformed percent-encoding,
+is a literal plus sign. It MUST reject malformed percent-encoding,
 repeated names, and a query combined with an explicit payload before sending a
 message. The shell receives normalized identity and payload fields. Routing and
-handler resolution use exact equality over the queryless identity.
+handler resolution use exact equality over the queryless, fragment-free identity.
+
+### Intent handler fragment
+
+The URI form of `window.napplet.intent.invoke` additionally accepts:
+
+```text
+napplet:<archetype>/<intent>[?params][#<naddr>]
+```
+
+The web binding MUST implement the normalization and validation in
+[NAP-INTENT](../naps/NAP-INTENT.md#convention-uri-normalization). It decodes the
+bare `naddr` into `request.handlerHint.address` and optional
+`request.handlerHint.relays` before `postMessage`. The raw fragment MUST NOT
+appear in the wire convention or payload. A queryless invocation MAY combine
+the fragment with an explicit structured payload.
+
+The fragment is a recommendation, not an explicit handler selection. The shell
+applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
+Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
 ## Identity & trust
 
