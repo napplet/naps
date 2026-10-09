@@ -122,7 +122,7 @@ Rules:
 
 | Scheme | Rules |
 |--------|-------|
-| `data:` | MAY decode in the napplet shim. If sent to the runtime, it MUST be decoded and policy-checked. No network access. |
+| `data:` | MAY decode in the napplet shim. Whether decoded in the shim or runtime, it MUST be size-limited, MIME-sniffed, rasterized when SVG, quota-checked, and otherwise policy-checked. No network access. |
 | `https:` | Runtime fetch. Full Default Resource Policy applies. Returned `mime` is sniffed, not upstream `Content-Type`. |
 | `blossom:` | Canonical form `blossom:sha256:<hex>`. Runtime MUST verify SHA-256 before delivery. Upstream hosts use `https:` policy. |
 | `htree:` | Hashtree reference (`htree://...`, `nhash`, or compatible immutable form). Runtime resolves the referenced file bytes, verifies every Hashtree hash before delivery, and MUST NOT leak fragment keys to relays, storage servers, or peers. |
