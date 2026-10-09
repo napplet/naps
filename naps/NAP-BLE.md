@@ -253,3 +253,5 @@ The runtime is the policy boundary.
 ## Changelog
 
 - `5f44ca1` - Introduced NAP-BLE as a portable BLE GATT access surface.
+
+- `0212e80` - Adopted injected-domain availability and linked the current upstream web binding.
