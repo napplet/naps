@@ -43,8 +43,8 @@ aggregation, caching, approximation policy, and refusal handling.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `approximate` | `bool` | no | Whether an approximate count is acceptable. |
-| `hll` | `bool` | no | Whether a HyperLogLog response is acceptable. |
+| `approximate` | `bool` | no | Whether an approximate count is acceptable. Defaults to `false`. |
+| `hll` | `bool` | no | Whether a HyperLogLog response is acceptable. Defaults to `false`. |
 
 `CountResult`:
 
