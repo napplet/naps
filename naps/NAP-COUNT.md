@@ -8,7 +8,7 @@
 **Domain:** `count`
 **Depends:**
 - `relay` — capability · required — counts NIP-01 filter matches through relay COUNT support, runtime indexes, or runtime cache.
-**Web binding (NIP-5D):** `window.napplet.count` · `shell.supports("count")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.count`; domain presence signals availability.
 
 ## Description
 
@@ -95,7 +95,7 @@ These are examples, not separate methods:
 
 ## Wire Protocol
 
-`count.*` messages use NIP-5D wire format: `{ "type": "domain.action", ...payload }`.
+`count.*` messages use [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format: `{ "type": "domain.action", ...payload }`.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
