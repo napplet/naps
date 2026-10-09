@@ -158,9 +158,9 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-NOTIFY](https://github.com/napplet/naps/pull/11) | `notify` |  | — | Shell-rendered notifications | Draft |
 | [NAP-RESOURCE](https://github.com/napplet/naps/pull/13) | `resource` |  | — | Sandboxed resource fetching (https / blossom / nostr / data) | Draft |
 | [NAP-CONFIG](https://github.com/napplet/naps/pull/14) | `config` |  | — | Per-napplet declarative configuration (JSON Schema-driven) | Draft |
-| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `upload` |  | `relay` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
-| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `value` |  | `relay` | Shell-mediated value transfer and zaps | Draft |
-| [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `outbox` |  | `relay` | Outbox-aware relay routing and queries | Draft |
+| [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` |  | `relay` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
+| [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` |  | `relay` | Shell-mediated value transfer and zaps | Draft |
+| [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` |  | `relay` | Outbox-aware relay routing and queries | Draft |
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
