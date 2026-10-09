@@ -12,7 +12,7 @@ NIP-13 Proof-of-Work Miner
 - `identity` — layering · required — the runtime stamps the user pubkey (identity domain) into every mined event
 - `relay` — capability · optional — a `mine` result may be published via `relay`
 - `outbox` — capability · optional — `mineAndPublish` uses outbox-aware fanout; same publish-consent policy as `outbox`
-**Web binding (NIP-5D):** `window.napplet.pow` · `shell.supports("pow")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.pow`; domain presence signals availability.
 
 ## Description
 
@@ -186,7 +186,7 @@ When mining begins (not at submit time), the shell stamps the user pubkey and `c
 
 ## Wire Protocol
 
-`pow.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`pow.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
