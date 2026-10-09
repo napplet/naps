@@ -298,3 +298,5 @@ The shell SHOULD return a structured `result` with `ok: false` when an upload wa
 
 - `5dd8458` - Introduced NAP-UPLOAD for shell-mediated file and blob upload.
 - `ef147c9` - Added `upload.info` rail introspection for supported upload rails and policy limits.
+
+- `583005b` - Adopted injected-domain availability and linked the current upstream web binding.
