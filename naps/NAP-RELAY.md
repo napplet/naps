@@ -10,7 +10,7 @@ Relay Proxy
 **Domain:** `relay`
 **Depends:**
 - `resource` — wire · optional — `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain and imported here (see Sidecar Pre-Resolution).
-**Web binding (NIP-5D):** `window.napplet.relay` · `shell.supports("relay")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.relay`; domain presence signals availability.
 
 ## Description
 
@@ -65,7 +65,7 @@ All methods are async because they cross the postMessage boundary. Requests incl
 
 ## Wire Protocol
 
-Relay operations use the NIP-5D wire format. Requests include an `id` field for correlation. Subscription-scoped messages use a `subId` field to identify which subscription they belong to.
+Relay operations use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format. Requests include an `id` field for correlation. Subscription-scoped messages use a `subId` field to identify which subscription they belong to.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
