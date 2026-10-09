@@ -151,3 +151,4 @@ A napplet MUST NOT gate unrelated domain calls on `ready()` or `onReady`.
 - `7ea6cd3` - Introduced the shell bootstrap handshake and capability query.
 - `f86fe4b` - Made the shell contract self-contained and mandatory.
 - `c616fbb` - Removed deferred class support and linked the upstream web binding.
+- `a31573e` - Removed mandatory shell bootstrap, made availability independent of readiness, and defined the optional environment snapshot.
