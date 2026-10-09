@@ -8,7 +8,8 @@ Keyboard Forwarding and Action Keybindings
 
 **NAP ID:** NAP-KEYS
 **Domain:** `keys`
-**Web binding (NIP-5D):** `window.napplet.keys` · `shell.supports("keys")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.keys`; domain presence signals availability.
 
 ## Description
 
@@ -50,7 +51,7 @@ RegisterResult = {
 
 ## Wire Protocol
 
-`keys.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`keys.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -175,7 +176,7 @@ Shells MUST NOT bind actions to reserved keys. Napplets MUST NOT use reserved ke
 - Keystroke forwarding exposes user input. The shell SHOULD NOT forward keystrokes to other napplets — `keys.forward` is strictly napplet-to-shell.
 - Action registration is a trust operation. A napplet that registers too many actions or deceptive labels could confuse the user. Shells MAY cap the number of actions per napplet and SHOULD display action labels in a shell-controlled UI (not napplet-provided UI).
 - The suppress list is delivered by the shell and applied locally. A compromised napplet could ignore the suppress list and forward all keys anyway — the shell MUST NOT rely on the napplet to suppress correctly for security-critical bindings.
-- `keys.action` (shell-triggered) allows the shell to invoke actions in the napplet. The napplet trusts the shell (NIP-5D security model) but SHOULD validate the `actionId` against its own registered actions.
+- `keys.action` (shell-triggered) allows the shell to invoke actions in the napplet. The napplet trusts the shell ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) security model) but SHOULD validate the `actionId` against its own registered actions.
 - Keyboard event data (`key`, `code`, modifier flags) does not contain sensitive information beyond what the user is typing. However, forwarding from text inputs is suppressed to prevent accidental password/credential leakage.
 
 ## Implementations
