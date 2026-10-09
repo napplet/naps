@@ -149,7 +149,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | — | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Active |
 | [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | — | Invoke a napplet by archetype (default-handler dispatch) | Active |
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
-| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
+| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided themes and updates for exposed domains | Draft |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
 | [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` | Read-only user identity queries | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` |  | — | Scoped key-value storage | Draft |
