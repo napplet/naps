@@ -256,3 +256,5 @@ Messages referencing an unknown `notificationId` (e.g., `notify.dismiss` for an 
 ## Changelog
 
 - `6312406` - Introduced NAP-NOTIFY for shell-rendered notifications.
+
+- `a0a4f08` - Adopted injected-domain availability and linked the current upstream web binding.
