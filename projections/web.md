@@ -70,6 +70,32 @@ keys, wallet credentials, or raw network access. Security-critical operations ar
 performed by the shell on the napplet's behalf, gated by per-napplet capability
 policy.
 
+## Capture
+
+[NAP-CAPTURE](../naps/NAP-CAPTURE.md) does not weaken or relax this projection's
+sandbox. Web runtimes remain governed by
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303), including
+source-window authentication and `sandbox="allow-scripts"` without
+`allow-same-origin`.
+
+For capture authorization, a web shell MUST maintain an opaque registration
+generation in addition to each registered iframe `Window` reference and verified
+identity. Initial registration creates it. Navigation, reload, unregister, or
+replacement MUST invalidate it and tear down its capture state before the shell
+accepts messages under a new registration, even if the browser reuses the same
+`WindowProxy` and the verified identity is unchanged. The web owner key is the
+current `(Window reference, registration generation)` pair. This token is
+shell-internal and MUST NOT be accepted from or exposed to the napplet.
+
+Web runtimes MUST represent `CaptureArtifact.data` as a `Blob` carried as a
+member of the `postMessage` envelope by structured clone, without a transfer
+list. `CaptureArtifact.size` MUST equal `Blob.size`, and the `Blob.type` MUST be
+MIME-compatible with `CaptureArtifact.mimeType` under NAP-CAPTURE's comparison
+algorithm. Runtimes MUST NOT JSON-stringify this envelope, substitute an
+`ArrayBuffer` or typed array, or encode audio as text or base64. Structured
+cloning the immutable `Blob` does not transfer ownership; the runtime retains
+its reference until the capture lifecycle erases it.
+
 ## References
 
 - [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding (living, upstream document)
