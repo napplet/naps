@@ -171,3 +171,4 @@ This mapping is informational guidance for shells that choose to source from kin
 ## Changelog
 
 - `780d7ba` - Introduced shell-provided themes and automatic change notifications.
+- `4f92e9a` - Bound automatic theme delivery to exposed domains, defined onChanged, and clarified optional media under runtime network policy.
