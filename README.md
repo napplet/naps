@@ -183,6 +183,21 @@ query parameters into text payload fields before routing or handler resolution.
 Structured or non-text data uses the explicit payload. Routers match only the
 resulting stable identity, by exact equality.
 
+For [NAP-INTENT](naps/NAP-INTENT.md) URI invocations only, a caller MAY append
+`#<naddr>` after the path or query to recommend a handler:
+
+```text
+napplet:profile/open?pubkey=abc123…#<naddr>
+```
+
+`<naddr>` stands for one bare `naddr1…` identifying a kind `35129` napplet under
+[NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md). The binding
+extracts its coordinate and relay hints into `handlerHint`; the fragment never
+becomes convention identity or payload. An applicable user default wins. The
+shell MAY discover an uninstalled recommendation and offer installation under
+its policy. An unusable recommendation falls back to normal handler resolution.
+Other convention-URI operations reject fragments.
+
 In a convention exchange the **producer** is the napplet that invokes the
 convention and the **consumer** is the napplet that receives and acts on it,
 reached directly or, by archetype, via the runtime.

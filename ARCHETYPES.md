@@ -37,6 +37,9 @@ This file is the **registry** — the index of every archetype. Each archetype's
 
 A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query values become payload data and are never part of the advertised identity. Parameter names MAY be advertised after the identity in an `i` tag. The recommendation is a convenience and an interop floor, not a mandate.
 
+Handler fragments are never advertised either. Convention identities in
+manifest metadata and subscriptions MUST be queryless and fragment-free.
+
 ## Entry schema
 
 Each archetype is one thin file in [`naat/`](naat/) in a fixed shape, so roles stay comparable and the vocabulary stays disjoint:

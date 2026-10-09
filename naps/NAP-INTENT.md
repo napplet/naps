@@ -62,6 +62,29 @@ authoritative.
 | `handler` | no | text | `default`, `choose`, or an authorized catalog identifier. |
 | `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
 
+`IntentInvokeOptions` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `payload` | no | any | Structured or non-text payload; cannot accompany URI query parameters. |
+| `handler` | no | text | `default`, `choose`, or an authorized napplet address. |
+| `handlerHint` | no | `IntentHandlerHint` | Explicit recommendation; cannot accompany a URI fragment. |
+| `behavior` | no | `IntentBehavior` | Window/focus hints. |
+
+`IntentHandlerHint` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `address` | yes | text | `35129:<pubkey>:<d>` coordinate decoded from the recommended napplet's address. |
+| `relays` | no | list of text | Optional discovery hints; not part of the napplet identity. |
+
+A napplet address is a [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)
+coordinate, `<kind>:<pubkey>:<d>`. The pubkey is exactly 64 lowercase hex digits; the
+non-empty `d` value is opaque and case-sensitive. Clients MUST NOT normalize
+`d` or identify a handler by `d` alone. `IntentHandlerHint` accepts kind `35129`
+only. Existing catalog entries MAY use other napplet manifest kinds; a hint
+does not change which manifest formats the runtime supports.
+
 `IntentRequest` fields:
 
 | Field | Required | Type | Notes |
@@ -430,6 +453,36 @@ a second result to the source.
 - The runtime SHOULD emit `intent.changed` when catalog or default-handler state
   changes.
 
+### Recommended handler resolution
+
+The shell MUST apply this precedence:
+
+1. An explicit authorized `handler` address or `handler: "choose"` selection.
+2. The user's applicable default handler.
+3. The recommended handler, if policy permits and it supports the requested
+   archetype, action, and convention.
+4. Normal installed-handler resolution or user choice.
+
+Absent `handler` and `handler: "default"` both use steps 2–4. An explicit
+selection MUST NOT silently fall back to the recommendation. An applicable
+handler supports the requested contract and is permitted by shell policy.
+Support MUST come from its verified catalog metadata, not from the hint itself.
+Convention matching uses exact stable identities.
+
+At step 3 the shell SHOULD consider a compatible installed recommendation. If
+it is not installed, the shell MAY resolve its signed event using the coordinate
+and relay hints and offer installation under its policy. The shell MUST verify
+the resolved event's signature and exact coordinate before considering it. It
+MUST apply its ordinary installation, artifact verification, and execution rules.
+Discovery does not authorize installation or execution. The hint MUST NOT alter
+the user's default. An `naddr` identifies a coordinate, not an artifact version.
+
+An unavailable, unsupported, declined, or policy-denied recommendation MUST
+fall back to step 4. A shell MAY ignore the recommendation under its policy.
+It need not perform discovery or offer installation. Relay hints are untrusted
+discovery inputs and MUST NOT bypass the shell's network policy. Discovery is
+shell-internal; it imposes no additional capability requirement on the caller.
+
 ## Security Considerations
 
 - Invocation may navigate, focus, start, or close napplet surfaces. The runtime
@@ -450,6 +503,13 @@ a second result to the source.
 ## References
 
 - [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — napplet manifests, artifact verification, identity, domain availability, and normative web binding.
+
+## References
+
+- [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) — shareable address identifiers and relay hints.
+- [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — addressable event coordinates and resolution.
+- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding.
+- [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) — existing napplet manifests.
 
 ## Implementations
 

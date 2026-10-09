@@ -47,16 +47,23 @@ however useful it seems.
 ### Convention URI invariant
 
 Developers invoke a convention as
-`napplet:<archetype>/<intent>[...?params]`. The queryless path is the stable
+`napplet:<archetype>/<intent>[...?params]`. The queryless, fragment-free path is the stable
 convention identity. Handler metadata and subscriptions MUST use that stable
 identity.
 
 The query is shallow payload sugar. A runtime-provided binding MUST transpose
 each unique, percent-decoded `name=value` pair into a text payload field before
 routing or handler resolution. It MUST NOT coerce scalar types. `+` is a literal
-plus sign. Fragments, malformed percent-encoding, repeated names, and mixing
+plus sign. Malformed percent-encoding, repeated names, and mixing
 query parameters with an explicit payload are invalid. Structured or non-text
 data uses the explicit payload.
+
+Fragments are invalid except in the NAP-INTENT URI invocation form:
+`napplet:<archetype>/<intent>[?params][#<naddr>]`. Its bare NIP-19 `naddr`
+recommends a handler. The binding extracts it into `handlerHint` before
+transposition and routing. It is not convention identity, payload, or handler
+metadata. User defaults and shell policy take precedence. Other operations,
+including NAP-INC, MUST continue to reject fragments.
 
 Transposition precedes routing. Routers match the resulting stable identity by
 exact equality. They MUST NOT parse, normalize, prefix-match, or wildcard-match
