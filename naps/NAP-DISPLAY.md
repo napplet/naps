@@ -8,7 +8,8 @@ Runtime-Controlled Pixel Displays
 
 **NAP ID:** NAP-DISPLAY
 **Domain:** `display`
-**Web binding (NIP-5D):** `window.napplet.display` · `shell.supports("display")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.display`; domain presence signals availability.
 
 ## Description
 
@@ -63,7 +64,7 @@ the hardware has completed its refresh.
 
 ## Wire Protocol
 
-`display.*` messages use the NIP-5D wire format
+`display.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
