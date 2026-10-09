@@ -239,3 +239,5 @@ catalog. When `error` is present, `snapshot` MUST be omitted.
 ## Changelog
 
 - `5711b2e` - Defined read-only napplet discovery, convention parameter metadata, and current archetype handler state.
+
+- `1c076ce` - Aligned catalog identities, z/i advertisements, parameter-name metadata, content descriptions, and R/O capabilities with current manifests.
