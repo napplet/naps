@@ -11,7 +11,7 @@
 - `relay` -- capability · optional -- BUD-03 server-list helpers read and publish kind `10063` events through the runtime relay surface.
 - `relay` -- wire · optional -- imports `RelayEventResult` for BUD-03 server-list event returns.
 - `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
-**Web binding (NIP-5D):** `window.napplet.blossom` · `shell.supports("blossom")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.blossom`; domain presence signals availability.
 
 ## Description
 
@@ -209,7 +209,7 @@ is known.
 
 ## Wire Protocol
 
-`blossom.*` messages use the NIP-5D wire format
+`blossom.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
