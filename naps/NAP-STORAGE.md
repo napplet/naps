@@ -8,11 +8,12 @@ Scoped Key-Value Storage
 
 **NAP ID:** NAP-STORAGE
 **Domain:** `storage`
-**Web binding (NIP-5D):** `window.napplet.storage` · `shell.supports("storage")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.storage`; domain presence signals availability.
 
 ## Description
 
-NAP-STORAGE provides napplets with an async localStorage-like API. Without `allow-same-origin`, iframes have opaque origins and cannot access localStorage directly. This interface routes storage operations through the shell via postMessage, which scopes data by napplet identity — a composite key of `(dTag, aggregateHash)` — to enforce isolation between napplets. Different napplet types and different versions of the same napplet have completely separate storage namespaces.
+NAP-STORAGE provides napplets with an async localStorage-like API. Without `allow-same-origin`, iframes have opaque origins and cannot access localStorage directly. This interface routes storage operations through the shell via postMessage, which scopes data by napplet identity — a verified manifest and artifact scope — to enforce isolation between napplets. Different napplet types and different versions of the same napplet have completely separate storage namespaces.
 
 ## API Surface
 
@@ -39,9 +40,20 @@ All methods are async because they cross the postMessage boundary. Each request 
 
 **`instance`** — The same four methods, scoped to the *calling instance* instead of shared across all instances of the napplet. A napplet open more than once (e.g. several feeds) uses `instance.*` for per-window state and the top-level methods for shared state. Scope is per call: instancing is a property of the data, not the napplet. See [Instance Scope](#instance-scope).
 
+## Identity Scope
+
+The runtime MUST derive scope from the authenticated endpoint's verified
+manifest and artifact. For a named manifest, the manifest key is its publisher,
+kind, and `d` value; for a root manifest, publisher and kind; for a snapshot,
+its signed event id. The scope also includes `artifactHash`, the verified
+single-artifact hash defined by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
+A bare `d` value MUST NOT identify a scope. Root and snapshot manifests require
+no `d` tag. A napplet MUST NOT supply or override manifest or artifact identity fields in a request.
+Different publishers, manifest keys, and artifact hashes MUST remain isolated.
+
 ## Wire Protocol
 
-Storage operations use the NIP-5D wire format. Each request includes an `id` field for correlation.
+Storage operations use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format. Each request includes an `id` field for correlation.
 
 Every request carries an optional `scope`: `"shared"` (default) or `"instance"`. It is the only wire-level addition for per-instance storage; the `instance.*` API is sugar that sets `scope: "instance"`.
 
@@ -124,7 +136,7 @@ reclaim it on destroy. State that must outlive the instance belongs in `shared`.
 
 ## Shell Behavior
 
-- The shell MUST scope storage by composite key `(dTag, aggregateHash)`. Different napplet types and different versions of the same napplet MUST have isolated storage. The shell maps each napplet's `(dTag, aggregateHash)` identity to an isolated storage namespace.
+- The shell MUST scope storage by the verified manifest and artifact scope. Different napplet types and different versions of the same napplet MUST have isolated storage. The shell maps each napplet's verified manifest and artifact scope to an isolated storage namespace.
 - For `scope: "instance"` requests, the shell MUST further isolate the namespace per instance, satisfying the Unique and Stable guarantees above. Requests with `scope` absent or `"shared"` MUST address the napplet-wide namespace, preserving the behavior of napplets that never set `scope`.
 - The shell MUST enforce a per-napplet storage quota. A recommended default is 512 KB measured in UTF-8 byte count. Whether instance namespaces draw from the same per-napplet budget or a per-instance budget is an implementation detail.
 - The shell MUST persist storage so data survives page reloads. How the shell stores data (localStorage, IndexedDB, etc.) is an implementation detail.
@@ -133,7 +145,7 @@ reclaim it on destroy. State that must outlive the instance belongs in `shared`.
 
 ## Security Considerations
 
-- Storage is scoped by composite key `(dTag, aggregateHash)`. The shell MUST enforce isolation so a napplet cannot read or write another napplet's data. For `scope: "instance"`, the shell MUST additionally enforce isolation between instances of the same napplet.
+- Storage uses the verified manifest and artifact scope. The shell MUST enforce isolation so a napplet cannot read or write another napplet's data. For `scope: "instance"`, the shell MUST additionally enforce isolation between instances of the same napplet.
 - Storage quota enforcement prevents a single napplet from consuming unbounded host storage.
 - Storage values are strings only. The shell SHOULD NOT attempt to parse or execute stored content.
 - The shell MAY enforce ACL checks on `storage:read` and `storage:write` capabilities before processing storage requests.
