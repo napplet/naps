@@ -10,5 +10,5 @@ A napplet that creates a new Nostr event — a reply, quote, new note, or other 
 - **Distinct from:** `note` (writing vs. reading).
 
 > A NAAT file is this fixed schema and nothing else. Anything that wants to grow —
-> payload detail, lifecycle, action-specific wire — belongs in a NAP-N spec, not here.
+> payload detail, lifecycle, action-specific wire — belongs in conventions, not here.
 > See [../ARCHETYPES.md](../ARCHETYPES.md) for the registry and [../naps/NAP-INTENT.md](../naps/NAP-INTENT.md) for how roles are opened.
