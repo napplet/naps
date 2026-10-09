@@ -8,7 +8,8 @@ Archetype Intent Dispatcher
 
 **NAP ID:** NAP-INTENT
 **Domain:** `intent`
-**Web binding (NIP-5D):** `window.napplet.intent` · `shell.supports("intent")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.intent`; domain presence signals availability.
 
 ## Description
 
@@ -58,7 +59,7 @@ authoritative.
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `payload` | no | any | Structured or non-text convention payload. |
-| `handler` | no | text | `default`, `choose`, or an authorized napplet dTag. |
+| `handler` | no | text | `default`, `choose`, or an authorized catalog identifier. |
 | `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
 
 `IntentRequest` fields:
@@ -69,7 +70,7 @@ authoritative.
 | `action` | yes | text | Derived from the convention URI intent. |
 | `convention` | yes | text | Stable, queryless convention identity. |
 | `payload` | no | any | Query-derived text map or explicit payload. |
-| `handler` | no | text | `default`, `choose`, or an authorized napplet dTag. |
+| `handler` | no | text | `default`, `choose`, or an authorized catalog identifier. |
 | `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
 
 `IntentContract` fields:
@@ -77,13 +78,13 @@ authoritative.
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `convention` | yes | text | Stable, queryless convention identity. |
-| `eventKinds` | no | list of unsigned integers | Optional discovery metadata; does not authorize runtime payload inspection. |
+| `params` | yes | list of text | Parameter names advertised by the manifest's `i` tag; empty when none are advertised. |
 
 `IntentCandidate` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `dTag` | yes | text | Napplet that can fulfill the archetype. |
+| `id` | yes | text | Runtime-assigned catalog identifier for the napplet; see Catalog identifiers. |
 | `title` | no | text | Human-readable handler label. |
 | `actions` | yes | list of text | Actions derived from accepted conventions. |
 | `conventions` | yes | list of text | Stable convention identities. |
@@ -107,14 +108,14 @@ authoritative.
 | `archetype` | no | text | Normalized requested role. Required when `ok` is true. |
 | `action` | no | text | Normalized requested action. Required when `ok` is true. |
 | `convention` | no | text | Stable convention identity. Required when `ok` is true. |
-| `handler` | no | text | Resolved handler dTag. Required when `ok` is true. |
+| `handler` | no | text | Resolved handler's catalog identifier. Required when `ok` is true. |
 | `error` | no | text | Pre-acceptance failure reason. Required when `ok` is false. |
 
 `IntentDelivery` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `sender` | yes | text | Runtime-attested source napplet dTag. |
+| `sender` | yes | text | Runtime-attested source catalog identifier. |
 | `archetype` | yes | text | Normalized target role. |
 | `action` | yes | text | Normalized action. |
 | `convention` | yes | text | Stable convention identity. |
@@ -169,41 +170,86 @@ handler is registered.
 
 ## Manifest Catalog Contract
 
-A napplet declares each accepted convention in its NIP-5A manifest with one
-`archetype` tag:
+The manifest schema and verification rules belong to
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
+Catalogs MUST recognize its napplet manifest kinds `5129` (snapshot), `15129`
+(root), and `35129` (named). Only named manifests carry a `d` tag.
+NAP-INTENT defines how their advertisements become dispatch contracts; it does
+not define another manifest format.
+
+A napplet advertises a role with `z` and each accepted convention with `i`:
 
 ```
-["archetype", "<slug>", "napplet:<slug>/<action>", "kind:<number>", ...]
+["z", "<slug>"]
+["i", "napplet:<slug>/<action>", "<param>", ...]
 ```
 
-| Position | Value | Meaning |
-|----------|-------|---------|
-| 0 | `archetype` | Tag name. |
-| 1 | `<slug>` | NAAT role slug. |
-| 2 | convention | One stable, queryless convention identity. |
-| 3+ | `kind:<number>` | Optional NIP-01 event-kind constraint. |
+For each valid `i` tag, the runtime MUST expose an `IntentContract` whose
+`convention` is the tag's second element and whose `params` are the remaining
+elements, in order. With no trailing elements, `params` is empty. The convention
+MUST be a stable, queryless, fragment-free identity. Its archetype segment MUST
+match a `z` value on the same manifest to be eligible for dispatch by that role.
+Its intent segment defines the action. Tag order is irrelevant; a runtime MUST
+NOT associate `i` with the nearest preceding `z` tag.
 
-The convention archetype MUST equal `<slug>`. Its intent defines the accepted
-action. Query parameters MUST NOT appear in handler metadata. A napplet repeats
-the tag when it accepts several conventions:
+A napplet repeats `z` for multiple roles and `i` for multiple accepted intents:
 
 ```
-["archetype", "note", "napplet:note/open", "kind:1", "kind:30023"]
-["archetype", "note", "napplet:note/edit", "kind:30023"]
+["z", "feed"]
+["i", "napplet:feed/open"]
+["i", "napplet:feed/edit", "filters", "relays"]
 ```
 
-Each tag produces one `IntentContract`. `kind:<number>` values apply only to the
-convention in the same tag. Absence of `kind:<number>` declares no event-kind
-restriction. Event kinds help callers choose a compatible contract. The runtime
-MUST NOT inspect payload content to infer an event kind during resolution.
+Trailing `i` values advertise parameter names, not event-kind constraints,
+types, required fields, or parameter values. They MUST NOT be interpreted as
+`kind:<number>` restrictions. An empty `params` list does not prohibit an
+explicit payload. Payload requirements and validation belong to the convention
+and the target. The runtime MUST NOT inspect payload content to infer an event
+kind or select a handler.
+
+A `z` tag alone does not declare an accepted intent; an `i` tag alone does not
+advertise its role. Missing or unusable advertisements MUST NOT invalidate an
+otherwise valid napplet manifest. They contribute no matching dispatch contract.
+Legacy combined `archetype` tags MUST NOT substitute for `z` and `i`.
 
 Runtimes MUST build `available()` and `handlers()` from these manifest tags.
-They MUST expose parsed `contracts`. They MAY derive `actions` and `conventions`
-from those contracts for quick filtering.
+For each role, candidates MUST have at least one eligible contract, and their
+`contracts` MUST contain only contracts for that role. Runtimes MUST derive the
+candidate's `actions` and `conventions` from those contracts, removing duplicates.
+Handler resolution MUST match the requested stable convention by exact equality;
+it MUST NOT prefix-match, wildcard-match, or normalize that identity.
+
+Advertisements are routing hints, never capability grants. The runtime MUST
+apply the manifest capability requirements and its own policy before accepting
+delivery. Declaring a role or intent MUST NOT widen the domains exposed to the
+napplet. In the web projection, domain availability comes from the injected
+namespace as defined by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303);
+neither catalog discovery nor invocation requires a `shell` domain or handshake.
+
+### Catalog identifiers
+
+`IntentCandidate.id`, an explicit `handler`, a successful result's `handler`,
+and `IntentDelivery.sender` use the same runtime-assigned identifier space.
+Identifiers are opaque text: callers MUST preserve them exactly and MUST NOT
+interpret them as a `d` tag, event address, or running-instance identifier.
+The runtime MUST reserve `default` and `choose` for handler selection.
+
+Identifiers MUST distinguish publishers and manifest kinds. Named napplets are
+keyed by publisher, kind, and `d`; root napplets by publisher and kind; snapshots
+by signed event id. Updating a root or named manifest MUST preserve its catalog
+identifier. Distinct snapshots MUST have distinct identifiers. A bare `d` tag
+MUST NOT serve as catalog identity. Identifier encoding and persistence across
+runtime restarts are runtime policy; identifiers are not portable between
+runtimes.
+
+The runtime MUST also assign an identifier to the source, even when it has no
+dispatch advertisements. It MUST derive `sender` from the source's verified
+manifest bound to its authenticated endpoint. Catalog identity does not replace
+the web projection's artifact verification or endpoint binding.
 
 ## Wire Protocol
 
-`intent.*` messages use the NIP-5D wire format
+`intent.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
@@ -233,6 +279,9 @@ Key design notes:
 
 **Discover profile handlers:**
 
+For an installed manifest advertising `["z", "profile"]` and
+`["i", "napplet:profile/open", "pubkey"]`:
+
 ```
 -> { "type": "intent.available", "id": "a1", "archetype": "profile" }
 <- {
@@ -242,12 +291,13 @@ Key design notes:
        "archetype": "profile",
        "available": true,
        "candidates": [{
-         "dTag": "profile-viewer",
+         "id": "catalog-profile-viewer",
          "title": "Profile Viewer",
          "actions": ["open"],
          "conventions": ["napplet:profile/open"],
          "contracts": [{
-           "convention": "napplet:profile/open"
+           "convention": "napplet:profile/open",
+           "params": ["pubkey"]
          }],
          "isDefault": true
        }],
@@ -283,7 +333,7 @@ The runtime binding sends the normalized request:
        "archetype": "profile",
        "action": "open",
        "convention": "napplet:profile/open",
-       "handler": "profile-viewer"
+       "handler": "catalog-profile-viewer"
      }
    }
 ```
@@ -295,7 +345,7 @@ target is ready, it receives:
 <- {
      "type": "intent.deliver",
      "delivery": {
-       "sender": "social-feed",
+       "sender": "catalog-social-feed",
        "archetype": "profile",
        "action": "open",
        "convention": "napplet:profile/open",
@@ -371,8 +421,9 @@ a second result to the source.
   persistence across runtime restart are runtime policy.
 - `behavior` fields are hints. Runtime workspace and lifecycle policy remain
   authoritative.
-- The runtime MUST source `available()` and `handlers()` from installed NIP-5A
-  manifests, not only running instances.
+- The runtime MUST source `available()` and `handlers()` from verified installed
+  [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifests, not only
+  running instances.
 - The runtime MUST NOT let a caller address a handler instance unless the user
   explicitly authorized that handler.
 - The runtime MUST reject an unsupported convention before acceptance.
@@ -398,9 +449,7 @@ a second result to the source.
 
 ## References
 
-- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding.
-- [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) — napplet manifest and identity.
-- [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — event kinds.
+- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — napplet manifests, artifact verification, identity, domain availability, and normative web binding.
 
 ## Implementations
 

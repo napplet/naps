@@ -147,7 +147,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | NAP ID | Domain | req. | Deps | Description | Status |
 |--------|--------|------|------|-------------|--------|
 | [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | — | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Active |
-| [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | — | Invoke a napplet by archetype (default-handler dispatch) | Active |
+| [NAP-INTENT](https://github.com/napplet/naps/pull/91) | `intent` |  | — | Accept lifecycle-independent convention delivery from manifest intent advertisements | Draft |
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
