@@ -8,7 +8,8 @@ Runtime Napplet Catalog
 
 **NAP ID:** NAP-CATALOG
 **Domain:** `catalog`
-**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.catalog` · `shell.supports("catalog")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.catalog`; domain presence signals availability.
 
 ## Description
 
@@ -39,16 +40,11 @@ owns archetype dispatch. Conventions own their message semantics. See
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `dTag` | yes | text | Napplet identifier from the verified manifest. |
-| `aggregateHash` | yes | text | Lowercase hexadecimal aggregate hash of the resolved napplet version. |
-
-`IntentParameter` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `name` | yes | text | Query parameter name. |
-| `required` | yes | boolean | Whether the handler requires the parameter. |
-| `description` | no | text | Human-readable parameter purpose. |
+| `kind` | yes | integer | Verified manifest kind: 5129, 15129, or 35129. |
+| `pubkey` | yes | text | Manifest publisher's 64-character lowercase-hex public key. |
+| `eventId` | yes | text | Verified manifest event id, 64-character lowercase hex. |
+| `dTag` | conditional | text | Manifest `d` value; present only for kind 35129. |
+| `artifactHash` | yes | text | Verified artifact `x` hash, 64-character lowercase hex. |
 
 `IntentDescriptor` fields:
 
@@ -56,7 +52,7 @@ owns archetype dispatch. Conventions own their message semantics. See
 |-------|----------|------|-------|
 | `intent` | yes | text | Intent name, such as `open`. |
 | `convention` | yes | text | Stable queryless convention identity, such as `napplet:note/open`. |
-| `parameters` | yes | list of `IntentParameter` | Parameters advertised for this convention. Empty when none are advertised. |
+| `parameters` | yes | list of text | Parameter names advertised in the manifest i tag, in order. Empty when none are advertised. |
 
 `ArchetypeDescriptor` fields:
 
@@ -71,8 +67,9 @@ owns archetype dispatch. Conventions own their message semantics. See
 |-------|----------|------|-------|
 | `identity` | yes | `NappletIdentity` | Verified napplet identity. |
 | `title` | no | text | Human-readable title. |
-| `description` | no | text | Human-readable description. |
-| `requires` | yes | list of text | Bare NAP domains required by the napplet. |
+| `description` | yes | text | Non-empty plain-text manifest content. |
+| `requires` | yes | list of text | Bare domains from manifest R tags. |
+| `optional` | yes | list of text | Bare domains from manifest O tags. |
 | `archetypes` | yes | list of `ArchetypeDescriptor` | Advertised roles. Empty for a napplet with no archetype. |
 
 `ArchetypeHandler` fields:
@@ -89,10 +86,30 @@ owns archetype dispatch. Conventions own their message semantics. See
 | `napplets` | yes | list of `NappletDescriptor` | Napplets available to the caller. |
 | `handlers` | yes | list of `ArchetypeHandler` | Current handler state for every archetype advertised by the returned napplets. |
 
-Parameter metadata describes only the shallow query parameters accepted by a
-developer-facing convention URI. Values remain text after transposition. The
-named convention remains authoritative for payload semantics. Structured or
-non-text input uses the explicit payload and is outside this catalog schema.
+### Manifest mapping
+
+The catalog MUST use verified [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
+manifests of kinds 5129, 15129, and 35129. It MUST derive roles from `z` tags and
+accepted conventions and parameter names from `i` tags. Each intent is associated
+with the role matching its archetype segment on the same manifest, independent
+of tag order. Invalid or unmatched intents contribute no dispatch contract;
+roles with no matching intent have an empty `intents` list. Convention identities
+remain queryless and fragment-free. Legacy combined archetype tags do not
+substitute for these advertisements.
+
+Trailing `i` elements are names only. The runtime MUST NOT infer parameter types,
+requiredness, descriptions, or event-kind constraints from them. Payload semantics
+belong to the named convention. An empty parameter list does not prohibit an
+explicit payload. Titles come from `title`; descriptions come from plain-text
+manifest `content`. Required and optional domain lists come from `R` and `O`.
+Advertisements and capability declarations MUST NOT widen runtime grants. The
+runtime MUST inspect the complete required set when assessing compatibility;
+missing optional domains alone MUST NOT exclude a napplet.
+
+Identity MUST distinguish publishers and manifest kinds. Named identities are
+keyed by publisher, kind, and `d`; root identities by publisher and kind;
+snapshot identities by signed event id. `eventId` and `artifactHash` describe the
+resolved version. Catalogs MUST NOT require `dTag` on root or snapshot entries.
 
 **`get()`** — Returns one point-in-time snapshot. The runtime applies caller
 policy before constructing the result. An empty `napplets` list is a successful
@@ -131,12 +148,16 @@ Key design notes:
        "napplets": [
          {
            "identity": {
+             "kind": 35129,
+             "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+             "eventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
              "dTag": "noteview",
-             "aggregateHash": "4de8c5..."
+             "artifactHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
            },
            "title": "Note View",
            "description": "Displays a Nostr note.",
            "requires": ["relay"],
+           "optional": ["theme"],
            "archetypes": [
              {
                "archetype": "note",
@@ -144,13 +165,7 @@ Key design notes:
                  {
                    "intent": "open",
                    "convention": "napplet:note/open",
-                   "parameters": [
-                     {
-                       "name": "id",
-                       "required": true,
-                       "description": "Nostr event id."
-                     }
-                   ]
+                   "parameters": ["id"]
                  }
                ]
              }
@@ -161,8 +176,11 @@ Key design notes:
          {
            "archetype": "note",
            "currentHandler": {
+             "kind": 35129,
+             "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+             "eventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
              "dTag": "noteview",
-             "aggregateHash": "4de8c5..."
+             "artifactHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
            }
          }
        ]
@@ -188,8 +206,8 @@ catalog. When `error` is present, `snapshot` MUST be omitted.
 - The shell MUST include napplets with no archetype when they are available to
   the caller.
 - The shell MUST preserve queryless convention identities exactly. It MUST NOT
-  parse, normalize, prefix-match, or wildcard-match them while constructing the
-  catalog.
+  normalize, prefix-match, or wildcard-match them. Parsing an intent to validate
+  its archetype segment MUST NOT change its stored identity.
 - The shell MUST keep parameter metadata separate from convention identity. It
   MUST NOT report structured payload fields as query parameters.
 - The shell MUST include one `ArchetypeHandler` for every archetype advertised
@@ -204,13 +222,13 @@ catalog. When `error` is present, `snapshot` MUST be omitted.
 
 - A napplet catalog is a fingerprinting surface. The shell SHOULD expose only
   entries and metadata the caller needs.
-- Titles, descriptions, intent names, parameter names, and parameter
-  descriptions are untrusted display text. Consumers MUST escape them before
+- Titles, descriptions, intent names, and parameter names are untrusted display
+  text. Consumers MUST escape them before
   rendering.
 - Handler preferences are user state. NAP-CATALOG is read-only and MUST NOT let
   a napplet set or change them.
 - Catalog identity comes from verified manifests. A running napplet cannot
-  alter its own `dTag` or `aggregateHash` through this interface.
+  alter its verified manifest fields or `artifactHash` through this interface.
 - Parameter metadata does not validate a delivered payload. A receiving
   napplet MUST validate payload data according to the named convention.
 
