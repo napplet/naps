@@ -8,7 +8,8 @@ Runtime-Mediated WebRTC Signaling
 
 **NAP ID:** NAP-WEBRTC
 **Domain:** `webrtc`
-**Web binding (NIP-5D):** `window.napplet.webrtc` · `shell.supports("webrtc")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.webrtc`; domain presence signals availability.
 
 ## Description
 
@@ -100,7 +101,7 @@ payloads are untrusted input from peers.
 
 ## Wire Protocol
 
-`webrtc.*` messages use the NIP-5D wire format
+`webrtc.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
