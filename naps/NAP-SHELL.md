@@ -36,35 +36,33 @@ handshake completes.
 
 NAP-SHELL standardizes the **handshake and the queryable capability set**, not
 the internal representation of that set. A runtime is conformant as long as it
-delivers an environment from which `supports(domain, protocol?)` can be answered
-for every capability it offers; the byte layout of the capability object is not
-normative.
+delivers an environment from which `supports(domain)` can be answered for every
+capability it offers; the byte layout of the capability object is not normative.
 
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `supports` | `domain` (`tstr`), optional `protocol` (`tstr`) | `bool` | local query against cached `shell.init` |
+| `supports` | `domain` (`tstr`) | `bool` | local query against cached `shell.init` |
 | `services` | none | list of `tstr` service names | local read against cached `shell.init` |
 | `ready` | none | `ShellEnvironment` | resolves after `shell.ready` / `shell.init` |
 | `onReady` | handler for `ShellEnvironment` | `Subscription` handle | fires after `shell.init` |
 
 ### Schemas
 
-```cddl
-ShellCapabilities = any ; runtime-internal shape sufficient to answer supports(domain, protocol?)
+`ShellCapabilities` is a runtime-internal value with whatever shape is
+sufficient to answer `supports(domain)`.
 
-ShellEnvironment = {
-  capabilities: ShellCapabilities,
-  services: [* tstr],
-}
-```
+`ShellEnvironment` fields:
 
-**`supports(domain, protocol?)`** — Returns whether the runtime offers `domain`,
-optionally narrowed to a specific numbered protocol within that domain.
+| Field | Required | Type |
+|-------|----------|------|
+| `capabilities` | yes | `ShellCapabilities` |
+| `services` | yes | list of text |
+
+**`supports(domain)`** — Returns whether the runtime offers `domain`.
 Synchronous: it reads the cached environment and never blocks. Returns `false`
-before the environment has been delivered, and `false` for any unknown domain or
-protocol.
+before the environment has been delivered, and `false` for any unknown domain.
 
 **`services`** — A read-only view onto the delivered environment: the named
 services the runtime exposes for this napplet.
@@ -96,7 +94,7 @@ Key design notes:
 - `shell.supports()` is answered **locally** from the cached `shell.init`
   environment. It is not a wire round-trip.
 - The capability object's internal shape is not normative; only that it can
-  answer `supports(domain, protocol?)` for every offered capability.
+  answer `supports(domain)` for every offered capability.
 
 ### Examples
 
@@ -106,8 +104,7 @@ Key design notes:
 <- {
      "type": "shell.init",
      "capabilities": {
-       "domains": ["<domain>", "<domain>"],
-       "protocols": { "<domain>": ["NAP-N", "NAP-N"] }
+       "domains": ["<domain>", "<domain>"]
      },
      "services": []
    }
@@ -116,9 +113,7 @@ Key design notes:
 **Subsequent local queries (no wire traffic):**
 ```
 shell.supports("<domain>")             // true if the runtime offers that domain
-shell.supports("<domain>", "NAP-N")    // true if it also speaks that protocol
 shell.supports("<unknown>")            // false — domain not offered
-shell.supports("<domain>", "NAP-N")    // false — protocol not offered
 ```
 
 ### Error Handling
@@ -143,7 +138,7 @@ expressed by **absence**:
   (NIP-5A) — never to anything carried in the message.
 - The runtime MUST send `shell.init` **exactly once** per napplet lifecycle.
 - The runtime's delivered capability set MUST be sufficient to answer
-  `supports(domain, protocol?)` truthfully for every capability it offers, and
+  `supports(domain)` truthfully for every capability it offers, and
   MUST answer `false` for capabilities it does not offer.
 - The runtime SHOULD treat a duplicate `shell.ready` as **idempotent**: it MUST
   NOT establish a second session or overwrite the first, and SHOULD NOT resend

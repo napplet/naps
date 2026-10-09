@@ -10,8 +10,8 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 
 | Path | What |
 |------|------|
-| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP-WORD / NAP-N registries |
-| [naps/](naps/) | All spec definitions — `NAP-<WORD>.md` interfaces, `NAP-<N>.md` wire formats |
+| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP registry, archetype registry |
+| [naps/](naps/) | Runtime-provided NAP interface definitions — `NAP-<WORD>.md` |
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
 | [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
 | [ARCHETYPES.md](ARCHETYPES.md) + [naat/](naat/) | Archetype roles |
@@ -33,16 +33,34 @@ however useful it seems.
 | Kind | Is | Owns | Discovery |
 |------|-----|------|-----------|
 | **NAP-WORD** | runtime-provided | an **API surface** | `shell.supports("<domain>")` |
-| **NAP-N** | napplet-agreed | **message semantics** | `shell.supports("<domain>", "NAP-N")` |
-| **NAAT** | a **role name + boundary** | nothing (not a NAP); *recommends* a NAP-N | manifest `["archetype", …]` |
+| **Convention** | napplet-agreed | **message semantics** | queryless `napplet:<archetype>/<intent>` identity in handler metadata |
+| **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["archetype", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
-- A NAP is **runtime-provided AND an API** (NAP-WORD) **or** **napplet-agreed AND
-  message semantics** (NAP-N). Never both; never neither.
+- A NAP is **runtime-provided AND an API** (NAP-WORD). Napplet-agreed message
+  semantics are conventions, not NAPs.
 - Transport and host detail (`postMessage`, iframes, `window.napplet.*`) live in a
   **projection**, never in a NAP.
 - Manifests reference bare **domains** (`relay`), never spec ids (`NAP-RELAY`).
 - Cannot place a change cleanly on one side? **Stop and surface it.** Do not guess.
+
+### Convention URI invariant
+
+Developers invoke a convention as
+`napplet:<archetype>/<intent>[...?params]`. The queryless path is the stable
+convention identity. Handler metadata and subscriptions MUST use that stable
+identity.
+
+The query is shallow payload sugar. A runtime-provided binding MUST transpose
+each unique, percent-decoded `name=value` pair into a text payload field before
+routing or handler resolution. It MUST NOT coerce scalar types. `+` is a literal
+plus sign. Fragments, malformed percent-encoding, repeated names, and mixing
+query parameters with an explicit payload are invalid. Structured or non-text
+data uses the explicit payload.
+
+Transposition precedes routing. Routers match the resulting stable identity by
+exact equality. They MUST NOT parse, normalize, prefix-match, or wildcard-match
+convention identities.
 
 ### Two leaks to catch on sight
 
@@ -102,7 +120,7 @@ A dependency never moves the boundary. A NAP still owns only its own surface;
 ## Terminology
 
 Use [glossary](README.md#glossary) terms verbatim — *seam, napplet, runtime/shell,
-NAP, domain, projection, NAP-WORD, NAP-N, NAAT*. No synonyms, no new coinages. To
+NAP, domain, projection, NAP-WORD, convention, NAAT*. No synonyms, no new coinages. To
 rename: change the glossary first, then every use, in one commit.
 
 ## Voice
@@ -123,15 +141,26 @@ Use this format instead:
 
 - **Operations table** for the napplet-facing API: operation, parameters,
   result, and corresponding wire messages.
-- **Schemas block** for records and enums, written in CDDL-style notation
-  (RFC 8610): `tstr`, `bool`, `int`, `uint`, `number`, `null`, `any`, arrays as
-  `[* T]`, maps as `{ * tstr => T }`, optional fields as `? field: T`, and
-  alternatives as `"a" / "b"`.
+- **Schema tables** for records and enums: field, required, type, and notes.
+- Use language-neutral types: `text`, `boolean`, `integer`, `number`, `null`,
+  `any`, `list of T`, `map of text to T`, and quoted string alternatives.
 - Use record names like `IntentRequest` or `Theme`, but do not use `interface`,
   `type`, `Promise`, `readonly`, `unknown`, or language-specific collection
   syntax.
 - If a projection exposes an idiomatic SDK shape, describe it as projection
   guidance only. The NAP contract remains the operations table plus schemas.
+
+## Operation naming
+
+Domain repetition is a code smell. A wire type is `domain.action`; the action MUST
+add meaning beyond the domain name.
+
+- Avoid tautologies like `count.count`, `relay.relay`, `storage.storage`, or
+  `<domain>.<domain>`.
+- Prefer the operation the napplet is asking the runtime to perform: `query`,
+  `publish`, `open`, `get`, `set`, `subscribe`, `info`, `check`.
+- If the best verb equals the domain, the domain or operation is probably wrong.
+  Stop and rename one side before the smell enters a spec.
 
 ## Isolation
 
@@ -156,6 +185,23 @@ One concern per branch, commit, and PR. Never tangle.
 | projection semantics | `projections/<host>.md` · README Projections table |
 | terminology | README glossary, then all references |
 
+## Changelog discipline
+
+Every NAP spec carries its history at the bottom under `## Changelog`.
+
+- Add one bullet per semantic commit-change: ``- `<short-sha>` - <summary>``.
+- Summarize all semantic changes from one commit in one bullet, even when the
+  commit touched multiple fields or operations.
+- Include only changes that affect the spec contract, boundary, dependencies,
+  operation names, wire shape, policy, or normative guidance.
+- Skip formatting-only, table/schema-notation-only, spelling-only,
+  changelog-only, and registry-pointer-only commits.
+- For a living PR NAP, keep the bottom of the PR body in the same `## Changelog`
+  format with the same bullets as the spec.
+- For a merged NAP edited in a later PR, append changelog bullets to the spec in
+  the same commit that changes the spec; mirror them in the PR body when the
+  change is under review.
+
 ## PR format — identical every time
 
 - **Branch:** kebab of the spec — `nap-relay`, `nap-storage`.
@@ -178,4 +224,4 @@ existential threat to the goal.
 
 NIP-style informal. Fork → add a spec under `naps/` from its template → open a PR.
 dskvr merges when it makes sense and has ≥1 implementation. NAP-WORD names and NAAT
-slugs are first-come, maintainer-approved; NAP-N numbers are assigned on merge.
+slugs are first-come, maintainer-approved. Numbered NAPs are not assigned.
