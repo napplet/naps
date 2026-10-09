@@ -106,7 +106,7 @@ Different publishers, manifest keys, and artifact hashes MUST remain isolated.
 
 Rules:
 
-- Every request gets one terminal result or error envelope.
+- Every `resource.info`, `resource.bytes`, and `resource.bytesMany` request gets one terminal result or error envelope unless cancelled.
 - `resource.info` is advisory and MUST NOT be a required preflight.
 - `bytesMany.result.items` MUST preserve input order and length.
 - `ok: true` items MUST include `blob` and `mime`.
