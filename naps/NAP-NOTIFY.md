@@ -8,7 +8,8 @@ Shell-Rendered Notifications
 
 **NAP ID:** NAP-NOTIFY
 **Domain:** `notify`
-**Web binding (NIP-5D):** `window.napplet.notify` · `shell.supports("notify")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.notify`; domain presence signals availability.
 
 ## Description
 
@@ -99,7 +100,7 @@ Enumerations:
 
 ## Wire Protocol
 
-`notify.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`notify.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
