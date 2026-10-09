@@ -6,18 +6,18 @@
 
 **NAP ID:** NAP-COUNT
 **Domain:** `count`
-**Depends:**
-- `relay` — capability · required — counts NIP-01 filter matches through relay COUNT support, runtime indexes, or runtime cache.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.count`; domain presence signals availability.
 
 ## Description
 
-NAP-COUNT lets napplets request counts for NIP-01 filters without downloading
+NAP-COUNT lets napplets request counts for [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) filters without downloading
 matching events. It is for counts such as reactions, replies, reposts, quotes,
 reports, and follower totals where event payloads are unnecessary.
 
 The napplet supplies filters. The runtime owns relay choice, COUNT support,
-aggregation, caching, approximation policy, and refusal handling.
+aggregation, caching, approximation policy, and refusal handling. The `count`
+domain has no required NAP dependency. Using a relay as an internal source does
+not require exposing the `relay` domain to the napplet.
 
 ## API Surface
 
@@ -27,50 +27,68 @@ aggregation, caching, approximation policy, and refusal handling.
 
 ### Schemas
 
-```cddl
-CountFilter = {
-  ? ids: [+ tstr],
-  ? authors: [+ tstr],
-  ? kinds: [+ uint],
-  ? since: uint,
-  ? until: uint,
-  ? limit: uint,
-  * tstr => any,
-}
+`CountFilter` fields follow [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md):
 
-CountOptions = {
-  ? approximate: bool,
-  ? hll: bool,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ids` | no | list of text | One or more event IDs in the upstream format. |
+| `authors` | no | list of text | One or more public keys in the upstream format. |
+| `kinds` | no | list of integer | One or more event kind numbers. |
+| `since` | no | integer | Non-negative inclusive lower timestamp bound in seconds. |
+| `until` | no | integer | Non-negative inclusive upper timestamp bound in seconds. |
+| `limit` | no | integer | Non-negative upstream filter limit. |
+| `#<letter>` | no | list of text | One or more tag values; the letter is a single ASCII letter, such as `#e`, `#p`, `#q`, or `#a`. |
 
-CountResult = {
-  ok: bool,
-  ? count: uint,
-  ? approximate: bool,
-  ? hll: tstr,
-  ? relays: [+ tstr],
-  ? error: tstr,
-  ? reason: tstr,
-}
-```
+`CountOptions` fields:
 
-`CountFilter` follows NIP-01; other text-keyed entries are tag filters such as
-`#e`, `#p`, `#q`, or `#a`. Omitted `approximate` and `hll` options default to
-`false`.
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `approximate` | no | boolean | Permit an estimated count. Defaults to false. |
+| `hll` | no | boolean | Request a HyperLogLog (HLL) value when available. Defaults to false. |
+
+Omitting `options` is equivalent to setting both options to false.
+
+`CountResult` MUST be exactly one of `CountSuccess` or `CountFailure`.
+
+`CountSuccess` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | MUST be true. |
+| `count` | yes | integer | Non-negative count; zero is a successful result. |
+| `approximate` | no | boolean | MUST be true for an estimate. Omission means false. |
+| `hll` | no | text | [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md#hll-encoding) HLL value, only when requested and available. |
+| `relays` | no | list of text | One or more relay URLs used, when safe to disclose. Omit when no relay was used. |
+
+A successful result MUST NOT contain `error` or `reason`.
+
+`CountFailure` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | MUST be false. |
+| `error` | yes | text | Non-empty machine-readable error code; see Error Handling. |
+| `reason` | no | text | Human-readable explanation. |
+
+A failed result MUST NOT contain `count`, `approximate`, `hll`, or `relays`.
 
 `filters` MUST be a non-empty list of `CountFilter`, and every list-valued
 field in each filter MUST contain at least one value. Multiple filters are ORed
-and aggregated into one count, matching NIP-45 `COUNT` semantics.
+and aggregated into one count, matching [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) `COUNT` semantics.
 
 ## Operation Rules
 
 | Operation | Rules |
 |-----------|-------|
-| `query` | Counts events matching NIP-01 filters. MUST NOT return event payloads. MAY use NIP-45 `COUNT`, runtime indexes, caches, or other runtime-owned sources. |
+| `query` | Counts events matching [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) filters. MUST NOT return event payloads. MAY use [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) `COUNT`, runtime indexes, caches, or other runtime-owned sources. |
 
-If `options.approximate` is false, the runtime SHOULD return exact counts or
-reject with `"exact-count-unavailable"`. If `options.hll` is true, the runtime
-MAY return a NIP-45-compatible HyperLogLog value when available.
+If `options.approximate` is false, the runtime MUST NOT return an estimated
+count. If it cannot provide an exact count, it MUST reject with
+`"exact-count-unavailable"`. Setting this option to true permits an estimate;
+it does not require one. If `options.hll` is true, the runtime MAY return an HLL
+value compatible with [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md)
+when available. If false, it MUST omit `hll`. Requesting HLL data does not permit
+an estimated `count` unless `options.approximate` is also true.
 
 ## Common Filters
 
@@ -89,10 +107,10 @@ These are examples, not separate methods:
 
 | Concept | NIP tie |
 |---------|---------|
-| `filters` | NIP-01 filter objects. |
-| multiple filters | NIP-45 `COUNT` OR semantics with one aggregated count. |
-| `approximate` | NIP-45 approximate count flag. |
-| `hll` | NIP-45 HyperLogLog response value. |
+| `filters` | [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) filter objects. |
+| multiple filters | [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) `COUNT` OR semantics with one aggregated count. |
+| `approximate` | [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) approximate count flag. |
+| `hll` | [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) HyperLogLog response value. |
 
 ## Wire Protocol
 
@@ -102,6 +120,35 @@ These are examples, not separate methods:
 |------|-----------|----------------|
 | `count.query` | napplet -> runtime | `id`, `filters`, `options?` |
 | `count.query.result` | runtime -> napplet | `id`, `ok`, `count?`, `approximate?`, `hll?`, `relays?`, `error?`, `reason?` |
+
+The runtime MUST respond with the same `id` as the request. Result payloads
+MUST satisfy `CountSuccess` or `CountFailure`; the optional markers in the wire
+table are conditional on that choice, not permission to omit required fields.
+
+### Examples
+
+**Exact count with default options:**
+```json
+{ "type": "count.query", "id": "c1", "filters": [{ "kinds": [1] }] }
+```
+```json
+{ "type": "count.query.result", "id": "c1", "ok": true, "count": 0 }
+```
+
+**Approximation explicitly permitted:**
+```json
+{ "type": "count.query", "id": "c2", "filters": [{ "kinds": [1] }], "options": { "approximate": true } }
+```
+```json
+{ "type": "count.query.result", "id": "c2", "ok": true, "count": 1200, "approximate": true }
+```
+
+**Exact count unavailable for the default request:**
+```json
+{ "type": "count.query.result", "id": "c1", "ok": false, "error": "exact-count-unavailable", "reason": "Only an estimate is available." }
+```
+
+`{ "ok": true }` and `{ "ok": false, "count": 10 }` are invalid results.
 
 ## Error Handling
 
@@ -114,7 +161,7 @@ to fetching large event sets or returning misleading counts.
 
 ## Runtime Behavior
 
-- MUST accept NIP-01 filters and preserve NIP-45 OR semantics for multiple filters.
+- MUST accept [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) filters and preserve [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) OR semantics for multiple filters.
 - MUST NOT return matching event payloads through NAP-COUNT.
 - MUST disclose approximation with `approximate: true`.
 - MUST keep relay selection and aggregation policy runtime-owned.
@@ -146,3 +193,6 @@ to fetching large event sets or returning misleading counts.
 - `8995853` - Renamed the duplicated count operation to `query` / `count.query`.
 
 - `5f7a0df` - Adopted injected-domain availability and linked the current upstream web binding.
+- `c9e0e4c` - Defined false defaults for omitted approximation and HLL options.
+- `b963eb2` - Required non-empty list-valued filter attributes.
+- `c402531` - Specified the full count.query.result response type.
