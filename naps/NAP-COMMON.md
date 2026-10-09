@@ -242,3 +242,5 @@ Result messages use `ok: false` plus `error`. Common errors:
 - `f0cf652` - Renamed NIP-19 result payload `type` to `nip19Type` to avoid [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) envelope collisions.
 - `c52def9` - Added current-follow lookup to the common social action surface.
 - `7973802` - Changed common profile reads to use relay-owned result shape and declared the relay dependency.
+
+- `77ea325` - Adopted injected-domain availability and linked the current upstream web binding.
