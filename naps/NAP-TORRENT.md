@@ -11,7 +11,7 @@
 - `relay` -- capability · required -- searches, reads, comments on, and publishes NIP-35 torrent events through the runtime relay surface.
 - `relay` -- wire · required -- imports `RelayEventResult` for raw NIP-35 event returns.
 - `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
-**Web binding (NIP-5D):** `window.napplet.torrent` · `shell.supports("torrent")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.torrent`; domain presence signals availability.
 
 ## Description
 
@@ -198,7 +198,7 @@ prefixes MAY be preserved.
 
 ## Wire Protocol
 
-`torrent.*` messages use the NIP-5D wire format
+`torrent.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
