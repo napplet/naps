@@ -280,3 +280,5 @@ NAAT-DM names the `dm` handler role. It does not own the NAP-DM payload or API.
 ## Changelog
 
 - `1d67fac` - Introduced NAP-DM as a generic runtime-mediated direct-message surface.
+
+- `4d68392` - Adopted injected-domain availability and linked the current upstream web binding.
