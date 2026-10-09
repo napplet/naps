@@ -196,3 +196,4 @@ to fetching large event sets or returning misleading counts.
 - `c9e0e4c` - Defined false defaults for omitted approximation and HLL options.
 - `b963eb2` - Required non-empty list-valued filter attributes.
 - `c402531` - Specified the full count.query.result response type.
+- `bda6d77` - Removed the required relay dependency, defined exclusive success and failure results, and enforced approximation and HLL option semantics with correlated response examples.
