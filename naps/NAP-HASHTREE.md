@@ -11,7 +11,7 @@
 - `relay` -- capability · required -- resolves and publishes Hashtree root events through the runtime relay surface.
 - `relay` -- wire · required -- imports `RelayEventResult` for resolved mutable-root event returns.
 - `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
-**Web binding (NIP-5D):** `window.napplet.hashtree` · `shell.supports("hashtree")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.hashtree`; domain presence signals availability.
 
 ## Description
 
@@ -194,7 +194,7 @@ encode the tree name as one path segment before appending entry path segments.
 
 ## Wire Protocol
 
-`hashtree.*` messages use the NIP-5D wire format
+`hashtree.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
