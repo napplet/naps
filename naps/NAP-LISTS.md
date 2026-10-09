@@ -9,7 +9,7 @@
 **Depends:**
 - `identity` — capability · required — list mutations use the current shell-user identity as event author.
 - `relay` — capability · required — reads and publishes NIP-51 and NIP-65 list events.
-**Web binding (NIP-5D):** `window.napplet.lists` · `shell.supports("lists")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.lists`; domain presence signals availability.
 
 ## Description
 
@@ -140,7 +140,7 @@ list. Napplets SHOULD NOT need to know whether the item is encoded as `"p"`,
 
 ## Wire Protocol
 
-`lists.*` messages use NIP-5D wire format: `{ "type": "domain.action", ...payload }`.
+`lists.*` messages use [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format: `{ "type": "domain.action", ...payload }`.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
