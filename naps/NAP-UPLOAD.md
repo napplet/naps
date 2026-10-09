@@ -10,7 +10,7 @@ Media and Blob Upload
 **Domain:** `upload`
 **Depends:**
 - `relay` — capability · optional — a napplet may publish the resulting file event via `relay`
-**Web binding (NIP-5D):** `window.napplet.upload` · `shell.supports("upload")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.upload`; domain presence signals availability.
 
 ## Description
 
@@ -130,7 +130,7 @@ Enumerations:
 
 ## Wire Protocol
 
-`upload.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`upload.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
