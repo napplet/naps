@@ -291,3 +291,4 @@ SHOULD pass canonical URL strings.
 - `2b61364` - Limited terminal-response requirements to operations with result/error envelopes and exempted cancellation.
 - `c5eda99` - Made SVG rasterization isolation host-neutral.
 - `c0cffe4` - Required equivalent data-URL policy checks in the shim and runtime.
+- `2c8fc73` - Required enforced projection network isolation, standardized base64 wire bytes and web Blob conversion, specified Hashtree reference forms, and deferred concrete sidecar carrier attachments.
