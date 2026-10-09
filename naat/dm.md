@@ -1,6 +1,6 @@
 # NAAT-DM · `dm`
 
-**Recommended open contract:** NAP-3 (`chat:open-dm`)
+**Recommended open contract:** `napplet:dm/open`
 **Actions:** open
 
 A napplet that opens a direct-message conversation with a specific person.
@@ -10,5 +10,5 @@ A napplet that opens a direct-message conversation with a specific person.
 - **Distinct from:** `profile` (conversing vs. viewing) · public chat (private vs. open).
 
 > A NAAT file is this fixed schema and nothing else. Anything that wants to grow —
-> payload detail, lifecycle, action-specific wire — belongs in a NAP-N spec, not here.
+> payload detail, lifecycle, action-specific wire — belongs in conventions, not here.
 > See [../ARCHETYPES.md](../ARCHETYPES.md) for the registry and [../naps/NAP-INTENT.md](../naps/NAP-INTENT.md) for how roles are opened.
