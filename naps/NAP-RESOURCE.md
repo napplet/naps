@@ -141,7 +141,7 @@ still passes through scheme dispatch and policy checks.
 |--------|-------|------|
 | Private IP block | MUST | Enforce after DNS resolution and before connection. Re-check every redirect. Block RFC1918, loopback, link-local, ULA, and `169.254.169.254`. |
 | MIME sniffing | MUST | Classify bytes by sniffing. Enforce scheme-appropriate allowlists. Never pass upstream `Content-Type` through. |
-| SVG rasterization | MUST | Raw `image/svg+xml` MUST NOT be delivered. Rasterize to PNG/WebP in a no-network sandboxed Worker. |
+| SVG rasterization | MUST | Raw `image/svg+xml` MUST NOT be delivered. Rasterize to PNG/WebP in an isolated execution context with no network access. |
 | Blossom hash check | MUST | Hash mismatch returns `decode-failed`. |
 | Hashtree verification | MUST | `htree:` results verify the resolved root, tree nodes, chunks, and CHK decryption before delivery. Hash/key mismatch returns `decode-failed`. |
 | Response size cap | SHOULD | Recommended 10 MiB. Exceed returns `too-large`. |
