@@ -31,13 +31,17 @@ Stronger napplets can still choose shell-owned playback when they want shell pol
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `createSession` | `options` (`MediaSessionCreate`) | `MediaSessionResult` | `media.createSession` / `media.createSession.result` |
-| `updateSession` | `sessionId` (`tstr`), partial `metadata` (`MediaMetadata`) | none | `media.updateSession` |
-| `destroySession` | `sessionId` (`tstr`) | none | `media.destroySession` |
-| `reportState` | `sessionId` (`tstr`), `state` (`MediaState`) | none | `media.reportState` |
-| `reportCapabilities` | `sessionId` (`tstr`), `actions` (list of `MediaAction`) | none | `media.reportCapabilities` |
-| `onCommand` | `sessionId` (`tstr`), handler for `MediaCommand` | `Subscription` handle | `media.command` |
-| `onControls` | `sessionId` (`tstr`), handler for list of `MediaAction` | `Subscription` handle | `media.controls` |
+| `createSession` | `options` (`MediaSessionCreate`) | `MediaSessionResult` | `media.session.create` / `media.session.create.result` |
+| `updateSession` | `sessionId` (`text`), partial `metadata` (`MediaMetadata`) | none | `media.session.update` |
+| `destroySession` | `sessionId` (`text`) | none | `media.session.destroy` |
+| `reportState` | `sessionId` (`text`), `state` (`MediaState`) | none | `media.state` |
+| `reportCapabilities` | `sessionId` (`text`), `actions` (list of `MediaAction`) | none | `media.capabilities` |
+| `command` | `sessionId` (`text`), command (`MediaCommand`) | none | `media.command` |
+| `onState` | `sessionId` (`text`), handler for `MediaState` | `Subscription` handle | `media.state` |
+| `onCapabilities` | `sessionId` (`text`), handler for list of `MediaAction` | `Subscription` handle | `media.capabilities` |
+| `onCommand` | `sessionId` (`text`), handler for `MediaCommand` | `Subscription` handle | `media.command` |
+| `onControls` | `sessionId` (`text`), handler for list of `MediaAction` | `Subscription` handle | `media.controls` |
+| `onEnded` | `sessionId` (`text`), handler for `MediaSessionEnded` | `Subscription` handle | `media.session.ended` |
 
 ### Schemas
 
@@ -103,39 +107,68 @@ network policy governs external loads; an opaque sandbox origin alone does not
 block network requests. If the optional `resource` domain is unavailable,
 napplets SHOULD omit remote artwork or use local placeholders. Standard NAP-RESOURCE policy applies (private-IP block list at DNS-resolution time, MIME byte-sniffing, SVG rasterization, etc.).
 
-```cddl
-MediaState = {
-  status: "playing" / "paused" / "stopped" / "buffering",
-  ? position: number,
-  ? duration: number,
-  ? volume: number,
-}
+`MediaState` fields:
 
-MediaCommand = {
-  action: MediaAction,
-  ? value: number,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `status` | yes | "playing", "paused", "stopped", or "buffering" | Playback state within an active session. |
+| `position` | no | number | Playback position in seconds. |
+| `duration` | no | number | Duration in seconds. |
+| `volume` | no | number | Volume from 0.0 to 1.0. |
+| `reason` | no | text | Cause of this transition; see Transition reasons. |
 
-MediaSessionResult = {
-  ? sessionId: tstr,
-  ? owner: MediaPlaybackOwner,
-  ? error: tstr,
-}
-```
+`MediaCommand` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `action` | yes | `MediaAction` | Requested playback action. |
+| `value` | no | number | Seek position or volume, as required by the action. |
+| `reason` | no | text | Cause of the command; does not grant authority. |
+
+`MediaSessionEnded` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `sessionId` | yes | text | Canonical identifier of the retired session. |
+| `reason` | yes | text | Why the shell retired the session. |
+
+`MediaSessionResult` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `sessionId` | conditional | text | Required on successful creation. |
+| `owner` | conditional | `MediaPlaybackOwner` | Required on successful creation. |
+| `error` | no | text | Creation failure; no session was created. |
 
 **`createSession(options)`** -- Creates a new media session. The napplet MUST set `owner` to `"shell"` or `"napplet"`. For shell-owned sessions, `source` is required and the shell fetches/plays it. For napplet-owned sessions, `source` is optional and advisory; the napplet owns playback inside its frame. The napplet MAY provide a preferred `sessionId`, metadata, context, initial capabilities, `autoplay`, and `live`. Returns the shell-canonical `sessionId` and owner. The shell MAY reject session creation (e.g., invalid source, unsupported owner mode, or session limit exceeded).
 
 **`updateSession(sessionId, metadata)`** -- Updates metadata for an existing session. Partial updates are supported -- only the fields provided are changed. Fire-and-forget.
 
-**`destroySession(sessionId)`** -- Destroys a session. The shell removes it from the media control surface. Fire-and-forget.
+**`destroySession(sessionId)`** -- Requests session retirement. The shell removes
+it from the media control surface and sends `media.session.ended` with reason
+`destroyed`. The request is fire-and-forget; the terminal notification has no
+request correlation id.
 
-**`reportState(sessionId, state)`** -- Reports the current playback state for a napplet-owned session. The playback owner sends state whenever it changes (play/pause/stop/buffer transitions, position updates, volume changes). Fire-and-forget, high frequency during active playback.
+**`reportState(sessionId, state)`** -- Reports the current playback state for a napplet-owned session. The playback owner sends state whenever it changes, including transition reasons when known (see Transition reasons). Fire-and-forget, high frequency during active playback.
 
 **`reportCapabilities(sessionId, actions)`** -- Declares which media actions a napplet-owned session currently supports. Capabilities are dynamic -- a streaming source may not support `seek` initially but add it once buffered. The shell uses this to enable/disable media control buttons. Fire-and-forget.
 
-**`onCommand(sessionId, callback)`** -- Listens for media commands from the shell for a napplet-owned session. The shell sends commands based on its media control UI (user presses play, adjusts volume slider, etc.). The `value` parameter is used for `seek` (position in seconds) and `volume` (0.0 to 1.0). Returns a Subscription with `close()`.
+**`onCommand(sessionId, callback)`** -- Listens for media commands from the shell for a napplet-owned session. The shell sends commands based on user interaction or audio policy; `reason` distinguishes their causes. The `value` parameter is used for `seek` (position in seconds) and `volume` (0.0 to 1.0). Returns a Subscription with `close()`.
 
 **`onControls(sessionId, callback)`** -- Listens for the shell's control list. The shell tells the napplet which controls the shell supports, so the napplet can adapt its own UI (e.g., hide a next/prev button if the shell does not support it). Returns a Subscription with `close()`.
+
+**`command(sessionId, command)`** — Requests an allowed action on shell-owned
+playback. It cannot revive a retired session or change playback ownership.
+
+**`onState(sessionId, callback)`** and **`onCapabilities(sessionId, callback)`** —
+Receive authoritative state and supported actions for shell-owned playback.
+
+**`onEnded(sessionId, callback)`** — Receives terminal retirement for either
+owner mode. The binding MUST retain the terminal record until the napplet
+endpoint is destroyed. A handler registered after retirement MUST receive it
+once. Retirement MUST stop further state, capability, control, and command
+callbacks for that session. A napplet-owned player MUST stop its output and
+release session resources when it receives retirement.
 
 ## Wire Protocol
 
@@ -147,9 +180,10 @@ MediaSessionResult = {
 | `media.session.create.result` | shell -> napplet | `id`, `sessionId?`, `owner?`, `error?` |
 | `media.session.update` | napplet -> shell | `sessionId`, `metadata` |
 | `media.session.destroy` | napplet -> shell | `sessionId` |
-| `media.state` | owner -> peer | `sessionId`, `status`, `position?`, `duration?`, `volume?` |
+| `media.session.ended` | shell -> napplet | `sessionId`, `reason` |
+| `media.state` | owner -> peer | `sessionId`, `status`, `position?`, `duration?`, `volume?`, `reason?` |
 | `media.capabilities` | owner -> peer | `sessionId`, `actions` |
-| `media.command` | controller -> owner | `sessionId`, `action`, `value?` |
+| `media.command` | controller -> owner | `sessionId`, `action`, `value?`, `reason?` |
 | `media.controls` | shell -> napplet | `sessionId`, `controls` |
 
 Key design notes:
@@ -160,6 +194,7 @@ Key design notes:
 - `media.session.update`, `media.session.destroy`, `media.state`, and `media.capabilities` are fire-and-forget (no `id` correlation).
 - For napplet-owned sessions, `media.state` and `media.capabilities` are napplet -> shell, and `media.command` is shell -> napplet.
 - For shell-owned sessions, `media.state` and `media.capabilities` are shell -> napplet, and `media.command` is napplet -> shell when the napplet requests an allowed playback action.
+- `media.session.ended` is a shell-initiated terminal notification with no `id` correlation.
 - `media.controls` is shell-initiated. The shell pushes its supported control list so the napplet can adapt its UI.
 - Multiple sessions per napplet are supported. Each session is identified by `sessionId`.
 - Volume handling is owner-specific. For napplet-owned sessions, the napplet reports its own volume via `media.state`, and the shell can request volume changes via `media.command` with `action: 'volume'`. The effective volume may be the product of napplet volume and shell policy volume. For shell-owned sessions, the shell owns output volume and reports it in `media.state`.
@@ -169,6 +204,89 @@ Key design notes:
 The napplet MAY include `sessionId` in `media.session.create` as a stable client-generated hint. The shell MUST return the canonical `sessionId` in `media.session.create.result`. The canonical id MAY equal the napplet-supplied value, or it MAY be rewritten to avoid collisions, enforce namespace policy, or bind the id to the napplet identity.
 
 All later messages MUST use the canonical `sessionId`. Messages that use the pre-canonical hint after creation SHOULD be treated as unknown-session messages.
+
+### Transition reasons
+
+`reason` explains a transition or command; it does not determine session
+existence. Only `media.session.ended` retires a session. Missing or unrecognized
+reasons MUST be treated as unspecified causes, while still processing the
+message's status, action, or terminal meaning. Receivers MUST NOT infer natural
+completion or permission to resume from `stopped` or `paused` alone.
+
+| Reason | Meaning |
+|--------|---------|
+| `user` | The user acted in the shell, player, or napplet UI. |
+| `ended` | The current source completed naturally. |
+| `error` | Playback failed. |
+| `preempted` | Another session permanently took this session's output. |
+| `focus-lost` | The shell or platform temporarily withdrew audio focus. |
+| `focus-gained` | The shell permits playback to resume after focus returns. |
+| `destroyed` | The napplet requested session destruction. |
+| `backend-exited` | The playback backend exited without a more specific known cause. |
+| `policy` | The shell revoked the session under its policy. |
+
+Playback owners SHOULD include the known reason on state transitions. A natural
+completion that leaves the session usable MUST be reported as `status: "stopped"`
+with `reason: "ended"`; user stop and playback failure use `user` and `error`
+respectively when known. An ended track does not by itself retire the session.
+If the shell retires the session for that completion instead, it MUST send
+`media.session.ended` with reason `ended` as the sole notification of that
+completion. Consumers MUST NOT interpret other reasons as natural completion.
+
+For an active session, a later `play` remains subject to advertised capabilities
+and shell policy. An empty capability list disables actions; it MUST NOT be used
+as a substitute for session retirement.
+
+### Session retirement and preemption
+
+The shell MAY retire either owner mode under policy. It MUST retire a session
+when it permanently reallocates that session's output to another session, or
+when its playback backend exits and it will not preserve a usable session.
+Permanent output replacement uses reason `preempted`. Backend exit uses the
+known cause (`user`, `ended`, or `error`), or `backend-exited` when unknown.
+
+Before notifying retirement, the shell MUST remove the session from dispatch
+and stop or revoke its output authority. It MUST send exactly one
+`media.session.ended` for that session to its still-live napplet endpoint.
+Any already-enqueued state, capability, control, or command messages MUST
+precede the terminal notification. The shell MUST NOT send further state, capabilities, controls,
+or commands for the retired session. The binding MUST discard late messages
+for it and retain the terminal record for `onEnded`.
+
+For a newly created session, a successful creation result MUST precede any
+terminal notification. Failed creation produces no retirement notification.
+Retired identifiers MUST NOT be reused during the napplet endpoint's lifetime,
+even when a later creation requests the same preferred identifier.
+
+Messages targeting retired sessions, including `play`, MUST be silently ignored
+as unknown-session messages. They MUST NOT reacquire output or preempt another
+session. Playing again requires successful creation of a new session. The shell
+MUST continue enforcing consent, autoplay, and audio-focus policy on creation.
+
+Endpoint destruction requires cleanup but no notification to the dead endpoint.
+Shell-promoted persistent playback MUST first detach from the destroyed endpoint;
+its former session identifier MUST NOT become usable by a replacement endpoint.
+
+### Temporary audio-focus loss
+
+Temporary focus loss keeps the session alive. For shell-owned playback, the
+shell MUST report a focus-induced pause as `media.state` with `status: "paused"`
+and `reason: "focus-lost"`. For napplet-owned playback, the shell MUST identify
+a focus-induced pause command with `reason: "focus-lost"`. The napplet MUST pause
+and report its actual state. The reason does not transfer playback ownership.
+A napplet-owned session MUST support `pause` if it produces pausable output;
+otherwise the shell MUST revoke output and retire the session under policy.
+
+A napplet MUST NOT resume automatically merely because its window regains focus.
+For napplet-owned playback, automatic resumption requires a shell `play` command
+with `reason: "focus-gained"`. The shell MAY issue that command only when the
+session was playing before the focus-induced pause and no later user pause,
+stop, retirement, or playback failure superseded it. The napplet MUST ignore
+that automatic-resume command if its own subsequent user action or playback
+failure superseded the focus pause. For shell-owned playback, the shell applies
+the same conditions and reports resumed playback with reason `focus-gained`.
+User-requested play remains subject to ordinary shell policy. A focus transition
+MUST NOT revive a retired session.
 
 ### Source References
 
@@ -264,7 +382,29 @@ All metadata fields are optional. The `artwork` field supports two forms:
 **Destroy a session:**
 ```
 -> { "type": "media.session.destroy", "sessionId": "s1" }
+<- { "type": "media.session.ended", "sessionId": "s1", "reason": "destroyed" }
 ```
+
+**Track completes; the session remains usable:**
+```
+<- { "type": "media.state", "sessionId": "shell-7", "status": "stopped", "reason": "ended" }
+```
+
+**Another session takes the shared player; the old session is retired:**
+```
+<- { "type": "media.session.ended", "sessionId": "shell-7", "reason": "preempted" }
+-> { "type": "media.command", "sessionId": "shell-7", "action": "play" }
+```
+The stale command is silently ignored. A new session is required to play again.
+
+**Temporary focus loss and permitted resumption of napplet-owned playback:**
+```
+<- { "type": "media.command", "sessionId": "s2", "action": "pause", "reason": "focus-lost" }
+-> { "type": "media.state", "sessionId": "s2", "status": "paused", "reason": "focus-lost" }
+<- { "type": "media.command", "sessionId": "s2", "action": "play", "reason": "focus-gained" }
+```
+The resume command is valid only if no intervening user action or failure
+superseded the focus pause.
 
 **Session creation rejected:**
 ```
@@ -287,7 +427,8 @@ Commands that are not valid for the current owner mode, source, or capabilities 
 - The shell MUST reject `media.session.create` messages without `owner`.
 - The shell MUST reject `owner: "shell"` creation when `source` is missing or blocked by policy.
 - The shell MUST return the canonical `sessionId` in `media.session.create.result`.
-- The shell MUST track active sessions per napplet and remove them on `media.session.destroy` or when the napplet iframe is removed.
+- The shell MUST track active sessions per napplet and apply Session retirement
+  and preemption on destruction, output replacement, and terminal backend exit.
 - The shell SHOULD display media controls (play/pause, skip, volume) for active sessions based on the napplet's reported capabilities.
 - The shell SHOULD update its media control UI in response to `media.state` messages.
 - The shell MAY send `media.command` messages to control napplet playback based on user interaction with the shell's media controls.
@@ -301,13 +442,16 @@ Commands that are not valid for the current owner mode, source, or capabilities 
 - The shell MAY limit the number of concurrent sessions per napplet.
 - The shell MAY enforce ACL checks on `media` capabilities (e.g., restricting which napplets can create media sessions).
 - The shell MUST silently ignore messages from unknown session IDs.
-- The shell MUST clean up all sessions for a napplet when the napplet's iframe is removed.
+- On endpoint removal, the shell MUST clean up all sessions still bound to it.
+  Explicitly detached persistent playback follows the persistence policy above.
 
 ## Command Validity
 
 For napplet-owned sessions:
 
-- The shell SHOULD only send commands listed in the napplet's current `media.capabilities`.
+- The shell SHOULD only send commands listed in the napplet's current
+  `media.capabilities`. Focus withdrawal follows Temporary audio-focus loss;
+  unsupported pause MUST NOT leave revoked output playing.
 - The napplet SHOULD ignore commands it does not currently support.
 - `seek` MUST include `value` as a position in seconds.
 - `volume` MUST include `value` from `0.0` to `1.0`.
@@ -329,6 +473,9 @@ For shell-owned sessions:
 - Blossom artwork hashes allow the shell to resolve artwork through its own Blossom infrastructure without the napplet needing network access. The shell controls which Blossom servers are queried.
 - For napplet-owned sessions, volume control is advisory -- the napplet controls actual audio output. A malicious napplet could ignore volume commands. The shell MAY enforce volume limits at the iframe level using the Web Audio API or iframe attribute policies if available. For shell-owned sessions, the shell controls actual output volume.
 - Session creation is rate-limited by the shell. A napplet that creates excessive sessions can be throttled or denied.
+- Transition reasons are explanatory metadata, not authorization. The shell
+  MUST NOT let a caller-supplied reason bypass ownership, capability, autoplay,
+  or audio-focus checks.
 - The `media.command` message allows the shell to control napplet behavior. The napplet trusts the shell ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) security model) but SHOULD validate the `action` against its declared capabilities.
 
 ## Implementations
