@@ -258,3 +258,5 @@ device information. The runtime is the policy boundary.
 ## Changelog
 
 - `85f6ddb` - Introduced NAP-SERIAL as a portable serial access surface.
+
+- `a26e4de` - Adopted injected-domain availability and linked the current upstream web binding.
