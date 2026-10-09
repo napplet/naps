@@ -350,3 +350,5 @@ A timeout or cancel ends the job with `state: "error"` / `"cancelled"`, emits `p
 ## Changelog
 
 - `f01fb31` - Introduced NAP-POW as a runtime-owned NIP-13 proof-of-work miner surface.
+
+- `fbedfa2` - Adopted injected-domain availability and linked the current upstream web binding.
