@@ -25,11 +25,11 @@ This file is the **registry** — the index of every archetype. Each archetype's
      const { available } = await napplet.intent.available("pet");
      if (available) showButton();
    }
-   napplet.intent.open("pet", { /* payload, if a handler advertises one */ });
+   napplet.intent.open("napplet:pet/open", { payload: { /* if a handler advertises one */ } });
    ```
    The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
 
-3. The **slug** (`note`) is the identifier used everywhere — in the manifest tag and in `intent.open(archetype)`. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
+3. The **slug** (`note`) identifies the role in the manifest tag and `intent.available(archetype)`. The convention URI identifies the action for `intent.open(uri)`. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
 
 ## Archetype vs. convention
 
