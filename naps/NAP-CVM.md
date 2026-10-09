@@ -352,3 +352,5 @@ Registry errors add `"family not found"`, `"schema mismatch"`, `"provider unavai
 
 - `e001eaf` - Introduced NAP-CVM as a native ContextVM bridge.
 - `1873f7e` - Added a runtime registry facade for discovering CVM surfaces.
+
+- `69d6bbd` - Adopted injected-domain availability and linked the current upstream web binding.
