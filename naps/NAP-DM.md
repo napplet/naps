@@ -8,7 +8,8 @@ Direct Messages
 
 **NAP ID:** NAP-DM
 **Domain:** `dm`
-**Web binding (NIP-5D):** `window.napplet.dm` · `shell.supports("dm")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.dm`; domain presence signals availability.
 
 ## Description
 
@@ -174,7 +175,7 @@ MAY deliver messages for all conversations visible to the napplet.
 
 ## Wire Protocol
 
-`dm.*` messages use the NIP-5D wire format
+`dm.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
