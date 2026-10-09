@@ -10,7 +10,7 @@ Read-Only User Identity Queries
 **Domain:** `identity`
 **Depends:**
 - `resource` — capability · optional — `picture` / `banner` URL bytes are fetched via `resource.bytes`
-**Web binding (NIP-5D):** `window.napplet.identity` · `shell.supports("identity")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.identity`; domain presence signals availability.
 
 ## Description
 
@@ -18,7 +18,11 @@ NAP-IDENTITY provides read-only access to the shell-user identity: the currently
 
 Napplets do not have direct access to the user's private key. They cannot sign events, encrypt, or decrypt. Identity queries are strictly read-only -- napplets learn *about* the user but cannot act *as* the user. Signing is delegated to the shell via `relay.publish()` (NAP-RELAY). Encryption is delegated via `relay.publishEncrypted()`.
 
-This shell-user identity is distinct from the NIP-5D napplet session identity. The session identity is assigned by the shell at iframe creation from the NIP-5A `(dTag, aggregateHash)` / `MessageEvent.source` binding and is never negotiated by the napplet. NAP-IDENTITY only reports the user's connected signer identity.
+This shell-user identity is distinct from napplet identity. The runtime binds
+an authenticated endpoint to its verified manifest and artifact before execution,
+as defined by the [web projection](../projections/web.md). NAP-IDENTITY only
+reports the user's connected signer identity; it does not establish or change
+the napplet's identity.
 
 ## API Surface
 
@@ -59,7 +63,12 @@ This shell-user identity is distinct from the NIP-5D napplet session identity. T
 | `lud16` | no | text |
 | `website` | no | text |
 
-**Resource resolution.** The `picture` and `banner` fields are URL strings. Napplets that need the bytes (for example, to render an `<img>` via an object URL) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. Napplets MUST NOT attempt direct `<img src="https://...">` loads — sandboxed napplets cannot make direct network requests under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`). Conformant shells expose every external byte resource through NAP-RESOURCE, including profile pictures and banners. The shell applies the standard NAP-RESOURCE policy to these fetches (private-IP block list at DNS-resolution time, MIME byte-sniffing, optional SVG rasterization, etc.).
+**Resource resolution.** `picture` and `banner` are URL strings. Napplets that
+need their bytes MUST use `resource.bytes` when the optional `resource` domain
+is exposed, and SHOULD use local placeholder artwork when it is absent. The
+[web projection](../projections/web.md) applies the runtime's network policy;
+an opaque sandbox origin alone does not block network requests. URLs do not
+grant network authority. Standard resource policy applies to mediated fetches.
 
 `ZapReceipt` fields:
 
@@ -103,7 +112,7 @@ This shell-user identity is distinct from the NIP-5D napplet session identity. T
 
 ## Wire Protocol
 
-`identity.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`identity.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -241,7 +250,7 @@ Result messages include an `error` field (string) when the shell cannot fulfill 
 ## Security Considerations
 
 - NAP-IDENTITY is strictly read-only. No method modifies user state, signs events, or performs cryptographic operations.
-- `identity.changed` reports only the shell-user identity. It does not change or renegotiate the napplet's NIP-5D session identity.
+- `identity.changed` reports only the shell-user identity. It does not change or renegotiate the napplet's [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) session identity.
 - The user's public key is not secret, but follow lists, mute lists, and block lists reveal social graph information. Shells MAY restrict access to sensitive lists based on napplet trust level.
 - Zap receipts reveal financial information. Shells SHOULD consider whether to expose zap data to all napplets or restrict it to trusted napplets.
 - Profile data may contain URLs (picture, banner, website). Napplets that render these URLs should sanitize them. The shell is not responsible for sanitizing profile content.
@@ -251,3 +260,8 @@ Result messages include an `error` field (string) when the shell cannot fulfill 
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `a802d35` - Introduced read-only user identity queries and optional resource fetching.
+- `06b1a1a` - Adopted injected-domain availability, verified manifest and artifact identity, and graceful fallback for optional resource fetching.
