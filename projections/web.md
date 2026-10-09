@@ -17,7 +17,7 @@ schemas, error models, trust boundaries) do not change between projections.
 |---------|----------------|
 | Host | Napplets run as `sandbox="allow-scripts"` iframes |
 | Carrier | Messages travel over `postMessage` |
-| Surface | Capabilities appear on a `window.napplet.*` object |
+| Surface | Capabilities and convention URI transposition appear on `window.napplet.*` |
 | Discovery | `shell.supports("<domain>")` |
 | Identity | Runtime verifies `MessageEvent.source` and binds each message to a napplet |
 
@@ -42,6 +42,22 @@ are delivered by `postMessage`:
 -> { "type": "relay.publish", "id": "a1", "event": { … } }   // napplet → shell
 <- { "type": "relay.publish.result", "id": "a1", "ok": true } // shell → napplet
 ```
+
+## Convention URI binding
+
+A developer MAY pass
+`napplet:<archetype>/<intent>[...?params]` to a `window.napplet.*` operation that
+accepts a convention URI. Before `postMessage`, the web binding:
+
+1. removes the query from the stable convention identity,
+2. percent-decodes each unique `name=value` pair as text, and
+3. places those pairs in the operation's payload object.
+
+The binding MUST NOT coerce scalar types or apply form-encoding semantics: `+`
+is a literal plus sign. It MUST reject fragments, malformed percent-encoding,
+repeated names, and a query combined with an explicit payload before sending a
+message. The shell receives normalized identity and payload fields. Routing and
+handler resolution use exact equality over the queryless identity.
 
 ## Identity & trust
 

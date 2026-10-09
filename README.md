@@ -32,7 +32,7 @@ contracts.
 | **Domain** | A capability's short name (`relay`, `intent`); how a NAP is referenced and discovered. |
 | **Projection** (binding) | A mapping of the seam onto one concrete host (web, native, WASM, …). |
 | **NAP-WORD** | An interface spec — an API the runtime offers. One canonical spec per name. |
-| **Convention** | An unnumbered message shape napplets agree to use. Usually named as `napplet:<archetype>/<intent>[...?params]`, e.g. `napplet:note/open`. Not a NAP. |
+| **Convention** | An unnumbered message shape napplets agree to use. Its stable identity is `napplet:<archetype>/<intent>`; a developer-facing invocation MAY append `?params`, which the runtime binding transposes into payload data. Not a NAP. |
 | **NAAT** | A *Napplet Archetype*: a canonical role name (`note`, `feed`) with a boundary. Not a NAP. |
 
 ## What is a napplet?
@@ -85,7 +85,7 @@ same contract everywhere; only the host idiom changes.
 
 | Projection | Status | Spec |
 |------------|--------|------|
-| **Web** — iframes + `postMessage`, capabilities on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
+| **Web** — iframes + `postMessage`, URI-to-payload binding on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
 | WASM (host imports) | Possible | — |
 
@@ -164,24 +164,32 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
+| [NAP-DISPLAY](https://github.com/napplet/naps/pull/97) | `display` |  | — | Runtime-controlled pixel displays (list, push) | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CONNECT](https://github.com/napplet/naps/pull/19)* | *`connect`* |  | *—* | *User-gated direct network access* | *Deferred* |
 
 ### Conventions — message shapes (*what napplets say to each other*)
 
-Cross-napplet message shapes are unnumbered conventions. They are named as
-`napplet:<archetype>/<intent>[...?params]`, such as `napplet:profile/open`,
+Cross-napplet message shapes are unnumbered conventions. Their stable identities
+are named as `napplet:<archetype>/<intent>`, such as `napplet:profile/open`,
 `napplet:note/open`, `napplet:dm/open`, `napplet:feed/open`, or
-`napplet:stream/switch`. Napplets converge by using the same topic names and
-payload fields. The registry does not assign sequence numbers for them.
+`napplet:stream/switch`. The registry does not assign sequence numbers for them.
 
-In a convention exchange the **producer** is the napplet that emits a topic and
-the **consumer** is the napplet that receives and acts on it, reached directly or,
-by archetype, via the runtime.
+A developer invokes a convention as
+`napplet:<archetype>/<intent>[...?params]`. The query is shallow payload sugar,
+not part of the convention identity. The runtime-provided binding transposes
+query parameters into text payload fields before routing or handler resolution.
+Structured or non-text data uses the explicit payload. Routers match only the
+resulting stable identity, by exact equality.
 
-A convention that shapes an archetype open payload is advertised on the
-archetype tag and by `intent.available()` handler metadata. No registry edit is
-required before two napplets can try a compatible payload.
+In a convention exchange the **producer** is the napplet that invokes the
+convention and the **consumer** is the napplet that receives and acts on it,
+reached directly or, by archetype, via the runtime.
+
+A convention that shapes an archetype open payload is advertised by its stable,
+queryless identity on the archetype tag and in `intent.available()` handler
+metadata. No registry edit is required before two napplets can try a compatible
+payload.
 
 ### NAAT — archetypes (*what kind of napplet this is*)
 
@@ -208,8 +216,7 @@ NIP-style informal process:
   contract. Templates and registries (`README.md`, `ARCHETYPES.md`) stay at the
   repo root.
 - Community discusses via PR comments.
-- Maintainer (dskvr) merges when the spec makes sense and has at least one
-  implementation.
+- Maintainers merge when the spec has been implemented, defended and has stabilized.
 - No formal stages, review committees, or voting.
 - NAP-WORD names and NAAT slugs are first-come-first-served but must be approved
   by the maintainer.
