@@ -309,3 +309,5 @@ media availability, and service health.
 
 - `58a8d69` - Introduced NAP-SYSTEM as a read-only runtime diagnostics surface.
 - `840acf1` - Removed browser-specific storage diagnostics so NAP-SYSTEM stays projection-neutral.
+
+- `149e5a4` - Adopted injected-domain availability and linked the current upstream web binding.
