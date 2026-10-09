@@ -16,38 +16,50 @@ NAP-THEME provides napplets with read-only access to the shell's active theme. T
 
 ## API Surface
 
-```typescript
-interface ThemeColors {
-  background: string;  // hex color, e.g. "#1a1a2e"
-  text: string;        // hex color
-  primary: string;     // hex color
-}
+| Operation | Parameters | Result | Wire |
+|-----------|------------|--------|------|
+| `get` | none | `Theme` | `theme.get` / `theme.get.result` |
 
-interface ThemeFont {
-  name: string;        // font family name
-  url: string;         // URL to font file (woff2, etc.)
-}
+### Schemas
 
-interface ThemeBackground {
-  url: string;         // URL to background image/media
-  mode: string;        // CSS background-size value, e.g. "cover"
-  mime: string;        // MIME type, e.g. "image/jpeg"
-}
+`ThemeColors` fields:
 
-interface Theme {
-  colors: ThemeColors;                // required
-  fonts?: {                           // optional
-    body?: ThemeFont;
-    title?: ThemeFont;
-  };
-  background?: ThemeBackground;       // optional
-  title?: string;                     // optional — human-readable theme name
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `background` | yes | text | Hex color, e.g. `#1a1a2e`. |
+| `text` | yes | text | Hex color. |
+| `primary` | yes | text | Hex color. |
 
-interface NappletTheme {
-  get(): Promise<Theme>;              // via theme.get / theme.get.result
-}
-```
+`ThemeFont` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `name` | yes | text | Font family name. |
+| `url` | yes | text | URL to font file. |
+
+`ThemeBackground` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `url` | yes | text | URL to background image or media. |
+| `mode` | yes | text | CSS background-size value, e.g. `cover`. |
+| `mime` | yes | text | MIME type, e.g. `image/jpeg`. |
+
+`ThemeFonts` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `body` | no | `ThemeFont` |
+| `title` | no | `ThemeFont` |
+
+`Theme` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `colors` | yes | `ThemeColors` | Active color set. |
+| `fonts` | no | `ThemeFonts` | Optional font set. |
+| `background` | no | `ThemeBackground` | Optional background media. |
+| `title` | no | text | Human-readable theme name. |
 
 `theme.changed` is received as a message event, not via a method call. Napplets listen for it via the standard `postMessage` listener. There is no subscribe or unsubscribe mechanism — change notifications are automatic for all napplets that support NAP-THEME.
 
