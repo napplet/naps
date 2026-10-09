@@ -1,57 +1,46 @@
 NAP-SHELL
 =========
 
-Bootstrap Handshake & Capability Negotiation
---------------------------------------------
+Optional Shell Environment and Readiness
+---------------------------------------
 
 `draft`
 
 **NAP ID:** NAP-SHELL
 **Domain:** `shell`
-**Required:** Mandatory — every conformant runtime MUST implement NAP-SHELL.
-**Web binding (NIP-5D):** `window.napplet.shell`
-
-> NAP-SHELL is the **foundational** capability: it defines `shell.supports()`
-> itself and is therefore the one NAP that cannot be discovered through
-> `shell.supports()`. Every runtime that implements any NAP implements NAP-SHELL
-> unconditionally, and a napplet MAY assume it is present.
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.shell`; domain presence signals availability.
 
 ## Description
 
-Before a napplet can use any capability, two things must be true that neither
-side can know on its own: the runtime must learn **when the napplet is ready to
-receive messages**, and the napplet must learn **what the runtime offers**. The
-napplet cannot enumerate the runtime's capabilities until told; the runtime
-cannot deliver that list until the napplet's receiver is live. NAP-SHELL is the
-two-message handshake that resolves this bootstrap dependency.
+NAP-SHELL exposes optional shell environment information and readiness
+notifications. It is not a prerequisite for other domains. In the
+[web projection](../projections/web.md), the runtime injects granted domain
+objects before napplet scripts run. A napplet discovers a domain by its presence;
+no handshake establishes identity or grants capabilities.
 
-The napplet signals readiness (`shell.ready`). The runtime replies once with the
-**environment** (`shell.init`): the set of capabilities it offers and the named
-services it exposes. The napplet caches that
-environment, which is what makes `shell.supports()` answerable **synchronously
-and locally** thereafter — no round-trip per query. Receipt of the readiness
-signal is also the point at which the runtime considers the napplet's **session
-established**, so every other capability call is serviceable only after the
-handshake completes.
-
-NAP-SHELL standardizes the **handshake and the queryable capability set**, not
-the internal representation of that set. A runtime is conformant as long as it
-delivers an environment from which `supports(domain)` can be answered for every
-capability it offers; the byte layout of the capability object is not normative.
+When `shell` is exposed, the runtime-provided binding signals that its receiver
+is installed with `shell.ready`. The runtime replies with `shell.init`, containing
+an environment snapshot. This exchange serves the `ready`, `onReady`, and
+`services` operations only. Other exposed domains remain usable before, during,
+and after it.
 
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `supports` | `domain` (`tstr`) | `bool` | local query against cached `shell.init` |
-| `services` | none | list of `tstr` service names | local read against cached `shell.init` |
+| `supports` | `domain` (`text`) | `boolean` | local projection availability query |
+| `services` | none | list of text service names | local read of `shell.init` |
 | `ready` | none | `ShellEnvironment` | resolves after `shell.ready` / `shell.init` |
 | `onReady` | handler for `ShellEnvironment` | `Subscription` handle | fires after `shell.init` |
 
 ### Schemas
 
-`ShellCapabilities` is a runtime-internal value with whatever shape is
-sufficient to answer `supports(domain)`.
+`ShellCapabilities` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `domains` | yes | list of text | Bare NAP domains exposed to this napplet at snapshot time. |
 
 `ShellEnvironment` fields:
 
@@ -60,109 +49,105 @@ sufficient to answer `supports(domain)`.
 | `capabilities` | yes | `ShellCapabilities` |
 | `services` | yes | list of text |
 
-**`supports(domain)`** — Returns whether the runtime offers `domain`.
-Synchronous: it reads the cached environment and never blocks. Returns `false`
-before the environment has been delivered, and `false` for any unknown domain.
+The environment is descriptive. It MUST NOT grant domains or override the
+projection's availability signal. Service names do not grant capabilities or
+introduce operations outside their owning NAP contracts.
 
-**`services`** — A read-only view onto the delivered environment: the named
-services the runtime exposes for this napplet.
+**`supports(domain)`** — Returns whether the projection currently exposes the
+bare domain to this napplet. It is synchronous and local, and MUST work before
+`shell.init`. In the web projection it reflects the presence of the corresponding
+injected domain object. Unknown or unexposed domains return `false`. This
+convenience operation does not make `shell` a dependency of domain discovery.
 
-**`ready()`** — Resolves with the environment once the handshake completes. The
-readiness signal is normally emitted automatically by the runtime-provided shim
-at load; `ready()` is the napplet-facing await point, not a second signal.
+**`services`** — A read-only list from the delivered environment. It is empty
+until `shell.init` is received.
+
+**`ready()`** — Resolves with the retained environment once it is received. The
+runtime-provided binding sends the readiness signal automatically after
+installing its receiver. Repeated calls MUST NOT send additional signals.
 
 **`onReady(handler)`** — Registers a one-shot callback for environment delivery.
+A handler registered after delivery MUST receive the retained environment.
 
 ## Wire Protocol
 
-`shell.*` messages use the NIP-5D wire format
-(`{ "type": "domain.action", ...payload }`). The handshake is two fire-and-forget
-messages; neither carries a correlation `id`, because each occurs exactly once
-per napplet lifecycle.
+`shell.*` messages use the
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
+(`{ "type": "domain.action", ...payload }`). Neither readiness message carries
+an `id`; the environment is delivered once per napplet endpoint lifecycle.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
-| `shell.ready` | napplet -> runtime | *(none)* |
+| `shell.ready` | napplet -> runtime | none |
 | `shell.init` | runtime -> napplet | `capabilities`, `services` |
 
-Key design notes:
-- `shell.ready` carries **no payload**. It is a liveness signal only — "my
-  receiver is installed." It MUST NOT carry napplet identity or capability
-  claims; identity is assigned by the runtime at napplet creation (NIP-5A), not
-  asserted over this channel.
-- `shell.init` is sent **exactly once** in response to the first `shell.ready`.
-- `shell.supports()` is answered **locally** from the cached `shell.init`
-  environment. It is not a wire round-trip.
-- The capability object's internal shape is not normative; only that it can
-  answer `supports(domain)` for every offered capability.
+`shell.ready` carries no identity or capability claims. The runtime obtains
+identity from the projection's already authenticated endpoint. `shell.init`
+reports only this napplet's environment.
 
 ### Examples
 
-**Handshake:**
+**Optional environment delivery:**
+
 ```
 -> { "type": "shell.ready" }
 <- {
      "type": "shell.init",
-     "capabilities": {
-       "domains": ["<domain>", "<domain>"]
-     },
+     "capabilities": { "domains": ["shell", "theme"] },
      "services": []
    }
 ```
 
-**Subsequent local queries (no wire traffic):**
-```
-shell.supports("<domain>")             // true if the runtime offers that domain
-shell.supports("<unknown>")            // false — domain not offered
+**Web projection availability, without waiting for readiness:**
+
+```js
+if (window.napplet.theme) {
+  const theme = await window.napplet.theme.get();
+}
 ```
 
 ### Error Handling
 
-The handshake has no result envelope and therefore no `error` field. Failure is
-expressed by **absence**:
-
-- If `shell.init` never arrives, `supports()` returns `false` for everything and
-  no capability is serviceable. A napplet SHOULD treat a missing environment
-  after a reasonable timeout as "running outside a conformant runtime" and
-  degrade rather than hang.
-- A runtime that declines to service a napplet MAY withhold `shell.init`
-  entirely; the napplet observes this as a runtime that offers nothing.
+The readiness exchange has no result envelope or `error` field. If the environment
+never arrives, a napplet MAY stop waiting under its own timeout policy. This
+means shell environment information is unavailable; it MUST NOT be interpreted
+as absence of other exposed domains or failure to establish napplet identity.
+A napplet MUST NOT gate unrelated domain calls on `ready()` or `onReady`.
 
 ## Shell Behavior
 
-- The runtime MUST send `shell.init` in response to the napplet's first
-  `shell.ready`, and MUST do so only after the napplet's receiver is live (i.e.
-  in response to the signal, never speculatively before it).
-- The runtime MUST establish the napplet's session upon receiving the first
-  `shell.ready`, binding it to the identity assigned at napplet creation
-  (NIP-5A) — never to anything carried in the message.
-- The runtime MUST send `shell.init` **exactly once** per napplet lifecycle.
-- The runtime's delivered capability set MUST be sufficient to answer
-  `supports(domain)` truthfully for every capability it offers, and
-  MUST answer `false` for capabilities it does not offer.
-- The runtime SHOULD treat a duplicate `shell.ready` as **idempotent**: it MUST
-  NOT establish a second session or overwrite the first, and SHOULD NOT resend
-  `shell.init`.
-- The runtime MUST NOT service capability calls for a napplet whose session has
-  not been established by the handshake.
+- The runtime MAY omit `shell` while exposing other domains.
+- The runtime MUST bind the endpoint to verified napplet identity before
+  servicing any domain. It MUST NOT derive or alter identity from `shell.ready`.
+- When `shell` is exposed, its binding MUST install the receiver before sending
+  `shell.ready`.
+- The runtime MUST send `shell.init` exactly once in response to the first
+  `shell.ready` for that authenticated endpoint.
+- Duplicate `shell.ready` messages MUST NOT establish another session, change
+  policy, or cause another `shell.init`.
+- The environment MUST describe only domains and services exposed to that
+  napplet. It MUST NOT expose another napplet's grants.
+- The binding MUST retain the environment for `ready`, `onReady`, and `services`.
+- The runtime MUST NOT gate other domain calls or their availability on this
+  readiness exchange. Each domain owns its own readiness and delivery contract.
 
 ## Security Considerations
 
-- `shell.ready` originates from **untrusted napplet content**. It is a bare
-  liveness ping by design: it carries no identity, no capability request, and no
-  payload the runtime could be tricked into trusting. A runtime MUST derive the
-  napplet's identity from creation-time assignment (NIP-5A), not from
-  the handshake channel.
-- Session establishment is a privileged side effect. Because a second
-  `shell.ready` MUST NOT create a second session or mutate the first, a napplet
-  cannot replay the signal to escalate, re-key, or re-scope its session.
-- The capability set in `shell.init` is the runtime's **authoritative statement**
-  of what this napplet may use. A runtime MUST scope it per napplet and MUST NOT
-  leak the capabilities or services granted to other napplets.
-- The handshake gates all other capability traffic: by withholding
-  `shell.init`, a runtime denies a napplet every capability at once, giving the
-  runtime a single, total enforcement point.
+- The readiness signal is untrusted input, not authentication or authorization.
+- Manifest capability declarations and environment snapshots are not grants.
+  The runtime enforces per-napplet policy independently of discovery helpers.
+- Withholding `shell.init` MUST NOT serve as a substitute for enforcing policy
+  on another domain. A runtime denies a domain through the projection's
+  availability and enforcement mechanisms.
+- Web identity verification, namespace injection, and transport authentication
+  remain defined by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
 
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `7ea6cd3` - Introduced the shell bootstrap handshake and capability query.
+- `f86fe4b` - Made the shell contract self-contained and mandatory.
+- `c616fbb` - Removed deferred class support and linked the upstream web binding.
