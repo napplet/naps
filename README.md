@@ -147,12 +147,12 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 
 | NAP ID | Domain | req. | Deps | Description | Status |
 |--------|--------|------|------|-------------|--------|
-| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` |  | — | Optional shell environment and readiness notifications | Active |
+| [NAP-SHELL](https://github.com/napplet/naps/pull/101) | `shell` |  | — | Optional shell environment and readiness notifications | Draft |
 | [NAP-INTENT](https://github.com/napplet/naps/pull/91) | `intent` |  | — | Accept lifecycle-independent convention delivery from manifest intent advertisements | Draft |
-| [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
-| [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
+| [NAP-INC](https://github.com/napplet/naps/pull/104) | `inc` |  | — | Inter-napplet communication with authenticated endpoint identifiers | Draft |
+| [NAP-THEME](https://github.com/napplet/naps/pull/103) | `theme` |  | — | Shell-provided themes and updates for exposed domains | Draft |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
-| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` | Read-only user identity queries | Draft |
+| [NAP-IDENTITY](https://github.com/napplet/naps/pull/102) | `identity` |  | `resource` | Read-only user identity queries with verified napplet endpoint binding | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` |  | — | Scoped key-value storage | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` |  | — | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` |  | `resource` | Media session control and playback | Draft |
