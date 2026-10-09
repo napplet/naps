@@ -8,7 +8,8 @@ Runtime Napplet Catalog
 
 **NAP ID:** NAP-CATALOG
 **Domain:** `catalog`
-**Depends:** none.
+**Depends:**
+- `intent` — layering · optional — when implemented, the runtime shares catalog identifiers and current-handler state with its intent resolver. Catalog queries do not invoke or require the intent capability.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.catalog`; domain presence signals availability.
 
 ## Description
@@ -65,6 +66,7 @@ owns archetype dispatch. Conventions own their message semantics. See
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
+| `id` | yes | text | Opaque runtime-assigned napplet selector; see Catalog selectors. |
 | `identity` | yes | `NappletIdentity` | Verified napplet identity. |
 | `title` | no | text | Human-readable title. |
 | `description` | yes | text | Non-empty plain-text manifest content. |
@@ -77,7 +79,7 @@ owns archetype dispatch. Conventions own their message semantics. See
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `archetype` | yes | text | NAAT role slug. |
-| `currentHandler` | yes | `NappletIdentity` or null | Current implicit dispatch target, or null when the runtime has none. |
+| `currentHandler` | yes | text or null | `id` of a returned napplet selected for implicit dispatch, or null when no such target is available to report. |
 
 `CatalogSnapshot` fields:
 
@@ -85,6 +87,32 @@ owns archetype dispatch. Conventions own their message semantics. See
 |-------|----------|------|-------|
 | `napplets` | yes | list of `NappletDescriptor` | Napplets available to the caller. |
 | `handlers` | yes | list of `ArchetypeHandler` | Current handler state for every archetype advertised by the returned napplets. |
+
+### Catalog selectors
+
+Every returned napplet MUST have a unique `id` within the runtime's catalog.
+The runtime MUST NOT reuse an identifier for a different napplet during the
+runtime session. The identifier is opaque: consumers MUST preserve it exactly
+and MUST NOT derive a selector from `identity.dTag` or any other identity field.
+The structured `identity` describes the verified version; it is not a selector.
+
+When the runtime implements `intent`, selectors MUST use the
+[NAP-INTENT catalog identifier contract](NAP-INTENT.md#catalog-identifiers).
+For each napplet returned by both domains, the catalog `id` MUST equal its
+`IntentCandidate.id`. This does not require role-less entries to appear in
+intent discovery.
+A caller MAY pass it unchanged as an explicit `handler` to `intent.invoke`
+when that capability is exposed and the user authorizes the selection.
+Receiving a catalog entry or `currentHandler` MUST NOT grant that authorization.
+Catalog snapshots do not reserve a target, pin its artifact version, or exempt
+later invocations from convention compatibility and policy checks.
+
+A non-null `currentHandler` MUST equal exactly one returned entry's `id`.
+If the selected entry is omitted, the runtime MUST report null, not substitute
+another napplet. Without an intent resolver, handler values MUST be null;
+napplet metadata remains queryable. A caller that needs to preserve the reported
+target MUST use the explicit selector, not repeat implicit dispatch or fall
+back to a `d` tag if selection fails.
 
 ### Manifest mapping
 
@@ -147,6 +175,7 @@ Key design notes:
      "snapshot": {
        "napplets": [
          {
+           "id": "catalog-noteview",
            "identity": {
              "kind": 35129,
              "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -175,13 +204,7 @@ Key design notes:
        "handlers": [
          {
            "archetype": "note",
-           "currentHandler": {
-             "kind": 35129,
-             "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-             "eventId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-             "dTag": "noteview",
-             "artifactHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-           }
+           "currentHandler": "catalog-noteview"
          }
        ]
      }
@@ -212,10 +235,19 @@ catalog. When `error` is present, `snapshot` MUST be omitted.
   MUST NOT report structured payload fields as query parameters.
 - The shell MUST include one `ArchetypeHandler` for every archetype advertised
   by the returned napplets. `currentHandler` MUST reference a returned
-  `NappletIdentity` or be null.
+  napplet's `id` or be null, as specified in Catalog selectors.
 - The shell MUST respond to every request with a result carrying the same `id`.
-- The shell MAY omit metadata it cannot verify.
-- The shell MAY scope or redact the catalog according to caller policy.
+- The shell MUST return every required field of each included record. When a
+  required field cannot be verified or disclosed under caller policy, it MUST
+  omit the entire napplet entry. It MUST NOT return a partial descriptor or
+  fabricate a required value. This includes `dTag` for kind 35129; `dTag` MUST
+  be absent for kinds 5129 and 15129.
+- The shell MAY omit optional fields it cannot verify or disclose. Absence of
+  optional manifest declarations produces the specified empty lists, not omitted
+  fields or an invalid entry.
+- The shell MAY scope or redact the catalog according to caller policy, subject
+  to the required-field and handler-reference rules above. It MUST construct
+  `handlers` from the entries that remain after filtering.
 - The shell MAY enforce ACL checks on catalog access.
 
 ## Security Considerations
