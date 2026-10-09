@@ -374,3 +374,5 @@ result can be constructed.
 
 - `3330324` - Introduced NAP-TORRENT for runtime-owned torrent jobs.
 - `3bc9c3a` - Changed torrent source events to use relay-owned result shape and declared the relay dependency.
+
+- `c0200f0` - Adopted injected-domain availability and linked the current upstream web binding.
