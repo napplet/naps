@@ -10,7 +10,7 @@ Media Session Control
 **Domain:** `media`
 **Depends:**
 - `resource` — capability · optional — `artwork.url` bytes are fetched via `resource.bytes`
-**Web binding (NIP-5D):** `window.napplet.media` · `shell.supports("media")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.media`; domain presence signals availability.
 
 ## Description
 
@@ -98,7 +98,10 @@ MediaContextLink = {
 }
 ```
 
-**Resource resolution.** The `artwork.url` field is a URL string. Napplets and shells that need the artwork bytes (for example, to render album art on a media controls surface) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. The optional `artwork.hash` field, when present, MAY be used by shells as a content-addressed cache key but is not a substitute for the URL fetch — napplets address artwork by URL through the resource NAP. Direct `<img src="https://...">` loads will not work under the iframe sandbox model defined by NIP-5D (`sandbox="allow-scripts"`, no `allow-same-origin`); the shell is the sole network-fetch broker. Standard NAP-RESOURCE policy applies (private-IP block list at DNS-resolution time, MIME byte-sniffing, SVG rasterization, etc.).
+**Resource resolution.** The `artwork.url` field is a URL string. Napplets and shells that need the artwork bytes (for example, to render album art on a media controls surface) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. The optional `artwork.hash` field, when present, MAY be used by shells as a content-addressed cache key but is not a substitute for the URL fetch — napplets address artwork by URL through the resource NAP. Artwork URLs do not grant direct network access. The web projection's runtime
+network policy governs external loads; an opaque sandbox origin alone does not
+block network requests. If the optional `resource` domain is unavailable,
+napplets SHOULD omit remote artwork or use local placeholders. Standard NAP-RESOURCE policy applies (private-IP block list at DNS-resolution time, MIME byte-sniffing, SVG rasterization, etc.).
 
 ```cddl
 MediaState = {
@@ -136,7 +139,7 @@ MediaSessionResult = {
 
 ## Wire Protocol
 
-`media.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`media.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -326,7 +329,7 @@ For shell-owned sessions:
 - Blossom artwork hashes allow the shell to resolve artwork through its own Blossom infrastructure without the napplet needing network access. The shell controls which Blossom servers are queried.
 - For napplet-owned sessions, volume control is advisory -- the napplet controls actual audio output. A malicious napplet could ignore volume commands. The shell MAY enforce volume limits at the iframe level using the Web Audio API or iframe attribute policies if available. For shell-owned sessions, the shell controls actual output volume.
 - Session creation is rate-limited by the shell. A napplet that creates excessive sessions can be throttled or denied.
-- The `media.command` message allows the shell to control napplet behavior. The napplet trusts the shell (NIP-5D security model) but SHOULD validate the `action` against its declared capabilities.
+- The `media.command` message allows the shell to control napplet behavior. The napplet trusts the shell ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) security model) but SHOULD validate the `action` against its declared capabilities.
 
 ## Implementations
 
