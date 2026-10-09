@@ -252,3 +252,5 @@ The shell SHOULD return a structured `result` with `ok: false` when a transfer w
 ## Changelog
 
 - `2c56394` - Introduced NAP-VALUE for shell-mediated value transfer.
+
+- `05c1b92` - Adopted injected-domain availability and linked the current upstream web binding.
