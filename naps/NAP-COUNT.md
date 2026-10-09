@@ -143,3 +143,5 @@ to fetching large event sets or returning misleading counts.
 
 - `9d097a0` - Introduced NAP-COUNT for runtime-owned event-count queries over Nostr filters.
 - `8995853` - Renamed the duplicated count operation to `query` / `count.query`.
+
+- `5f7a0df` - Adopted injected-domain availability and linked the current upstream web binding.
