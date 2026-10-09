@@ -8,7 +8,8 @@ Shell-Provided Theming
 
 **NAP ID:** NAP-THEME
 **Domain:** `theme`
-**Web binding (NIP-5D):** `window.napplet.theme` · `shell.supports("theme")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.theme`; domain presence signals availability.
 
 ## Description
 
@@ -19,45 +20,57 @@ NAP-THEME provides napplets with read-only access to the shell's active theme. T
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
 | `get` | none | `Theme` | `theme.get` / `theme.get.result` |
+| `onChanged` | handler for `Theme` | `Subscription` handle | `theme.changed` |
 
 ### Schemas
 
-```cddl
-ThemeColors = {
-  background: tstr, ; hex color, e.g. "#1a1a2e"
-  text: tstr,       ; hex color
-  primary: tstr,    ; hex color
-}
+`ThemeColors` fields:
 
-ThemeFont = {
-  name: tstr, ; font family name
-  url: tstr,  ; URL to font file
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `background` | yes | text | Hex color, e.g. `#1a1a2e`. |
+| `text` | yes | text | Hex color. |
+| `primary` | yes | text | Hex color. |
 
-ThemeBackground = {
-  url: tstr,  ; URL to background image/media
-  mode: tstr, ; CSS background-size value, e.g. "cover"
-  mime: tstr, ; MIME type, e.g. "image/jpeg"
-}
+`ThemeFont` fields:
 
-ThemeFonts = {
-  ? body: ThemeFont,
-  ? title: ThemeFont,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `name` | yes | text | Font family name. |
+| `url` | yes | text | URL to font file. |
 
-Theme = {
-  colors: ThemeColors,
-  ? fonts: ThemeFonts,
-  ? background: ThemeBackground,
-  ? title: tstr, ; human-readable theme name
-}
-```
+`ThemeBackground` fields:
 
-`theme.changed` is received as a message event, not via a method call. Napplets listen for it via the standard `postMessage` listener. There is no subscribe or unsubscribe mechanism — change notifications are automatic for all napplets that support NAP-THEME.
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `url` | yes | text | URL to background image or media. |
+| `mode` | yes | text | CSS background-size value, e.g. `cover`. |
+| `mime` | yes | text | MIME type, e.g. `image/jpeg`. |
+
+`ThemeFonts` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `body` | no | `ThemeFont` |
+| `title` | no | `ThemeFont` |
+
+`Theme` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `colors` | yes | `ThemeColors` | Active color set. |
+| `fonts` | no | `ThemeFonts` | Optional font set. |
+| `background` | no | `ThemeBackground` | Optional background media. |
+| `title` | no | text | Human-readable theme name. |
+
+`onChanged(handler)` registers a handler for `Theme` updates and returns a
+`Subscription` handle. Closing the handle removes the local handler. There is no
+wire subscribe or unsubscribe operation; the runtime-provided binding receives
+`theme.changed` for this domain and dispatches it to registered handlers.
 
 ## Wire Protocol
 
-`theme.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`theme.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -68,7 +81,10 @@ Theme = {
 Key design notes:
 - `theme.get` / `theme.get.result` use `id` for correlation.
 - `theme.changed` has no `id` — it is a shell-initiated push with no napplet request to correlate.
-- There is no subscribe or unsubscribe. All napplets that declare `theme` in their manifest `requires` tags automatically receive `theme.changed` when the active theme changes.
+- There is no subscribe or unsubscribe. Every napplet to which the runtime exposes `theme` automatically receives
+  `theme.changed` when the active theme changes. Manifest `R` and `O` tags are
+  declarations, not grants; neither is required for receiving updates when the
+  domain is exposed.
 
 ### Examples
 
@@ -114,7 +130,9 @@ Any result message MAY include an `error` field (string). When `error` is presen
 
 - The shell MUST respond to `theme.get` with a `theme.get.result` carrying the same `id`.
 - The shell MUST include `colors` with all three fields (`background`, `text`, `primary`) in every theme payload. The `fonts`, `background`, and `title` fields are optional and MAY be omitted.
-- The shell MUST broadcast `theme.changed` to all napplets that declare `theme` in their manifest `requires` tags when the active theme changes. The shell MAY also broadcast `theme.changed` to napplets that do not declare it, at the shell's discretion.
+- The shell MUST broadcast `theme.changed` when the active theme changes to all
+  napplets to which it exposes `theme`. It MUST NOT deliver these messages to
+  napplets without that domain. It MUST NOT infer grants from `R` or `O` tags.
 - The shell MAY source the theme from any origin: a Nostr kind 16767 event, a user preference, a hardcoded default, or any other mechanism. The theme source is an implementation detail invisible to napplets.
 
 ### Kind 16767 Mapping
@@ -138,7 +156,10 @@ This mapping is informational guidance for shells that choose to source from kin
 ## Security Considerations
 
 - Theme data is read-only. Napplets cannot modify the shell's active theme via this interface.
-- Font URLs and background media URLs may point to external resources. Shells SHOULD validate these URLs before forwarding them to napplets and MAY restrict loading to trusted origins or proxy the resources.
+- Font and background URLs do not authorize network access. Shells SHOULD
+  validate them and MAY provide resources through their mediated resource
+  policy. Napplets MUST NOT assume external URLs are directly loadable; they
+  SHOULD fall back to colors and local fonts when optional media is unavailable.
 - The shell controls theme delivery. A napplet cannot influence what theme other napplets receive.
 - Color values are strings. Napplets SHOULD validate hex color format (e.g., `#rrggbb`) before applying values to prevent injection via malformed color strings.
 - The shell MAY enforce ACL checks before responding to `theme.get` in restricted environments.
@@ -146,3 +167,8 @@ This mapping is informational guidance for shells that choose to source from kin
 ## Implementations
 
 - (none yet)
+
+## Changelog
+
+- `780d7ba` - Introduced shell-provided themes and automatic change notifications.
+- `4f92e9a` - Bound automatic theme delivery to exposed domains, defined onChanged, and clarified optional media under runtime network policy.

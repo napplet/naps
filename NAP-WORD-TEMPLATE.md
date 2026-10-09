@@ -10,7 +10,7 @@ NAP-{NAME}
 **Domain:** `{name}`
 **Depends:** {omit this line entirely if this NAP depends on no other; otherwise a bulleted list directly beneath it — see AGENTS.md → Dependencies}
 - `<domain>` — wire|capability|layering · required|optional — the concrete field or method this rests on
-**Web binding (NIP-5D):** `window.napplet.{name}` · `shell.supports("{name}")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.{name}`; domain presence signals availability.
 
 ## Description
 
@@ -26,20 +26,20 @@ NAP-{NAME}
 
 ### Schemas
 
-Use CDDL-style notation. See AGENTS.md -> Interface schema format.
+Use schema tables. See AGENTS.md -> Interface schema format.
 
-```cddl
-ResultType = {
-  field: tstr,
-  ? optionalField: bool,
-}
-```
+`ResultType` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `field` | yes | text | {meaning} |
+| `optionalField` | no | boolean | {meaning} |
 
 {Brief description of each method: what it does, what it returns, error conditions.}
 
 ## Wire Protocol
 
-{name}.* messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+{name}.* messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|

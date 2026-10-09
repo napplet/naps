@@ -11,10 +11,10 @@ definitions.
   later drive a feed.
 - **IS NOT:** a scrolling timeline or reader for many events by criteria
   (→ `feed`); the payload or lifecycle semantics for opening a specific saved
-  feed definition (→ a future NAP-N).
+  feed definition (→ a future convention).
 - **Distinct from:** `feed` by authorship vs. consumption: `feed-manager`
   manages feed definitions, while `feed` displays events selected by criteria.
 
 > A NAAT file is this fixed schema and nothing else. Anything that wants to grow —
-> payload detail, lifecycle, action-specific wire — belongs in a NAP-N spec, not here.
+> payload detail, lifecycle, action-specific wire — belongs in conventions, not here.
 > See [../ARCHETYPES.md](../ARCHETYPES.md) for the registry and [../naps/NAP-INTENT.md](../naps/NAP-INTENT.md) for how roles are opened.
