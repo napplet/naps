@@ -360,3 +360,5 @@ result can be constructed.
 
 - `08c0396` - Introduced NAP-HASHTREE for runtime-mediated Hashtree document trees.
 - `3847b0f` - Changed resolved Hashtree root events to use relay-owned result shape and declared the relay dependency.
+
+- `623b44c` - Adopted injected-domain availability and linked the current upstream web binding.
