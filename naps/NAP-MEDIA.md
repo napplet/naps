@@ -339,3 +339,5 @@ For shell-owned sessions:
 
 - `d3adc87` - Introduced NAP-MEDIA for media session control.
 - `7eeac9f` - Added media session context associations for linking playback state to external context.
+
+- `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
