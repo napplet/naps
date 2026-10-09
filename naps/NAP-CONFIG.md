@@ -8,8 +8,9 @@ Per-Napplet Declarative Configuration
 
 **NAP ID:** NAP-CONFIG
 **Domain:** `config`
-**Web binding (NIP-5D):** `window.napplet.config` · `shell.supports("config")`
-**Parent:** NIP-5D
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.config`; domain presence signals availability.
+**Parent:** [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
 
 ## Description
 
@@ -50,21 +51,36 @@ Enumerations:
 | `code` | `ConfigSchemaErrorCode` | yes | Machine-readable schema error code. |
 | `message` | `tstr` | yes | Human-readable error message. |
 
-**`registerSchema(schema, version?)`** -- Runtime escape hatch for declaring a configuration schema. The preferred path is manifest-declared schema at napplet build time; `registerSchema` is for napplets whose schema genuinely cannot be static. The optional `version` parameter is the `$version` migration hint. Shell responds asynchronously via a positive-ACK (`config.registerSchema.result`); errors surface via the `onSchemaError` subscription.
+**`registerSchema(schema, version?)`** — Declares the configuration schema
+through this domain. The optional `version` parameter is the `$version`
+migration hint. The runtime returns `config.registerSchema.result`; errors also
+surface via `onSchemaError`. The current napplet manifest has no configuration
+schema field; callers MUST register a schema before requesting values.
 
 **`get()`** -- Returns a one-shot snapshot of the current configuration values. Returned values are always validated by the shell and defaulted per the registered schema. Resolves with a `ConfigValues` object.
 
 **`subscribe(callback)`** -- Subscribes to live configuration updates. The shell MUST deliver an immediate initial `config.values` push on subscription (snapshot delivery), followed by pushes whenever the shell's settings UI commits a change. Returns a `Subscription` with a `close()` method that detaches the callback. The reference shim implementation SHOULD ref-count local subscribers and only send a wire-level `config.unsubscribe` when the last local subscriber detaches.
 
-**`onSchemaError(callback)`** -- Subscribes to schema-registration errors. The shell pushes `config.schemaError` messages when it rejects a `registerSchema` call or cannot parse a manifest-declared schema. Returns a `Subscription` with `close()`.
+**`onSchemaError(callback)`** -- Subscribes to schema-registration errors. The shell pushes `config.schemaError` messages when it rejects a `registerSchema` call or cannot validate a registered schema. Returns a `Subscription` with `close()`.
 
 **`openSettings(options?)`** -- Requests that the shell open its settings UI for this napplet. The optional `options.section` string deep-links the UI to a named section; the section MUST be declared via the `x-napplet-section` extension somewhere in the registered schema. Fire-and-forget -- the shell decides how to render the UI (modal, panel, new tab) and whether to honor the request.
 
-**`schema`** -- Read-only accessor for the currently-registered schema. Returns the schema last registered (via manifest or `registerSchema`), or `null` if none has been declared. Useful for napplets that render capability-dependent UI based on which settings exist.
+**`schema`** -- Read-only accessor for the currently-registered schema. Returns the schema last accepted through `registerSchema`, or `null` if none has been declared. Useful for napplets that render capability-dependent UI based on which settings exist.
+
+## Identity Scope
+
+The runtime MUST derive scope from the authenticated endpoint's verified
+manifest and artifact. For a named manifest, the manifest key is its publisher,
+kind, and `d` value; for a root manifest, publisher and kind; for a snapshot,
+its signed event id. The scope also includes `artifactHash`, the verified
+single-artifact hash defined by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
+A bare `d` value MUST NOT identify a scope. Root and snapshot manifests require
+no `d` tag. A napplet MUST NOT supply or override manifest or artifact identity fields in a request.
+Different publishers, manifest keys, and artifact hashes MUST remain isolated.
 
 ## Wire Protocol
 
-`config.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`config.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -194,7 +210,7 @@ These are opt-in annotations napplets MAY declare on schema properties. Shells M
 
 ### `$version` Potentiality
 
-A schema MAY carry a top-level `$version` integer field. Shells MAY use `$version` to drive cross-hash migration when the napplet's `aggregateHash` changes; shells MAY ignore it entirely and treat each hash as a fresh scope. NAP-CONFIG does NOT prescribe a migration strategy -- migration is a shell concern, and `$version` is a signal, not a contract.
+A schema MAY carry a top-level `$version` integer field. Shells MAY use `$version` to drive cross-hash migration when the napplet's `artifactHash` changes; shells MAY ignore it entirely and treat each hash as a fresh scope. NAP-CONFIG does NOT prescribe a migration strategy -- migration is a shell concern, and `$version` is a signal, not a contract.
 
 Napplets MUST NOT receive values that violate the currently-registered schema at `config.values` delivery time, regardless of how the shell reconciles older persisted values. Any clamping, dropping, or user-prompted merging happens entirely shell-side; the napplet only ever sees post-migration values.
 
@@ -231,13 +247,13 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are t
 |----------|---------|
 | Validate every value before delivery | Every `config.values` delivery MUST contain only values that validate against the currently-registered schema. Invalid values MUST NOT be delivered. |
 | Apply declared defaults | Missing properties MUST be populated from `default` per the deterministic default-resolution rule in Schema Contract. |
-| Scope storage by `(dTag, aggregateHash)` | Persisted values MUST be keyed on the napplet's `(dTag, aggregateHash)` identity per NIP-5D. A napplet cannot read or write outside its own scope. |
+| Use the verified identity scope | Persisted values MUST be keyed on the napplet's verified manifest and artifact scope defined in Identity Scope. A napplet cannot read or write outside its own scope. |
 | Be the sole writer | The shell MUST be the only entity that writes values. No napplet->shell wire message mutates persisted values. |
 | Mask `x-napplet-secret: true` fields (Tier 0) | Shells MUST treat properties marked `x-napplet-secret: true` as secrets at the minimum Tier 0 level: mask input in the settings UI, do NOT include the default (napplets MUST NOT set `default` on such fields), and do NOT deliver the property in `config.values` if the value has never been explicitly set by the user. |
 | Reject schemas exceeding the depth limit | Return `config.registerSchema.result` with `ok: false, code: "schema-too-deep"`. |
 | Reject schemas with forbidden features | `$ref`, `pattern` (in v1), `definitions`, combinatorial schemas (`oneOf`/`anyOf`/`allOf`/`not`), tuple-typed arrays, and conditional schemas (`if`/`then`/`else`) MUST cause `config.registerSchema.result` with `ok: false` and an appropriate code. |
 | Reject `x-napplet-secret: true` coexisting with `default` | Return `config.registerSchema.result` with `ok: false, code: "secret-with-default"`. |
-| Produce initial snapshot after registerSchema is applied | `config.subscribe` MUST NOT deliver its first `config.values` until the most recent `config.registerSchema` from the same source has been fully applied (defaults resolved, storage scoped). If subscribe arrives before any schema has been registered (no manifest, no runtime registerSchema), shells MUST emit `config.schemaError` with `code: "no-schema"`. |
+| Produce initial snapshot after registerSchema is applied | `config.subscribe` MUST NOT deliver its first `config.values` until the most recent `config.registerSchema` from the same source has been fully applied (defaults resolved, storage scoped). If subscribe arrives before any schema has been registered (no accepted registerSchema), shells MUST emit `config.schemaError` with `code: "no-schema"`. |
 | Drop orphaned properties | Persisted values for properties not in the currently-registered schema MUST NOT be delivered. For `x-napplet-secret: true` properties, orphaned values MUST be deleted immediately on schema change; non-secret orphans MAY be retained briefly (grace period) but MUST NOT be delivered. |
 
 ### SHOULD
@@ -260,7 +276,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are t
 | Render richer `format` widgets | For `format: "email" \| "uri" \| "date" \| "date-time" \| "color" \| "ipv4" \| "ipv6"`, shells MAY render a specialized widget; MUST NOT fail validation on `format` alone. |
 | Render nested objects beyond one level | Up to the depth limit (4). JSON fallback UI is acceptable for deep nesting. |
 | Back NAP-CONFIG storage with NAP-STORAGE internally | An implementation choice. The NAP-CONFIG wire surface does not depend on NAP-STORAGE. |
-| Use `$version` for cross-hash migration | Shells MAY act on `$version` to migrate values across `aggregateHash` changes; MAY ignore it and treat each hash as a fresh scope. |
+| Use `$version` for cross-hash migration | Shells MAY act on `$version` to migrate values across `artifactHash` changes; MAY ignore it and treat each hash as a fresh scope. |
 | Retain a "graveyard" of orphaned non-secret values | For a single session in case the napplet author rolls back a schema change. Graveyard values MUST NOT be delivered. |
 | Emit `config.settingsOpened` after openSettings | Optional ack so napplets can fall back when UI is unavailable. Napplets MUST NOT rely on this message. |
 
@@ -284,7 +300,10 @@ The following ideas are deliberately excluded from NAP-CONFIG and MUST NOT appea
 
 ### Source-identity scope binding
 
-Storage scope is derived from the napplet's `MessageEvent.source` at iframe creation per NIP-5D. The shell resolves `(dTag, aggregateHash)` from that source -- never from napplet-supplied payload. Consequence: NAP-CONFIG wire messages MUST NOT carry `dTag` or `aggregateHash` fields from the napplet side. A napplet cannot read, register, or mutate another napplet's configuration scope.
+Storage scope is derived from the authenticated endpoint's verified manifest
+and artifact, as specified in Identity Scope. NAP-CONFIG requests MUST NOT
+carry caller-selected identity or scope fields. A napplet cannot read, register,
+or mutate another napplet's configuration scope.
 
 ### Cleartext secrets over postMessage
 
@@ -306,7 +325,7 @@ All `$ref` forms are forbidden in v1 (see Schema Contract Exclusions). The ban i
 
 ## Error Envelopes
 
-Every napplet->shell request type either returns a correlated result message with an `ok: boolean` field (positive ACK) or fires a matching push error. Result messages follow the NIP-5D envelope format `{ "type": "domain.action.result", "id", "ok", "code"?, "error"? }`. Error `code` values are drawn from the catalogue below; `error` is a human-readable explanation.
+Every napplet->shell request type either returns a correlated result message with an `ok: boolean` field (positive ACK) or fires a matching push error. Result messages follow the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) envelope format `{ "type": "domain.action.result", "id", "ok", "code"?, "error"? }`. Error `code` values are drawn from the catalogue below; `error` is a human-readable explanation.
 
 ### Error codes
 
@@ -319,7 +338,7 @@ Every napplet->shell request type either returns a correlated result message wit
 | `secret-with-default` | `config.registerSchema.result`, `config.schemaError` | A property marked `x-napplet-secret: true` declares a `default`. |
 | `schema-too-deep` | `config.registerSchema.result`, `config.schemaError` | Schema nesting exceeds the depth limit (4). |
 | `version-conflict` | `config.registerSchema.result`, `config.schemaError` | Re-registration declares a `$version` the shell does not accept. |
-| `no-schema` | `config.schemaError` | `config.subscribe` or `config.get` received before any schema has been registered for this source (no manifest, no runtime registerSchema). |
+| `no-schema` | `config.schemaError` | `config.subscribe` or `config.get` received before any schema has been registered for this source (no accepted registerSchema). |
 | `unknown-section` | (see below -- non-normative) | `config.openSettings` referenced a section that does not exist on the currently-registered schema. SHOULD NOT be surfaced as an error envelope; shells SHOULD silently ignore (see Shell Guarantees SHOULD row for openSettings). |
 
 ### Error cases
@@ -328,7 +347,7 @@ Every napplet->shell request type either returns a correlated result message wit
 
 **Undeclared section in openSettings.** When `config.openSettings({ section })` references a `section` not declared by any property's `x-napplet-section` in the currently-registered schema, shells SHOULD silently ignore the request (opening the settings UI to its default entry is acceptable). Shells MUST NOT return a wire error for this case -- that would leak shell internals. The section string is case-sensitive and compared as an opaque identifier.
 
-**Subscribe-before-schema.** `config.subscribe` or `config.get` that arrives before any schema has been registered (neither a manifest-declared schema nor a runtime `config.registerSchema`) receives a `config.schemaError` push with `code: "no-schema"`. No `config.values` is emitted until a valid schema has been registered.
+**Subscribe-before-schema.** `config.subscribe` or `config.get` that arrives before any schema has been registered (no accepted `config.registerSchema`) receives a `config.schemaError` push with `code: "no-schema"`. No `config.values` is emitted until a valid schema has been registered.
 
 ## Implementations
 
