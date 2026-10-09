@@ -403,3 +403,4 @@ boundary. A projection defines how its authenticated endpoint is bound.
 - `8782bb1` - Added runtime transposition from convention URI parameters to topic payload data.
 - `13fed4b` - Made sender attestation runtime-derived and carrier-neutral.
 - `6446441` - Made channel handles symmetric with target attachment, delivery ordering, and terminal notification.
+- `24ab958` - Replaced bare dTag peer identity with authenticated endpoint identifiers for all manifest kinds and adopted injected-domain availability.
