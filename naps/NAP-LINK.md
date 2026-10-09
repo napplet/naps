@@ -8,7 +8,8 @@ Shell-Mediated Link Opening
 
 **NAP ID:** NAP-LINK
 **Domain:** `link`
-**Web binding (NIP-5D):** `window.napplet.link` · `shell.supports("link")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.link`; domain presence signals availability.
 
 ## Description
 
@@ -40,7 +41,7 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 ## Wire Protocol
 
-`link.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`link.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
