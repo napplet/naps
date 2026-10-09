@@ -13,7 +13,7 @@ Common Social Actions
 - `relay` — capability · required — fetches kind 0 profiles and publishes kind 3 follow lists, kind 7 reactions, and kind 1984 reports.
 - `relay` — wire · required — imports `RelayEventResult` for raw profile event returns.
 - `resource` — wire · optional — imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
-**Web binding (NIP-5D):** `window.napplet.common` · `shell.supports("common")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.common`; domain presence signals availability.
 
 ## Description
 
@@ -169,7 +169,7 @@ MUST use `CommonReportTarget`.
 
 ## Wire Protocol
 
-`common.*` messages use NIP-5D wire format: `{ "type": "domain.action", ...payload }`.
+`common.*` messages use [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format: `{ "type": "domain.action", ...payload }`.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -239,6 +239,6 @@ Result messages use `ok: false` plus `error`. Common errors:
 - `a189372` - Introduced NAP-COMMON for shared social actions.
 - `8171616` - Added profile lookup to the common social action surface.
 - `e0b1414` - Added NIP-19 encode and decode helpers.
-- `f0cf652` - Renamed NIP-19 result payload `type` to `nip19Type` to avoid NIP-5D envelope collisions.
+- `f0cf652` - Renamed NIP-19 result payload `type` to `nip19Type` to avoid [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) envelope collisions.
 - `c52def9` - Added current-follow lookup to the common social action surface.
 - `7973802` - Changed common profile reads to use relay-owned result shape and declared the relay dependency.
