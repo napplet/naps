@@ -10,7 +10,7 @@ Value Transfer
 **Domain:** `value`
 **Depends:**
 - `relay` — layering · optional — the shell MAY publish / query zap receipts via `relay` or an internal pool
-**Web binding (NIP-5D):** `window.napplet.value` · `shell.supports("value")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.value`; domain presence signals availability.
 
 ## Description
 
@@ -127,7 +127,7 @@ Enumerations:
 
 ## Wire Protocol
 
-`value.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`value.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
