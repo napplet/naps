@@ -13,33 +13,29 @@ This file is the **registry** — the index of every archetype. Each archetype's
 
 ## How a NAAT is used
 
-1. A napplet **declares the roles it fulfills** in its NIP-5A manifest:
+1. A napplet **declares the roles it fulfills** in its [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifest:
    ```
-   ["archetype", "note", "napplet:note/open"]      // role slug, then accepted convention(s)
+   ["z", "note"]
+   ["i", "napplet:note/open"]
    ```
-   A napplet may declare several archetype tags. A napplet with **no** archetype tag is fully valid — it simply cannot be opened *by role*. "Weird" single-purpose napplets are first-class.
+   A napplet may advertise several roles and accepted intents. Trailing `i` values advertise parameter names. A dispatch contract pairs an intent with its matching role on the same manifest. A napplet without such a pair is fully valid; it simply cannot be opened *by role*. These advertisements never grant capabilities.
 
 2. A napplet **opens another by role** via [NAP-INTENT](naps/NAP-INTENT.md):
    ```js
-   if (napplet.shell.supports("intent")) {
+   if (napplet.intent) {
      const { available } = await napplet.intent.available("pet");
      if (available) showButton();
    }
-   napplet.intent.invoke("napplet:pet/open");
+   // When the user chooses the available action:
+   if (napplet.intent) napplet.intent.invoke("napplet:pet/open");
    ```
-   The runtime resolves the role to the user's **default** handler (like an OS "default app"), creates or focuses its window, and delivers the payload.
+   The runtime resolves a compatible handler using the user's default preference, accepts delivery responsibility, and mediates target startup and delivery. Acceptance does not assert that the target has handled the intent.
 
-   An invocation MAY append `#<naddr>` to recommend a kind `35129` napplet.
-   The recommendation is shell-only selection metadata. It does not override
-   the user's applicable default, authorize installation, or change the role.
-   The shell MAY offer discovery and installation when the recommendation is
-   not installed. See [NAP-INTENT](naps/NAP-INTENT.md).
-
-3. The **slug** (`note`) is the role identifier used in the manifest tag and in the convention URI (`napplet:note/open`). The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
+3. The **slug** (`note`) identifies the role in the `z` tag and `intent.available(archetype)`. The convention URI identifies the action for `intent.invoke(uri)` or `intent.open(uri)`. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
 
 ## Archetype vs. convention
 
-A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query parameters become payload data and are never advertised. The recommendation is a convenience and an interop floor, not a mandate.
+A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query values become payload data and are never part of the advertised identity. Parameter names MAY be advertised after the identity in an `i` tag. The recommendation is a convenience and an interop floor, not a mandate.
 
 Handler fragments are never advertised either. Convention identities in
 manifest metadata and subscriptions MUST be queryless and fragment-free.

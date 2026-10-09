@@ -15,10 +15,10 @@ schemas, error models, trust boundaries) do not change between projections.
 
 | Concern | Web projection |
 |---------|----------------|
-| Host | Napplets run as `sandbox="allow-scripts"` iframes |
+| Host | Verified napplet artifacts run in `srcdoc` iframes with `sandbox="allow-scripts"` |
 | Carrier | Messages travel over `postMessage` |
 | Surface | Capabilities and convention URI transposition appear on `window.napplet.*` |
-| Discovery | `shell.supports("<domain>")` |
+| Discovery | Presence of `window.napplet.<domain>`, injected before napplet scripts run |
 | Identity | Runtime verifies `MessageEvent.source` and binds each message to a napplet |
 
 ## Domain surfacing
@@ -27,11 +27,11 @@ A NAP is named in the registry by its **domain** (`relay`, `intent`, …). In th
 web projection, domain `X`:
 
 - surfaces as the object `window.napplet.X`, and
-- is discovered via `shell.supports("X")`.
+- is available when that object is present. No `shell` handshake is required.
 
 So `NAP-RELAY` (domain `relay`) is reached at `window.napplet.relay` and probed
-with `shell.supports("relay")`. Other projections map the same domains into their
-own host idiom.
+by checking whether that object is present. Other projections map the same
+domains into their own host idiom.
 
 ## Message delivery
 
@@ -83,9 +83,10 @@ Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
 The shell is the policy boundary. For every inbound message it verifies
 `MessageEvent.source` to bind the message to a napplet identity — the
-`(dTag, aggregateHash)` tuple, assigned by the shell from the napplet's
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) manifest, not
-negotiated by the napplet. Napplets are untrusted: they never receive signing
+verified artifact identity defined by
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303). The runtime verifies the signed
+manifest and its artifact hash before execution; it does not trust an identity
+supplied by the napplet or a gateway. Napplets are untrusted: they never receive signing
 keys, wallet credentials, or raw network access. Security-critical operations are
 performed by the shell on the napplet's behalf, gated by per-napplet capability
 policy.
@@ -93,5 +94,4 @@ policy.
 ## References
 
 - [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding (living, upstream document)
-- [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) — napplet manifest / identity
 - [Registry & governance](../README.md)

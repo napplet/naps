@@ -46,10 +46,13 @@ Napplets discover the stable, queryless and fragment-free convention identity th
 metadata, usually:
 
 ```
-["archetype", "{slug}", "napplet:{archetype}/{intent}"]
+["z", "{archetype}"]
+["i", "napplet:{archetype}/{intent}", "{param}", ...]
 ```
 
-or through `intent.available()` candidate `conventions`.
+or through `intent.available()` candidate `contracts` and `conventions`.
+Trailing `i` values advertise parameter names, not types or values. The manifest
+format belongs to [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
 
 ## Implementations
 

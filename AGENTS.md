@@ -32,9 +32,9 @@ however useful it seems.
 
 | Kind | Is | Owns | Discovery |
 |------|-----|------|-----------|
-| **NAP-WORD** | runtime-provided | an **API surface** | `shell.supports("<domain>")` |
+| **NAP-WORD** | runtime-provided | an **API surface** | projection-defined domain availability |
 | **Convention** | napplet-agreed | **message semantics** | queryless `napplet:<archetype>/<intent>` identity in handler metadata |
-| **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["archetype", …]` |
+| **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["z", …]`; accepted intents in `["i", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
 - A NAP is **runtime-provided AND an API** (NAP-WORD). Napplet-agreed message
@@ -77,7 +77,7 @@ always wrong, never "useful for now."
 - **A deferred spec has zero live surface.** `Deferred` means dormant: the spec
   keeps **only** its italic registry row. It MUST NOT be wired into any active
   spec — no field, no wire-payload key, no parameter, no prose that treats it as
-  real. A mandatory NAP (e.g. NAP-SHELL) carrying a `class` field for the
+  real. A NAP (e.g. NAP-SHELL) carrying a `class` field for the
   deferred NAP-CLASS track is exactly this leak. **Test:** `grep -ri <domain>`
   across `naps/`, `projections/`, `README.md` should hit only the deferred row.
   Anything else, delete it.
@@ -94,8 +94,8 @@ NAPs legitimately rest on other NAPs: a miner publishes through `relay`; an
 identity surface points its byte fields at `resource`. These edges are fine — but
 they MUST be **declared**, never left implicit in prose. Every NAP names its
 dependencies in a **`Depends:`** preamble block (alongside `NAP ID` / `Domain`),
-**by domain** — lined up with `shell.supports("<domain>")` and the manifest
-`["requires", …]` tag, never a bare spec id buried mid-paragraph. Each entry
+**by domain** — lined up with projection-defined domain availability and the manifest
+`["R", …]` / `["O", …]` tags, never a bare spec id buried mid-paragraph. Each entry
 carries a **kind** and a **strength**:
 
     **Depends:**
@@ -111,8 +111,8 @@ carries a **kind** and a **strength**:
 | **capability** | this NAP's behavior calls another domain's surface (`resource.bytes`, `relay.publish`) — no shared type | name the method; the other domain owns its own contract |
 | **layering** | shell-internal composition, invisible to the napplet (`outbox` builds on `relay`) | declared for transparency; imposes nothing on the napplet |
 
-**Strength** — `required` (the dep domain MUST be present; a napplet SHOULD gate
-on `shell.supports("<dep>")`) or `optional` (only some features need it; degrade
+**Strength** — `required` (the dep domain MUST be present; a napplet SHOULD check
+the dependency domain's availability through its projection) or `optional` (only some features need it; degrade
 gracefully when absent).
 
 **The owner/importer rule kills wire entanglement.** A `wire` dependency is
