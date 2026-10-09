@@ -273,3 +273,4 @@ catalog. When `error` is present, `snapshot` MUST be omitted.
 - `5711b2e` - Defined read-only napplet discovery, convention parameter metadata, and current archetype handler state.
 
 - `1c076ce` - Aligned catalog identities, z/i advertisements, parameter-name metadata, content descriptions, and R/O capabilities with current manifests.
+- `b696bef` - Added opaque selectors shared with intent resolution, changed currentHandler to reference entry IDs, declared optional intent layering, and required complete descriptors with consistent filtering.
