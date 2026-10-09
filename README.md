@@ -149,6 +149,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 |--------|--------|------|------|-------------|--------|
 | [NAP-SHELL](https://github.com/napplet/naps/pull/101) | `shell` |  | — | Optional shell environment and readiness notifications | Draft |
 | [NAP-INTENT](https://github.com/napplet/naps/pull/91) | `intent` |  | — | Accept lifecycle-independent convention delivery from manifest intent advertisements | Draft |
+| [NAP-CATALOG](https://github.com/napplet/naps/pull/95) | `catalog` |  | `intent` | Query verified napplet metadata and opaque current-handler selectors | Draft |
 | [NAP-INC](https://github.com/napplet/naps/pull/104) | `inc` |  | — | Inter-napplet communication with authenticated endpoint identifiers | Draft |
 | [NAP-THEME](https://github.com/napplet/naps/pull/103) | `theme` |  | — | Shell-provided themes and updates for exposed domains | Draft |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
