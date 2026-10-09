@@ -10,7 +10,7 @@ ContextVM Bridge
 **Domain:** `cvm`
 **Depends:**
 - `value` — capability · optional — payment prompts are coordinated through `value` when a ContextVM server requires value exchange
-**Web binding (NIP-5D):** `window.napplet.cvm` · `shell.supports("cvm")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.cvm`; domain presence signals availability.
 
 ## Description
 
@@ -180,7 +180,7 @@ Enumerations:
 
 ## Wire Protocol
 
-`cvm.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`cvm.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -201,7 +201,7 @@ Enumerations:
 | `cvm.registry.call.result` | shell -> napplet | `id`, `result?`, `error?` |
 
 Key design notes:
-- `cvm.request.result` correlates to the NIP-5D request `id`; the embedded MCP message retains its own JSON-RPC `id`.
+- `cvm.request.result` correlates to the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) request `id`; the embedded MCP message retains its own JSON-RPC `id`.
 - `cvm.event` is for MCP notifications or server messages not directly correlated to a single request. It carries no envelope `id`; the shell fans it out to every napplet handler registered via `onEvent`.
 - The shell owns all ContextVM event IDs, relay subscriptions, `p` tags, `e` tags, encryption state, and signing.
 - The shell MAY initialize a ContextVM session automatically before the first capability request.
@@ -305,7 +305,7 @@ Key design notes:
 
 Result messages MAY include `error` when the shell cannot complete the request. Common errors include `"server not found"`, `"relay timeout"`, `"initialization failed"`, `"payment required"`, `"payment denied"`, `"unsupported method"`, and `"policy denied"`.
 
-MCP-level errors from the remote server SHOULD be returned inside the embedded MCP `message.error` field. Transport or shell-policy failures SHOULD be returned in the NIP-5D result `error` field.
+MCP-level errors from the remote server SHOULD be returned inside the embedded MCP `message.error` field. Transport or shell-policy failures SHOULD be returned in the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) result `error` field.
 
 Registry errors add `"family not found"`, `"schema mismatch"`, `"provider unavailable"`, and `"cache policy denied"`.
 
