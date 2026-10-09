@@ -58,7 +58,8 @@ aggregation, caching, approximation policy, and refusal handling.
 | `error` | `tstr` | no | Machine-readable error code. |
 | `reason` | `tstr` | no | Human-readable refusal or failure reason. |
 
-`filters` MUST be a non-empty list of `CountFilter`. Multiple filters are ORed
+`filters` MUST be a non-empty list of `CountFilter`, and every list-valued
+field in each filter MUST contain at least one value. Multiple filters are ORed
 and aggregated into one count, matching NIP-45 `COUNT` semantics.
 
 ## Operation Rules
