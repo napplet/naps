@@ -154,3 +154,5 @@ reclaim it on destroy. State that must outlive the instance belongs in `shared`.
 ## Changelog
 
 - `fe4a523` - Introduced NAP-STORAGE for scoped key-value storage.
+
+- `811f011` - Adopted injected-domain availability and verified manifest/artifact scopes for all napplet kinds, with publisher isolation.
