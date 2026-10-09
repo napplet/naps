@@ -488,3 +488,4 @@ For shell-owned sessions:
 - `7eeac9f` - Added media session context associations for linking playback state to external context.
 
 - `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
+- `bd521c6` - Added playback and command reasons, terminal session notifications, stale-command rejection, ordered retirement delivery, and audio-focus resumption rules; aligned the operations table with the wire contract.
