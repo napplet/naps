@@ -8,8 +8,9 @@ Sandboxed Resource Fetching
 
 **NAP ID:** NAP-RESOURCE
 **Domain:** `resource`
-**Web binding (NIP-5D):** `window.napplet.resource` · `shell.supports("resource")`
-**Parent:** NIP-5D
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.resource`; domain presence signals availability.
+**Parent:** [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
 
 ## Description
 
@@ -22,7 +23,7 @@ The napplet supplies URLs. The runtime owns fetch, scheme dispatch, policy,
 MIME classification, SVG rasterization, caching, quotas, and errors. Napplets
 MUST NOT receive raw network access or upstream `Content-Type`.
 
-NAP-RESOURCE is the fetch path for the NIP-5D web sandbox. The contract is
+NAP-RESOURCE is the fetch path for the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) web sandbox. The contract is
 projection-neutral; `Blob` is the web projection result type.
 
 ## API Surface
@@ -45,12 +46,23 @@ for the request `id`. Late terminal envelopes for cancelled IDs MUST be dropped.
 were an independent `bytes(url)` request. One failed URL MUST NOT discard
 successful siblings.
 
-All resource state is scoped to the napplet's `(dTag, aggregateHash)` identity.
+All resource state is scoped to the napplet's verified manifest and artifact scope.
 A napplet MUST NOT read another napplet's resource cache.
+
+## Identity Scope
+
+The runtime MUST derive scope from the authenticated endpoint's verified
+manifest and artifact. For a named manifest, the manifest key is its publisher,
+kind, and `d` value; for a root manifest, publisher and kind; for a snapshot,
+its signed event id. The scope also includes `artifactHash`, the verified
+single-artifact hash defined by [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
+A bare `d` value MUST NOT identify a scope. Root and snapshot manifests require
+no `d` tag. A napplet MUST NOT supply or override manifest or artifact identity fields in a request.
+Different publishers, manifest keys, and artifact hashes MUST remain isolated.
 
 ## Wire Protocol
 
-`resource.*` messages use NIP-5D wire format:
+`resource.*` messages use [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format:
 `{ "type": "domain.action", ...payload }`.
 
 | Type | Direction | Payload |
@@ -163,7 +175,7 @@ Sidecar rules:
 - Sidecar `mime` follows the same sniffing rule as `resource.bytes.result`.
 - SVG sidecars MUST already be rasterized to PNG/WebP.
 - Shims MUST hydrate sidecars before invoking the napplet event handler.
-- Sidecars do not change cache scope: `(dTag, aggregateHash)` still applies.
+- Sidecars do not change cache scope: the verified manifest and artifact scope still applies.
 
 ## URL And Cache Keys
 
