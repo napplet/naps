@@ -356,3 +356,5 @@ Every napplet->shell request type either returns a correlated result message wit
 ## Changelog
 
 - `8d671ab` - Introduced NAP-CONFIG for per-napplet declarative configuration.
+
+- `36c209b` - Adopted injected-domain availability and verified manifest/artifact isolation, and required registerSchema instead of an undefined manifest schema field.
