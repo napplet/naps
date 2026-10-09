@@ -8,7 +8,8 @@ Per-Napplet Declarative Configuration
 
 **NAP ID:** NAP-CONFIG
 **Domain:** `config`
-**Depends:** none.
+**Depends:**
+- `storage` — layering · optional — the runtime MAY persist configuration through storage internally; this imposes no storage requirement on the napplet.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.config`; domain presence signals availability.
 **Parent:** [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
 
