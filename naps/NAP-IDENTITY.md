@@ -264,3 +264,4 @@ Result messages include an `error` field (string) when the shell cannot fulfill 
 ## Changelog
 
 - `a802d35` - Introduced read-only user identity queries and optional resource fetching.
+- `06b1a1a` - Adopted injected-domain availability, verified manifest and artifact identity, and graceful fallback for optional resource fetching.
