@@ -23,7 +23,7 @@ aggregation, caching, approximation policy, and refusal handling.
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `query` | `filters`, `options?` | `CountResult` | `count.query` / `.result` |
+| `query` | `filters`, `options?` | `CountResult` | `count.query` / `count.query.result` |
 
 ### Schemas
 
