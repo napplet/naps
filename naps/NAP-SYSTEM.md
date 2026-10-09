@@ -6,7 +6,8 @@
 
 **NAP ID:** NAP-SYSTEM
 **Domain:** `system`
-**Web binding (NIP-5D):** `window.napplet.system` · `shell.supports("system")`
+**Depends:** none.
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.system`; domain presence signals availability.
 
 ## Description
 
@@ -168,7 +169,7 @@ NAP-SYSTEM.
 
 ## Wire Protocol
 
-`system.*` messages use the NIP-5D wire format
+`system.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
 (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
