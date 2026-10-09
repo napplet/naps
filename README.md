@@ -216,7 +216,7 @@ NIP-style informal process:
   contract. Templates and registries (`README.md`, `ARCHETYPES.md`) stay at the
   repo root.
 - Community discusses via PR comments.
-- Maintainers merge when the spec has been implemented, defended and has stabilized. 
+- Maintainers merge when the spec has been implemented, defended and has stabilized.
 - No formal stages, review committees, or voting.
 - NAP-WORD names and NAAT slugs are first-come-first-served but must be approved
   by the maintainer.
