@@ -11,7 +11,7 @@ Outbox-Aware Relay Access
 **Depends:**
 - `relay` — wire · required — imports `RelayEventResult` for raw Nostr event returns.
 - `resource` — wire · optional — imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
-**Web binding (NIP-5D):** `window.napplet.outbox` · `shell.supports("outbox")`
+**Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.outbox`; domain presence signals availability.
 
 ## Description
 
@@ -148,7 +148,7 @@ Enumerations:
 
 ## Wire Protocol
 
-`outbox.*` messages use the NIP-5D wire format (`{ "type": "domain.action", ...payload }`).
+`outbox.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format (`{ "type": "domain.action", ...payload }`).
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
