@@ -144,3 +144,5 @@ no pixels.
 ## Changelog
 
 - `62f2d8b` - Introduced NAP-DISPLAY for runtime-controlled device discovery and RGB pixel updates.
+
+- `677258c` - Adopted injected-domain availability and linked the current upstream web binding.
