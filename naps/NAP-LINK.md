@@ -107,3 +107,5 @@ Prompt choices MAY include:
 ## Changelog
 
 - `88a3431` - Introduced NAP-LINK as a shell-owned external link opener for sandboxed napplets.
+
+- `b40b51e` - Adopted injected-domain availability and linked the current upstream web binding.
