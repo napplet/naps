@@ -151,7 +151,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
 | [NAP-RELAY](https://github.com/napplet/naps/pull/2) | `relay` |  | `resource` | Relay proxy (subscribe, publish, query, publishEncrypted) | Draft |
-| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` | Read-only user identity queries | Draft |
+| [NAP-IDENTITY](https://github.com/napplet/naps/pull/12) | `identity` |  | `resource` | Read-only user identity queries with verified napplet endpoint binding | Draft |
 | [NAP-STORAGE](https://github.com/napplet/naps/pull/3) | `storage` |  | — | Scoped key-value storage | Draft |
 | [NAP-KEYS](https://github.com/napplet/naps/pull/9) | `keys` |  | — | Keyboard forwarding and action keybindings | Draft |
 | [NAP-MEDIA](https://github.com/napplet/naps/pull/10) | `media` |  | `resource` | Media session control and playback | Draft |
