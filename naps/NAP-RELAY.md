@@ -281,3 +281,5 @@ The `mime` field on each `sidecar.resources` entry MUST be shell-classified by b
 
 - `c9925dc` - Introduced NAP-RELAY as the relay proxy interface.
 - `cb8f8ea` - Aligned relay read events around resource sidecar metadata.
+
+- `547eb8d` - Adopted injected-domain availability and linked the current upstream web binding.
