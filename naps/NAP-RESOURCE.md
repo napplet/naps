@@ -235,3 +235,5 @@ SHOULD pass canonical URL strings.
 - `1c41cb6` - Added Hashtree URL support as a runtime-fetchable resource scheme.
 - `8e75ead` - Added `resource.info` scheme introspection for supported schemes, MIME policy, caps, and bulk limits.
 - `8c0645d` - Changed resource sidecars to reference relay-owned `RelayEventResult` instead of redefining relay event shape.
+
+- `3dca448` - Adopted injected-domain availability and verified manifest/artifact scopes for all napplet kinds, with publisher isolation.
