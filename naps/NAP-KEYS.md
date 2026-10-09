@@ -186,3 +186,5 @@ Shells MUST NOT bind actions to reserved keys. Napplets MUST NOT use reserved ke
 ## Changelog
 
 - `c7a7a34` - Introduced NAP-KEYS for keyboard forwarding and action keybindings.
+
+- `bf5a6aa` - Adopted injected-domain availability and linked the current upstream web binding.
