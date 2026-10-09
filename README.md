@@ -26,7 +26,7 @@ contracts.
 | Term | Meaning |
 |------|---------|
 | **Seam** | The boundary between a napplet and its runtime — what's offered, and how it's asked for. Transport-agnostic. |
-| **Napplet** | A Nostr applet: a small, single-purpose app. Described by a [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) manifest. |
+| **Napplet** | A Nostr applet: a small, single-purpose app. Described by a [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifest. |
 | **Runtime** (shell) | The host that composes napplets and provides their capabilities. |
 | **NAP** | One capability contract in the seam — operations, message schema, error model, and trust boundary. Never the delivery mechanism. |
 | **Domain** | A capability's short name (`relay`, `intent`); how a NAP is referenced and discovered. |
@@ -43,10 +43,11 @@ not one app with four tabs. **The runtime composes napplets; napplets do not
 compose themselves.**
 
 A napplet is described and distributed as a
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) manifest (a
-Nostr event, kind 35128): a pubkey-addressed `dTag`, an aggregate hash of its
-build, and the capabilities it requires. That manifest is the napplet's identity,
-independent of how or where it runs.
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifest: a signed
+snapshot, root, or named napplet event describing a
+self-contained artifact and its advertised capabilities. The runtime verifies
+the artifact against the manifest before running it. See the upstream manifest
+and identity rules; a `d` tag alone is not a publisher-scoped identity.
 
 ## What is a NAP?
 
@@ -68,13 +69,14 @@ A NAP is **not**:
 ## Layering
 
 ```
-NIP-5A   what a napplet IS / how it's described    manifest, identity   (substrate)
+Manifest what a napplet IS / how it's described    artifact, identity   (substrate)
   NAP    what a runtime offers a napplet           the capability seam  (this repo)
    └─ projection: web, native, WASM, …             same contracts, different host
 ```
 
-NIP-5A defines the napplet. A NAP defines a capability the napplet can ask a
-runtime for. A *projection* implements that seam for a concrete host.
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) defines the web napplet manifest.
+A NAP defines a capability the napplet can ask a runtime for. A *projection*
+implements that seam for a concrete host.
 
 ## Projections
 
@@ -85,7 +87,7 @@ same contract everywhere; only the host idiom changes.
 
 | Projection | Status | Spec |
 |------------|--------|------|
-| **Web** — iframes + `postMessage`, URI-to-payload binding on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
+| **Web** — iframes + `postMessage`, injected domains and URI-to-payload binding on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
 | WASM (host imports) | Possible | — |
 
@@ -97,15 +99,15 @@ against it — but the contracts are shaped so they need not stay web-only.
 The mechanics below live at the seam and are described projection-neutrally; the
 [web projection](projections/web.md) shows how each is realized in the browser.
 
-**Discovery.** A runtime advertises the capabilities it provides; a napplet
-checks for one before using it by domain:
+**Discovery.** A napplet checks domain availability through its projection.
+In the [web projection](projections/web.md), the presence of
+`window.napplet.relay` means the runtime exposes `relay`. Discovery requires no
+`shell` domain or handshake.
 
-```
-shell.supports("relay")          // is the relay capability available?
-```
-
-A napplet also declares the capabilities it needs in its NIP-5A manifest
-(`["requires", "relay"]`); a runtime that lacks one may refuse to load it.
+A [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifest declares required domains
+with `R` tags and optional integrations with `O` tags. These are declarations,
+not grants. The runtime checks the complete required set before loading; missing
+optional domains alone do not prevent loading.
 
 **Request / result.** Messages are objects with a `type` discriminant in
 `domain.action` form. Request/result pairs correlate by `id`; fire-and-forget
@@ -120,8 +122,8 @@ messages omit it; runtimes may push unsolicited messages.
 untrusted: they never receive signing keys, wallet credentials, or raw network
 access. Security-critical operations (signing, payments, uploads) are performed
 by the runtime on the napplet's behalf, gated by per-napplet capability policy.
-Napplet identity — the `(dTag, aggregateHash)` tuple — is assigned by the runtime
-from the manifest, not negotiated by the napplet.
+The runtime binds each endpoint to the verified manifest and artifact identity,
+not to identity claims from the napplet or an untrusted host.
 
 ## The two axes
 
@@ -133,20 +135,19 @@ conventions. They are not assigned NAP numbers.
 
 Named by a single uppercase word, one canonical spec per name. Defines a
 shell-provided API contract — a capability domain a napplet can call. Discovery:
-`shell.supports("<domain>")`.
+the projection's availability signal for that domain.
 
 Every NAP-WORD is **optional** — a runtime offers it or it doesn't, and a napplet
-checks before using it — except **NAP-SHELL**, which every conformant runtime
-MUST implement. NAP-SHELL is the foundational handshake that defines
-`shell.supports()` itself, so it is the one capability that cannot be discovered
-through it; it is assumed present.
+checks before using it. In the web projection, domain objects are injected before
+napplet scripts run. NAP-SHELL supplies its own shell operations when present;
+it is not a prerequisite for domain discovery.
 
 The **Deps** column lists the domains a NAP rests on — declared in each spec's
 `Depends:` block, always by domain (never a spec id).
 
 | NAP ID | Domain | req. | Deps | Description | Status |
 |--------|--------|------|------|-------------|--------|
-| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` | ✓ | — | Bootstrap handshake and capability negotiation (foundational — defines `shell.supports()`) | Active |
+| [NAP-SHELL](naps/NAP-SHELL.md) | `shell` |  | — | Optional shell environment and readiness notifications | Active |
 | [NAP-INTENT](naps/NAP-INTENT.md) | `intent` |  | — | Invoke a napplet by archetype (default-handler dispatch) | Active |
 | [NAP-INC](https://github.com/napplet/naps/pull/5) | `inc` |  | — | Inter-napplet communication | Active |
 | [NAP-THEME](https://github.com/napplet/naps/pull/8) | `theme` |  | — | Shell-provided theming | Active |
@@ -187,7 +188,7 @@ convention and the **consumer** is the napplet that receives and acts on it,
 reached directly or, by archetype, via the runtime.
 
 A convention that shapes an archetype open payload is advertised by its stable,
-queryless identity on the archetype tag and in `intent.available()` handler
+queryless identity in an `i` tag and in `intent.available()` handler
 metadata. No registry edit is required before two napplets can try a compatible
 payload.
 
@@ -196,9 +197,11 @@ payload.
 A NAAT is neither an interface nor a payload convention, just a name and a boundary.
 Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
 to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
-with a `["archetype", "<slug>", "<convention>"]` manifest tag, and napplets invoke
-each other by role through [NAP-INTENT](naps/NAP-INTENT.md). A napplet with no
-archetype tag is fully valid — it simply isn't invokable by role.
+with `["z", "<slug>"]` manifest tags and accepted intents with
+`["i", "<convention>", "<param>", ...]` tags. Trailing values advertise parameter
+names. Napplets invoke each other by role through [NAP-INTENT](naps/NAP-INTENT.md).
+A napplet without role or intent advertisements is fully valid; it simply is not
+invokable by role. Advertisements never grant capabilities.
 
 ## Boundary rule
 
@@ -216,7 +219,7 @@ NIP-style informal process:
   contract. Templates and registries (`README.md`, `ARCHETYPES.md`) stay at the
   repo root.
 - Community discusses via PR comments.
-- Maintainers merge when the spec has been implemented, defended and has stabilized. 
+- Maintainers merge when the spec has been implemented, defended and has stabilized.
 - No formal stages, review committees, or voting.
 - NAP-WORD names and NAAT slugs are first-come-first-served but must be approved
   by the maintainer.
@@ -230,5 +233,5 @@ NIP-style informal process:
 ## References
 
 - Web projection: [projections/web.md](projections/web.md) — [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) (living, upstream document)
-- Napplet manifest / identity: [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md)
+- Napplet manifest / identity: [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
 - Archetype registry: [ARCHETYPES.md](ARCHETYPES.md)
