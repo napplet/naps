@@ -138,26 +138,20 @@ No intent delivery identifier is exposed. The wire request `id` correlates only
 
 ### Convention URI normalization
 
-The runtime-provided binding MUST normalize a convention URI before sending
-`intent.invoke`:
+The binding MUST derive these request fields before sending `intent.invoke`:
 
-1. The first URI component after `napplet:` becomes `archetype`.
-2. The path component after `/` becomes `action`.
-3. The queryless, fragment-free URI becomes `convention`.
-4. Each unique, percent-decoded `name=value` query pair becomes a text payload
-   field.
+| Field | Source |
+|-------|--------|
+| `archetype`, `action` | URI segments `<archetype>/<intent>`. |
+| `convention` | URI without query or fragment. |
+| `payload` | Percent-decoded `name=value` query fields, or `options.payload` for structured/non-text data. |
+| `handlerHint` | Bare [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) `naddr` fragment decoded as `IntentHandlerHint`, or `options.handlerHint`. |
 
-A URI fragment MUST be a bare [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) `naddr` for a named napplet matching the `IntentHandlerHint` address constraints. The binding MUST decode its coordinate and optional relay hints into `request.handlerHint` before sending `intent.invoke`. It MUST reject an invalid fragment or a fragment combined with `options.handlerHint`. Without a fragment, an explicit `options.handlerHint` becomes `request.handlerHint`. The recommendation is separate from explicit `handler` selection and MUST NOT appear in `convention` or `payload`.
+Query values MUST remain text; `+` is literal. The binding MUST reject malformed percent-encoding, duplicate decoded query names, invalid fragments, query plus `options.payload`, or fragment plus `options.handlerHint` before invocation. A fragment MUST satisfy the `IntentHandlerHint` address constraints.
 
-The binding MUST NOT coerce query values to boolean, number, or null. A `+` is a literal plus sign, not a space. Malformed percent-encoding, a repeated query name, or an explicit payload alongside query parameters MUST be rejected before invocation. Structured or non-text data MUST use `options.payload` with a queryless URI; that URI MAY include a valid handler fragment.
+Only NAP-INTENT invocation accepts fragments; other convention-URI operations MUST reject them. A queryless URI MAY combine a fragment with `options.payload`.
 
-This fragment exception applies only to NAP-INTENT invocation. Other convention-URI operations, including NAP-INC, MUST reject fragments.
-
-The runtime MUST reject a normalized wire request when:
-
-- `convention` contains a query or fragment;
-- the convention archetype differs from `request.archetype`; or
-- the convention intent differs from `request.action`.
+The runtime MUST reject a request unless `convention` is exactly the queryless, fragment-free `napplet:<archetype>/<action>` matching its `archetype` and `action` fields.
 
 **`invoke(uri, options?)`** — Normalizes the URI, resolves a handler, and asks
 the runtime to accept delivery responsibility. A successful result may precede
