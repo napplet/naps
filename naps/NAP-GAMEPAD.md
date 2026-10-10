@@ -214,3 +214,7 @@ This section is projection guidance only. The contract above does not change.
 ## Implementations
 
 - [napplet.soy](https://github.com/hzrd149/napplet-soy/tree/feat/gamepad-isolation): shell broker ([`gamepad-session.ts`](https://github.com/hzrd149/napplet-soy/blob/feat/gamepad-isolation/packages/runtime/src/gamepad-session.ts)), web binding with native-API replacement ([`prelude.ts`](https://github.com/hzrd149/napplet-soy/blob/feat/gamepad-isolation/packages/runtime/src/prelude.ts)), and Permissions-Policy denial.
+
+## Changelog
+
+- `31b3613` - Introduced NAP-GAMEPAD for focus-scoped, shell-mediated controller snapshots.
