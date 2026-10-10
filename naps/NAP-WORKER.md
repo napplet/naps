@@ -242,3 +242,5 @@ bypass message and resource limits.
 - None yet.
 
 ## Changelog
+
+- `aa858e5` - Drafted dedicated worker creation, copied messaging, termination, ownership, limits, isolation, and the web projection binding.
