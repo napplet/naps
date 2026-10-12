@@ -1,0 +1,70 @@
+{
+  "format_version": 1,
+  "contract_revision": "e5308ac92cfd49e4fb026812c60886571515e219",
+  "cases": [
+    {
+      "id": "INTENT-HANDLER-FRAGMENT",
+      "domain": "intent",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INTENT.md#convention-uri-normalization",
+        "naps/NAP-INTENT.md#recommended-handler-resolution",
+        "projections/web.md#intent-handler-fragment"
+      ],
+      "status": "blocked",
+      "reason": "The normalization section rejects fragments while recommendation resolution and the web projection permit a handler fragment.",
+      "preconditions": [
+        "Review naps baseline e5308ac and reconciliation PR #106 before enabling this case."
+      ],
+      "input": {
+        "operation": "invoke",
+        "uri_form": "napplet:profile/open#<valid-bare-naddr>"
+      },
+      "expected": {
+        "assertions": []
+      }
+    },
+    {
+      "id": "INTENT-RECOMMENDATION-REQUEST-SHAPE",
+      "domain": "intent",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INTENT.md#schemas",
+        "projections/web.md#intent-handler-fragment"
+      ],
+      "status": "blocked",
+      "reason": "IntentInvokeOptions is repeated with differing handler semantics, and IntentRequest does not consistently carry the described handlerHint.",
+      "preconditions": [
+        "Review naps baseline e5308ac and reconciliation PR #106 before enabling this case."
+      ],
+      "input": {
+        "operation": "invoke",
+        "options_form": "recommend a verified named handler using handlerHint"
+      },
+      "expected": {
+        "assertions": []
+      }
+    },
+    {
+      "id": "INTENT-EXPLICIT-HANDLER-REPRESENTATION",
+      "domain": "intent",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INTENT.md#schemas",
+        "naps/NAP-INTENT.md#catalog-identifiers"
+      ],
+      "status": "blocked",
+      "reason": "Repeated options schemas describe an authorized napplet address versus an opaque catalog identifier for explicit handler selection.",
+      "preconditions": [
+        "Review naps baseline e5308ac and reconciliation PR #106 before enabling this case."
+      ],
+      "input": {
+        "operation": "invoke",
+        "selection": "explicit authorized handler"
+      },
+      "expected": {
+        "assertions": []
+      }
+    }
+  ]
+}

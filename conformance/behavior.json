@@ -1,0 +1,578 @@
+{
+  "format_version": 1,
+  "contract_revision": "e5308ac92cfd49e4fb026812c60886571515e219",
+  "cases": [
+    {
+      "id": "INC-TOPIC-EXACT-AND-SENDER-EXCLUSION",
+      "domain": "inc",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INC.md#topic-routing",
+        "naps/NAP-INC.md#topic-conventions"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "Authenticated endpoints a, b, c, d have inc exposed.",
+        "a and b subscribe to napplet:profile/open; c subscribes to napplet:profile/opened; d subscribes to napplet:profile/open-other.",
+        "Topic ACL allows the exact tested topic."
+      ],
+      "input": {
+        "from": "endpoint-a",
+        "message": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "pubkey": "abc"
+          }
+        }
+      },
+      "expected": {
+        "assertions": [
+          "b receives inc.event with unchanged topic and payload.",
+          "a receives no echo of its emission.",
+          "c and d receive no delivery from this emission.",
+          "The delivered sender is the runtime-attested identifier for a."
+        ]
+      }
+    },
+    {
+      "id": "INC-FORGED-SENDER",
+      "domain": "inc",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INC.md#topic-routing"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "Authenticated endpoint a emits; b subscribes to the exact topic; ACL permits it."
+      ],
+      "input": {
+        "from": "endpoint-a",
+        "message": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "sender": "endpoint-victim",
+          "payload": {
+            "pubkey": "abc"
+          }
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The runtime ignores or rejects the supplied sender.",
+          "If the emission is delivered, its sender is the attested endpoint-a identity, never endpoint-victim."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-DENIED-OPEN",
+      "domain": "inc",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INC.md#channel-management",
+        "naps/NAP-INC.md#error-handling"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "a and b are live authenticated endpoints with inc.",
+        "Runtime channel ACL denies a opening a channel to b."
+      ],
+      "input": {
+        "from": "endpoint-a",
+        "message": {
+          "type": "inc.channel.open",
+          "id": "open-1",
+          "target": "endpoint-b"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The result carries id open-1 and an error.",
+          "No channel is created; b receives no successful channel-open notification."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-TARGET-NOTIFICATION-ORDER",
+      "domain": "inc",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INC.md#channel-management"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "a and b are live authenticated endpoints with inc.",
+        "Channel ACL allows the open."
+      ],
+      "input": {
+        "from": "endpoint-a",
+        "message": {
+          "type": "inc.channel.open",
+          "id": "open-2",
+          "target": "endpoint-b"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The target inc.channel.opened is enqueued before the successful opener result is sent.",
+          "The result echoes open-2; both endpoints receive the same channel identifier and runtime-attested peer identity.",
+          "This ordering is enqueue/send ordering, not a requirement that a target application callback runs first."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-LATE-LISTENERS",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#channel-management"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "A channel opens while the target has no onOpened handler.",
+        "One incoming message arrives before a ChannelHandle.on handler exists.",
+        "Configured buffers have capacity for this scenario."
+      ],
+      "input": {
+        "steps": [
+          "Register channel.onOpened after the notification.",
+          "Register ChannelHandle.on after handle materialization."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The retained ChannelHandle reaches the late onOpened handler.",
+          "Handle creation precedes the delivered channel message.",
+          "The retained message reaches the late message handler instead of being silently dropped."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-LATE-CLOSURE",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#channel-management"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "A ChannelHandle exists and becomes terminal before onClosed is registered."
+      ],
+      "input": {
+        "steps": [
+          "Register ChannelHandle.onClosed after channel closure."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The late handler receives the retained terminal ChannelClosed record."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-OVERFLOW",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#channel-management"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "A finite incoming message buffer is configured and its limit is recorded.",
+        "No message handler drains the buffer."
+      ],
+      "input": {
+        "steps": [
+          "Send enough channel messages to exceed the configured buffer."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "Overflow closes the channel and notifies both endpoints.",
+          "The binding does not silently discard messages while leaving the channel apparently active."
+        ]
+      }
+    },
+    {
+      "id": "INC-CHANNEL-PEER-REPLACEMENT",
+      "domain": "inc",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INC.md#schemas",
+        "naps/NAP-INC.md#channel-management"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "a has an open channel to authenticated endpoint b."
+      ],
+      "input": {
+        "steps": [
+          "Destroy b.",
+          "Load a replacement endpoint from the same manifest."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The surviving a receives channel closure with reason peer destroyed.",
+          "The replacement receives a new endpoint identifier; the previous identifier is not reused during the runtime session.",
+          "The old channel does not transfer to the replacement; another open is required."
+        ]
+      }
+    },
+    {
+      "id": "SHELL-ABSENT-OTHER-DOMAIN",
+      "domain": "shell",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-SHELL.md#shell-behavior",
+        "naps/NAP-THEME.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "theme is exposed; shell is absent.",
+        "An active minimal theme exists and policy permits the query."
+      ],
+      "input": {
+        "message": {
+          "type": "theme.get",
+          "id": "without-shell"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "theme.get.result returns the configured theme with id without-shell.",
+          "No shell readiness exchange is required."
+        ]
+      }
+    },
+    {
+      "id": "SHELL-DELAYED-ENVIRONMENT",
+      "domain": "shell",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-SHELL.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "shell and theme are exposed to an authenticated endpoint.",
+        "The harness delays environment delivery while permitting the theme query."
+      ],
+      "input": {
+        "steps": [
+          "Call theme.get before shell.init is delivered."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The theme operation is serviced independently of shell readiness.",
+          "Delaying shell.init does not serve as authorization for any other domain."
+        ]
+      }
+    },
+    {
+      "id": "SHELL-REPEATED-READINESS",
+      "domain": "shell",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-SHELL.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "An authenticated endpoint has shell exposed."
+      ],
+      "input": {
+        "messages": [
+          {
+            "type": "shell.ready"
+          },
+          {
+            "type": "shell.ready"
+          }
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "Exactly one shell.init is produced for the first readiness signal.",
+          "The duplicate creates no new session, identity, policy, or environment delivery."
+        ]
+      }
+    },
+    {
+      "id": "SHELL-SCOPED-ENVIRONMENT",
+      "domain": "shell",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-SHELL.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "Endpoint a has shell and theme exposed.",
+        "Endpoint b has shell and identity exposed."
+      ],
+      "input": {
+        "from": "endpoint-a",
+        "message": {
+          "type": "shell.ready"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "a receives an environment describing only its exposed domains and services.",
+          "b-only grants are not disclosed or granted to a by that snapshot."
+        ]
+      }
+    },
+    {
+      "id": "SHELL-LOCAL-SUPPORTS-BEFORE-INIT",
+      "domain": "shell",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-SHELL.md#api-surface"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "shell and theme are injected; identity is absent.",
+        "shell.init has not arrived."
+      ],
+      "input": {
+        "calls": [
+          {
+            "operation": "supports",
+            "domain": "theme"
+          },
+          {
+            "operation": "supports",
+            "domain": "identity"
+          }
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "supports(theme) returns true locally.",
+          "supports(identity) returns false locally.",
+          "Neither call waits for shell.init or emits a wire availability query."
+        ]
+      }
+    },
+    {
+      "id": "IDENTITY-NO-SIGNER",
+      "domain": "identity",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-IDENTITY.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "identity is exposed; no user/signer is connected."
+      ],
+      "input": {
+        "message": {
+          "type": "identity.getPublicKey",
+          "id": "identity-1"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "identity.getPublicKey.result carries id identity-1 and pubkey as the empty string.",
+          "The response is successful without an error field."
+        ]
+      }
+    },
+    {
+      "id": "IDENTITY-SIGNOUT-NOT-ENDPOINT-CHANGE",
+      "domain": "identity",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-IDENTITY.md#shell-behavior",
+        "naps/NAP-IDENTITY.md#security-considerations"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "An authenticated loaded napplet has identity exposed.",
+        "A user/signer was connected and is now disconnected."
+      ],
+      "input": {
+        "steps": [
+          "Disconnect the user signer."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "identity.changed reports pubkey as the empty string.",
+          "The verified napplet endpoint identity is not renegotiated as a result of the user change."
+        ]
+      }
+    },
+    {
+      "id": "THEME-MINIMAL-RESULT",
+      "domain": "theme",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-THEME.md#schemas",
+        "naps/NAP-THEME.md#shell-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "theme is exposed; an active theme has only background/text/primary colors.",
+        "Query policy permits access."
+      ],
+      "input": {
+        "message": {
+          "type": "theme.get",
+          "id": "theme-1"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The result echoes theme-1 and contains all three required colors.",
+          "Omitted fonts, background media, and title do not make the theme invalid."
+        ]
+      }
+    },
+    {
+      "id": "THEME-UPDATES-FOLLOW-EXPOSURE",
+      "domain": "theme",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-THEME.md#shell-behavior",
+        "naps/NAP-THEME.md#wire-protocol"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "a has theme exposed without an R or O theme advertisement.",
+        "b advertises theme but runtime policy does not expose it."
+      ],
+      "input": {
+        "steps": [
+          "Change the active theme."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "a receives theme.changed automatically, with no wire subscription.",
+          "b receives no theme.changed.",
+          "Manifest advertisements do not substitute for domain exposure."
+        ]
+      }
+    },
+    {
+      "id": "THEME-LISTENER-CLOSE-IS-LOCAL",
+      "domain": "theme",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-THEME.md#schemas"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "A binding has an onChanged handler registered for exposed theme."
+      ],
+      "input": {
+        "steps": [
+          "Close the returned Subscription handle.",
+          "Deliver another theme.changed through the binding."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The closed handler is not invoked.",
+          "No theme subscribe or unsubscribe wire message is introduced."
+        ]
+      }
+    },
+    {
+      "id": "INTENT-ACCEPTANCE-SOURCE-LIFETIME",
+      "domain": "intent",
+      "layer": "composition",
+      "requirements": [
+        "naps/NAP-INTENT.md#runtime-behavior",
+        "naps/NAP-INTENT.md#error-handling"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "Source has intent exposed and a verified catalog identity.",
+        "A compatible installed target advertises the exact convention and role.",
+        "Runtime policy allows delivery; the selected lifecycle closes the source before target startup.",
+        "The target subsequently becomes ready; terminal failure is not injected."
+      ],
+      "input": {
+        "from": "catalog-source",
+        "message": {
+          "type": "intent.invoke",
+          "id": "intent-1",
+          "archetype": "profile",
+          "action": "open",
+          "convention": "napplet:profile/open",
+          "payload": {
+            "pubkey": "abc"
+          }
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The runtime sends one successful intent.invoke.result with id intent-1 before closing the source.",
+          "Acceptance represents delivery responsibility, not target processing.",
+          "The delivery is retained independently of the source and delivered after the target is ready.",
+          "A later target failure, if separately tested, is not a second result to the source."
+        ]
+      }
+    },
+    {
+      "id": "INTENT-PAYLOAD-ONLY-RESOLVED-TARGET",
+      "domain": "intent",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INTENT.md#security-considerations",
+        "naps/NAP-INTENT.md#runtime-behavior"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "Source and eligible target have verified catalog entries and authenticated endpoints.",
+        "An unrelated third napplet is loaded.",
+        "Normal installed-handler selection resolves the eligible target and policy permits delivery."
+      ],
+      "input": {
+        "message": {
+          "type": "intent.invoke",
+          "id": "intent-2",
+          "archetype": "profile",
+          "action": "open",
+          "convention": "napplet:profile/open",
+          "payload": {
+            "pubkey": "abc"
+          }
+        }
+      },
+      "expected": {
+        "assertions": [
+          "Only the resolved target receives the intent delivery and payload.",
+          "Delivery sender is the runtime-attested catalog identity of the source.",
+          "The unrelated napplet receives neither payload nor sender metadata from this invocation."
+        ]
+      }
+    },
+    {
+      "id": "INTENT-ADVERTISEMENTS-DO-NOT-GRANT",
+      "domain": "intent",
+      "layer": "runtime",
+      "requirements": [
+        "naps/NAP-INTENT.md#manifest-catalog-contract"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "A verified target advertises profile and napplet:profile/open.",
+        "The manifest requires a domain the configured runtime cannot expose to that target."
+      ],
+      "input": {
+        "steps": [
+          "Attempt invocation of the advertised convention."
+        ]
+      },
+      "expected": {
+        "assertions": [
+          "The runtime applies the complete required-capability compatibility and policy checks before acceptance.",
+          "Role and intent advertisements do not widen exposed domains or authorize execution."
+        ]
+      }
+    }
+  ]
+}

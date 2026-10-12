@@ -1,0 +1,445 @@
+{
+  "format_version": 1,
+  "contract_revision": "e5308ac92cfd49e4fb026812c60886571515e219",
+  "cases": [
+    {
+      "id": "INC-URI-TEXT",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?pubkey=abc123"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "pubkey": "abc123"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-PLUS",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?label=a+b"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "label": "a+b"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-ENCODED-PLUS",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?label=a%2Bb"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "label": "a+b"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-SCALARS-STAY-TEXT",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?n=12&flag=true&nothing=null"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "n": "12",
+            "flag": "true",
+            "nothing": "null"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-DECODED-NAME",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?pub%6Bey=a%20b"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "pubkey": "a b"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-EMPTY-VALUE",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?label="
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "label": ""
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-ENCODED-SEPARATOR",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?label=a%26b%3Dc"
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "label": "a&b=c"
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-EXPLICIT-STRUCTURE",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open",
+        "payload": {
+          "count": 2,
+          "enabled": true,
+          "nested": {
+            "items": [
+              1,
+              null
+            ]
+          }
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The binding emits the specified stable topic and payload without scalar coercion; no query or fragment reaches routing."
+        ],
+        "wire": {
+          "type": "inc.emit",
+          "topic": "napplet:profile/open",
+          "payload": {
+            "count": 2,
+            "enabled": true,
+            "nested": {
+              "items": [
+                1,
+                null
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "INC-URI-REPEAT-NAME",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=1&a=2"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-REPEAT-DECODED-NAME",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=1&%61=2"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-MALFORMED-VALUE",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=%ZZ"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-MALFORMED-NAME",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?%GG=1"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-INCOMPLETE-ESCAPE",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=%2"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-QUERY-AND-PAYLOAD",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=1",
+        "payload": {
+          "other": "value"
+        }
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-QUERY-AND-EMPTY-PAYLOAD",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open?a=1",
+        "payload": {}
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    },
+    {
+      "id": "INC-URI-FRAGMENT",
+      "domain": "inc",
+      "layer": "binding",
+      "requirements": [
+        "naps/NAP-INC.md#convention-uri-transposition"
+      ],
+      "status": "ready",
+      "preconditions": [
+        "inc is exposed to an authenticated napplet endpoint.",
+        "Invoke the developer-facing binding, not the already-normalized wire receiver."
+      ],
+      "input": {
+        "operation": "emit",
+        "uri": "napplet:profile/open#recommendation"
+      },
+      "expected": {
+        "assertions": [
+          "The runtime-provided binding rejects before any inc.emit wire message is emitted."
+        ],
+        "reject_before_emission": true
+      }
+    }
+  ]
+}
