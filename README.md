@@ -19,6 +19,7 @@ contracts.
 - [Boundary rule](#boundary-rule)
 - [Governance](#governance)
 - [Templates](#templates)
+- [License](#license)
 - [References](#references)
 
 ## Glossary
@@ -244,6 +245,17 @@ NIP-style informal process:
 - Interface proposals: [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
 - Convention notes: [CONVENTION-TEMPLATE.md](CONVENTION-TEMPLATE.md)
 - Archetype proposals: [naat/TEMPLATE.md](naat/TEMPLATE.md) + a row in [ARCHETYPES.md](ARCHETYPES.md)
+
+## License
+
+The contents of this repository, including specifications, registries, templates,
+documentation, and examples, are dedicated to the public domain under
+[CC0 1.0 Universal](LICENSE) (`CC0-1.0`). You may copy, modify, and redistribute
+them, including for commercial use, without attribution or permission.
+
+By submitting a contribution, you agree to apply CC0-1.0 to it.
+Separate implementations choose their own licenses. Linked external documents
+remain subject to their own terms. CC0 does not grant patent or trademark rights.
 
 ## References
 
