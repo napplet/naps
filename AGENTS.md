@@ -11,6 +11,7 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 | Path | What |
 |------|------|
 | [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP registry, archetype registry |
+| [SOUL.md](SOUL.md) | Agent identity, values, boundaries, and working character |
 | [naps/](naps/) | Runtime-provided NAP interface definitions — `NAP-<WORD>.md` |
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
 | [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
