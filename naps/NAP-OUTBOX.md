@@ -292,7 +292,7 @@ If the shell returns partial results because some relay lists or relay connectio
 - The shell SHOULD merge observed relay URLs into `RelayEventResult.sidecar.relayHints` after deduplication when it can disclose them.
 - The shell MAY include pre-resolved byte resources in `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy policy and NAP-RESOURCE's fetch policy both apply.
 - The shell SHOULD cache relay lists and refresh them according to shell policy.
-- The shell SHOULD fall back to configured relays when NIP-65 data is absent, stale, or unreachable.
+- The shell SHOULD fall back to configured relays when NIP-65 data is absent, stale, or unreachable, for read targets and for the shell-user's own write set. Fallback never substitutes for a `toInboxes` read relay.
 - The shell MAY use NIP-66 or other relay intelligence to choose among candidate relays.
 - The shell MAY enforce ACL checks for outbox read, subscribe, publish, relay override, and relay discovery operations.
 
