@@ -1,70 +1,14 @@
-NAAT: Napplet Archetypes
-========================
+NAAT: Napplet Archetypes — Deprecated
+=====================================
 
-A **NAAT** (Nostr Applet ArcheType) is a shared *role* a napplet can fulfill — `note`, `feed`, `profile`, `pet`. It is the role axis of the napplet ecosystem, orthogonal to runtime-provided NAP interfaces:
+NAAT is deprecated. The unused role registry, role definitions, and proposal
+template have been removed. This page remains as a deprecation notice for
+existing links. The former definitions are available in Git history.
 
-- **NAP** — shell-provided API surfaces (`window.napplet.*`). *What the runtime offers.*
-- **Convention** — unnumbered `napplet:<archetype>/<intent>` payload shapes; an invocation MAY append `?params` as payload sugar. *What napplets say to each other.*
-- **NAAT** — canonical role identities. *What kind of napplet this is.*
+No new NAAT proposals are accepted. No replacement is defined; role
+standardization can be reconsidered when a concrete need arises.
 
-A NAAT is deliberately **not** a NAP: it is neither an interface nor a payload convention. It is a name and a boundary.
+Convention URIs and [NAP-INTENT](naps/NAP-INTENT.md) manifest-based dispatch remain
+in use. Archetype names in those contracts require no NAAT registration.
 
-This file is the **registry** — the index of every archetype. Each archetype's prose lives in its own thin file under [`naat/`](naat/), following [`naat/TEMPLATE.md`](naat/TEMPLATE.md). The registry is the source of truth for which archetypes exist; every row links to its file.
-
-## How a NAAT is used
-
-1. A napplet **declares the roles it fulfills** in its [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifest:
-   ```
-   ["z", "note"]
-   ["i", "napplet:note/open"]
-   ```
-   A napplet may advertise several roles and accepted intents. Trailing `i` values advertise parameter names. A dispatch contract pairs an intent with its matching role on the same manifest. A napplet without such a pair is fully valid; it simply cannot be opened *by role*. These advertisements never grant capabilities.
-
-2. A napplet **opens another by role** via [NAP-INTENT](naps/NAP-INTENT.md):
-   ```js
-   if (napplet.intent) {
-     const { available } = await napplet.intent.available("pet");
-     if (available) showButton();
-   }
-   // When the user chooses the available action:
-   if (napplet.intent) napplet.intent.invoke("napplet:pet/open");
-   ```
-   The runtime resolves a compatible handler using the user's default preference, accepts delivery responsibility, and mediates target startup and delivery. Acceptance does not assert that the target has handled the intent.
-
-3. The **slug** (`note`) identifies the role in the `z` tag and `intent.available(archetype)`. The convention URI identifies the action for `intent.invoke(uri)` or `intent.open(uri)`. The `NAAT-NOTE` id is a display/cross-reference label only, mirroring the `NAP-RELAY` / `relay` split.
-
-## Archetype vs. convention
-
-A NAAT names a role and MAY recommend one convention as its default open contract — the answer to "what do I send to open this?" for the common case. It does **not** own the payload. New and richer wire shapes are ordinary conventions: napplets advertise the stable `napplet:<archetype>/<intent>` identities they accept, and callers choose one a handler reports via `available()`. Invocation query values become payload data and are never part of the advertised identity. Parameter names MAY be advertised after the identity in an `i` tag. The recommendation is a convenience and an interop floor, not a mandate.
-
-Handler fragments are never advertised either. Convention identities in
-manifest metadata and subscriptions MUST be queryless and fragment-free.
-
-## Entry schema
-
-Each archetype is one thin file in [`naat/`](naat/) in a fixed shape, so roles stay comparable and the vocabulary stays disjoint:
-
-- **Definition** — one sentence: what a napplet of this role does.
-- **Boundary (IS / IS NOT)** — the scope line. This is the "precise but not too precise" knob, and the surface a maintainer reviews a new archetype against.
-- **Distinct from** — sibling roles it is most likely confused with. This is the anti-drift mechanism that prevents `note` / `note-view` / `event-viewer` from all appearing over time.
-- **Actions** — the verbs it supports (`open` by default).
-
-**Invariant:** a NAAT file is the fixed schema and nothing else. Anything that wants to grow — payload detail, lifecycle, action-specific wire — belongs in conventions, not in the archetype file. An entry is structurally incapable of becoming a NAP.
-
-## Governance
-
-Same informal process as NAPs: open a PR that adds a row to the registry below **and** the matching `naat/<slug>.md` file. Slugs are first-come-first-served and must be approved by the maintainer (dskvr). A proposal is judged on whether its **Boundary** is genuinely disjoint from existing archetypes. Status is `draft` until at least one public implementation exists.
-
-## Registry
-
-| NAAT ID | Slug | Definition | Recommended open contract | Status |
-|---------|------|------------|---------------------------|--------|
-| [NAAT-NOTE](naat/note.md) | `note` | Displays a single Nostr event in focused detail | `napplet:note/open` | Draft |
-| [NAAT-PROFILE](naat/profile.md) | `profile` | Displays a user's profile and activity | `napplet:profile/open` | Draft |
-| [NAAT-DM](naat/dm.md) | `dm` | Opens a direct-message conversation with a person | `napplet:dm/open` | Draft |
-| [NAAT-FEED](naat/feed.md) | `feed` | A scrolling list of many events by some criteria | *(none yet)* | Draft |
-| NAAT-FEED-IMAGES | 'feed-images' | A scrolling list of many images, aggregated from events by some criteria | *(none yet)* | Draft |
-| NAAT-FEED-VIDEOS | 'feed-videos' | A scrolling list of many videos, aggregates from events by some criteria | *(none yet)* | Draft |
-| [NAAT-FEED-MANAGER](naat/feed-manager.md) | `feed-manager` | Creates, edits, saves, imports, exports, or organizes feed definitions | *(none yet)* | Draft |
-| [NAAT-COMPOSER](naat/composer.md) | `composer` | Creates and publishes a new Nostr event | *(none yet)* | Draft |
-| [NAAT-PET](naat/pet.md) | `pet` | Presents and manages a virtual pet or companion | *(none yet)* | Draft |
+See [README.md](README.md#naat-deprecation).

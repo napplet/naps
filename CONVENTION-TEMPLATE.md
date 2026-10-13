@@ -10,7 +10,9 @@ napplet:{archetype}/{intent} Convention
 **Invocation:** `napplet:{archetype}/{intent}[...?params]`
 **Depends:** {omit when carrier-independent; otherwise list semantic capability dependencies by domain}
 - {e.g. `relay` when behavior calls `relay.query`; `inc` and `intent` are carriers, not dependencies}
-**Archetype:** {optional — role + action this convention commonly serves, e.g. `note/open`. See ARCHETYPES.md.}
+
+The archetype is a role name shared by producers and consumers. It requires no
+registry entry or maintainer approval.
 
 ## Description
 

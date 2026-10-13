@@ -15,7 +15,8 @@ contracts.
 - [Layering](#layering)
 - [Projections](#projections)
 - [How it works](#how-it-works)
-- [The two axes](#the-two-axes)
+- [Interfaces and conventions](#interfaces-and-conventions)
+- [NAAT deprecation](#naat-deprecation)
 - [Boundary rule](#boundary-rule)
 - [Governance](#governance)
 - [Templates](#templates)
@@ -33,7 +34,7 @@ contracts.
 | **Projection** (binding) | A mapping of the seam onto one concrete host (web, native, WASM, …). |
 | **NAP-WORD** | An interface spec — an API the runtime offers. One canonical spec per name. |
 | **Convention** | An unnumbered message shape napplets agree to use. Its stable identity is `napplet:<archetype>/<intent>`; a developer-facing invocation MAY append `?params`, which the runtime binding transposes into payload data. Not a NAP. |
-| **NAAT** | A *Napplet Archetype*: a canonical role name (`note`, `feed`) with a boundary. Not a NAP. |
+| **Archetype** | A role name used in convention URIs and manifest advertisements. No registry entry or maintainer approval is required. |
 
 ## What is a napplet?
 
@@ -125,11 +126,10 @@ by the runtime on the napplet's behalf, gated by per-napplet capability policy.
 The runtime binds each endpoint to the verified manifest and artifact identity,
 not to identity claims from the napplet or an untrusted host.
 
-## The two axes
+## Interfaces and conventions
 
-A complete napplet ecosystem needs two governed things: what the runtime
-*offers*, and what kind of napplet each *is*. Cross-napplet message shapes are
-conventions. They are not assigned NAP numbers.
+This repository governs runtime capability contracts. Cross-napplet message
+shapes are conventions. They are not assigned NAP numbers.
 
 ### NAP-WORD — interfaces (*what the runtime offers*)
 
@@ -207,22 +207,19 @@ queryless identity in an `i` tag and in `intent.available()` handler
 metadata. No registry edit is required before two napplets can try a compatible
 payload.
 
-### NAAT — archetypes (*what kind of napplet this is*)
+## NAAT deprecation
 
-A NAAT is neither an interface nor a payload convention, just a name and a boundary.
-Archetypes are rows in the [ARCHETYPES.md](ARCHETYPES.md) registry, each linking
-to a thin file under [`naat/`](naat/). A napplet declares the roles it fulfills
-with `["z", "<slug>"]` manifest tags and accepted intents with
-`["i", "<convention>", "<param>", ...]` tags. Trailing values advertise parameter
-names. Napplets invoke each other by role through [NAP-INTENT](naps/NAP-INTENT.md).
-A napplet without role or intent advertisements is fully valid; it simply is not
-invokable by role. Advertisements never grant capabilities.
+**NAAT (Napplet Archetypes) is deprecated.** The unused role registry, role
+definitions, and proposal process are retired. No replacement is defined;
+role standardization can be reconsidered when a concrete need arises.
+
+Convention URIs and [NAP-INTENT](naps/NAP-INTENT.md) manifest-based dispatch remain
+in use. Their archetype names do not depend on NAAT registration.
 
 ## Boundary rule
 
 A NAP is **runtime-provided** AND defines an **API surface**. A convention is
-**napplet-agreed** AND defines **message semantics**. An archetype (NAAT) is a
-**canonical role name** with a **boundary**, owning neither an API nor a payload.
+**napplet-agreed** AND defines **message semantics**.
 Only runtime-provided API surfaces are NAPs.
 
 ## Governance
@@ -231,22 +228,20 @@ NIP-style informal process:
 
 - Fork this repo, add a markdown file under [`naps/`](naps/) following the
   interface template, open a PR. Every NAP spec is a named runtime capability
-  contract. Templates and registries (`README.md`, `ARCHETYPES.md`) stay at the
+  contract. Templates and the NAP registry (`README.md`) stay at the
   repo root.
 - Community discusses via PR comments.
 - Maintainers merge when the spec has been implemented, defended and has stabilized.
 - No formal stages, review committees, or voting.
-- NAP-WORD names and NAAT slugs are first-come-first-served but must be approved
+- NAP-WORD names are first-come-first-served but must be approved
   by the maintainer.
 
 ## Templates
 
 - Interface proposals: [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
 - Convention notes: [CONVENTION-TEMPLATE.md](CONVENTION-TEMPLATE.md)
-- Archetype proposals: [naat/TEMPLATE.md](naat/TEMPLATE.md) + a row in [ARCHETYPES.md](ARCHETYPES.md)
 
 ## References
 
 - Web projection: [projections/web.md](projections/web.md) — [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) (living, upstream document)
 - Napplet manifest / identity: [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
-- Archetype registry: [ARCHETYPES.md](ARCHETYPES.md)
