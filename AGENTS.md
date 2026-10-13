@@ -10,12 +10,11 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 
 | Path | What |
 |------|------|
-| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP registry, archetype registry |
+| [README.md](README.md) | Concepts, **glossary (canonical terms)**, NAP registry |
 | [SOUL.md](SOUL.md) | Agent identity, values, boundaries, and working character |
 | [naps/](naps/) | Runtime-provided NAP interface definitions — `NAP-<WORD>.md` |
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
 | [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
-| [ARCHETYPES.md](ARCHETYPES.md) + [naat/](naat/) | Archetype roles |
 | `*-TEMPLATE.md` | Start here for a new spec |
 
 ## Goal — never compromise
@@ -35,7 +34,6 @@ however useful it seems.
 |------|-----|------|-----------|
 | **NAP-WORD** | runtime-provided | an **API surface** | projection-defined domain availability |
 | **Convention** | napplet-agreed | **message semantics** | queryless `napplet:<archetype>/<intent>` identity in handler metadata |
-| **NAAT** | a **role name + boundary** | nothing (not a NAP); may advertise conventions | manifest `["z", …]`; accepted intents in `["i", …]` |
 | **Projection** | a host binding | how the seam maps to a host — **contracts are unchanged** | — |
 
 - A NAP is **runtime-provided AND an API** (NAP-WORD). Napplet-agreed message
@@ -44,6 +42,11 @@ however useful it seems.
   **projection**, never in a NAP.
 - Manifests reference bare **domains** (`relay`), never spec ids (`NAP-RELAY`).
 - Cannot place a change cleanly on one side? **Stop and surface it.** Do not guess.
+
+NAAT is deprecated. Do not add role registry entries, role definitions, or a
+replacement registry without a concrete need. Archetype names in convention
+URIs and manifest advertisements do not require registration. See
+[NAAT deprecation](README.md#naat-deprecation).
 
 ### Convention URI invariant
 
@@ -128,7 +131,7 @@ A dependency never moves the boundary. A NAP still owns only its own surface;
 ## Terminology
 
 Use [glossary](README.md#glossary) terms verbatim — *seam, napplet, runtime/shell,
-NAP, domain, projection, NAP-WORD, convention, NAAT*. No synonyms, no new coinages. To
+NAP, domain, projection, NAP-WORD, convention, archetype*. No synonyms, no new coinages. To
 rename: change the glossary first, then every use, in one commit.
 
 ## Voice
@@ -174,7 +177,7 @@ add meaning beyond the domain name.
 
 One concern per branch, commit, and PR. Never tangle.
 
-- **Specs** (`naps/`, `naat/<slug>.md`) → branch + PR, **one spec per PR**.
+- **Specs** (`naps/`) → branch + PR, **one spec per PR**.
 - **Governance / meta** (README.md, ARCHETYPES.md, `*-TEMPLATE.md`, this file) →
   committed **directly to `master`**.
 - Never mix a spec with a README rework, or two specs in one branch.
@@ -189,7 +192,6 @@ One concern per branch, commit, and PR. Never tangle.
 | a NAP spec | README registry row + status + **Deps column** |
 | a NAP's `Depends:` block | README **Deps column** for that row |
 | a **wire** dependency | both specs — owner defines the type, importer references it (never redefines) — plus each `Depends:` block |
-| an archetype | ARCHETYPES.md · `naat/<slug>.md` · README |
 | projection semantics | `projections/<host>.md` · README Projections table |
 | terminology | README glossary, then all references |
 
@@ -231,5 +233,5 @@ existential threat to the goal.
 ## Governance
 
 NIP-style informal. Fork → add a spec under `naps/` from its template → open a PR.
-dskvr merges when it makes sense and has ≥1 implementation. NAP-WORD names and NAAT
-slugs are first-come, maintainer-approved. Numbered NAPs are not assigned.
+dskvr merges when it makes sense and has ≥1 implementation. NAP-WORD names are
+first-come, maintainer-approved. Numbered NAPs are not assigned.

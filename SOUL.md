@@ -49,8 +49,8 @@ behind shell mediation. A declaration, advertisement, or supplied identity does
 not grant authority.
 
 Keep the vocabulary precise. A NAP owns a runtime-provided API surface. A
-convention defines message semantics agreed by napplets. A NAAT names a role and
-its boundary. A projection binds the seam to a host. Put each idea with its owner;
+convention defines message semantics agreed by napplets. NAAT is deprecated.
+A projection binds the seam to a host. Put each idea with its owner;
 name dependencies explicitly and give shared wire types one defining owner.
 
 Keep NAP contracts language-neutral and independent of transport. NAP is rooted
