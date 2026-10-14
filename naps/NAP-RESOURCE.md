@@ -150,7 +150,7 @@ Rules:
 |--------|-------|
 | `data:` | MAY decode in the napplet shim. Whether decoded in the shim or runtime, it MUST be size-limited, MIME-sniffed, rasterized when SVG, quota-checked, and otherwise policy-checked. No network access. |
 | `https:` | Runtime fetch. Full Default Resource Policy applies. Returned `mime` is sniffed, not upstream `Content-Type`. |
-| `blossom:` | Canonical form `blossom:sha256:<hex>`. Runtime MUST verify SHA-256 before delivery. Upstream hosts use `https:` policy. |
+| `blossom:` | [BUD-10](https://github.com/hzrd149/blossom/blob/master/buds/10.md) Blossom URI: `blossom:<sha256>.<ext>`. Runtime MUST verify SHA-256 before delivery. BUD-10 `xs`, `as`, and `sz` hints are advisory and never bypass policy, size limits, or the hash check. Upstream hosts use `https:` policy. |
 | `htree:`, `hashtree:` | Hashtree references defined below. Runtime resolves file bytes, verifies hashes and decryption before delivery, and MUST NOT leak keys to relays, storage servers, or peers. |
 | `nostr:` | [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) bech32. Runtime resolves one hop and returns the referenced bytes. MUST NOT recursively follow URLs or `nostr:` references in the result. |
 
