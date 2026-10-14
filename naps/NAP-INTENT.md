@@ -20,11 +20,7 @@ accepts responsibility for delivery, and mediates the target lifecycle. The
 source names a role and intent, never a target instance unless the user has
 explicitly authorized one.
 
-The developer-facing URI is
-`napplet:<archetype>/<intent>[...?params]`. Its queryless path is the stable
-convention identity. The runtime-provided binding derives the normalized
-`archetype`, `action`, `convention`, and `payload` fields before sending the wire
-request. The URI is authoritative.
+The developer-facing URI is `napplet:<archetype>/<intent>[?params][#<naddr>]`. Its queryless, fragment-free path is the stable convention identity. The runtime-provided binding derives the normalized `archetype`, `action`, `convention`, and `payload` fields before sending the wire request. The URI is authoritative.
 
 A successful invocation transfers delivery responsibility to the runtime. It
 does not assert that the target already received or handled the intent. The
@@ -58,18 +54,10 @@ authoritative.
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `payload` | no | any | Structured or non-text convention payload. |
-| `handler` | no | text | `default`, `choose`, or an authorized catalog identifier. |
-| `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
-
-`IntentInvokeOptions` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
 | `payload` | no | any | Structured or non-text payload; cannot accompany URI query parameters. |
-| `handler` | no | text | `default`, `choose`, or an authorized napplet address. |
+| `handler` | no | text | `default`, `choose`, or an authorized catalog identifier; see Catalog identifiers. |
 | `handlerHint` | no | `IntentHandlerHint` | Explicit recommendation; cannot accompany a URI fragment. |
-| `behavior` | no | `IntentBehavior` | Window/focus hints. |
+| `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
 
 `IntentHandlerHint` fields:
 
@@ -91,16 +79,17 @@ does not change which manifest formats the runtime supports.
 |-------|----------|------|-------|
 | `archetype` | yes | text | Derived from the convention URI. |
 | `action` | yes | text | Derived from the convention URI intent. |
-| `convention` | yes | text | Stable, queryless convention identity. |
+| `convention` | yes | text | Stable, queryless, fragment-free convention identity. |
 | `payload` | no | any | Query-derived text map or explicit payload. |
 | `handler` | no | text | `default`, `choose`, or an authorized catalog identifier. |
+| `handlerHint` | no | `IntentHandlerHint` | Recommendation decoded from the URI fragment or supplied in options. |
 | `behavior` | no | `IntentBehavior` | Lifecycle and focus hints. |
 
 `IntentContract` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `convention` | yes | text | Stable, queryless convention identity. |
+| `convention` | yes | text | Stable, queryless, fragment-free convention identity. |
 | `params` | yes | list of text | Parameter names advertised by the manifest's `i` tag; empty when none are advertised. |
 
 `IntentCandidate` fields:
@@ -149,26 +138,20 @@ No intent delivery identifier is exposed. The wire request `id` correlates only
 
 ### Convention URI normalization
 
-The runtime-provided binding MUST normalize a convention URI before sending
-`intent.invoke`:
+The binding MUST derive these request fields before sending `intent.invoke`:
 
-1. The first URI component after `napplet:` becomes `archetype`.
-2. The path component after `/` becomes `action`.
-3. The queryless URI becomes `convention`.
-4. Each unique, percent-decoded `name=value` query pair becomes a text payload
-   field.
+| Field | Source |
+|-------|--------|
+| `archetype`, `action` | URI segments `<archetype>/<intent>`. |
+| `convention` | URI without query or fragment. |
+| `payload` | Percent-decoded `name=value` query fields, or `options.payload` for structured/non-text data. |
+| `handlerHint` | Bare [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) `naddr` fragment decoded as `IntentHandlerHint`, or `options.handlerHint`. |
 
-The binding MUST NOT coerce query values to boolean, number, or null. A `+` is a
-literal plus sign, not a space. A URI with a fragment, malformed
-percent-encoding, a repeated query name, or an explicit payload alongside query
-parameters MUST be rejected before invocation. Structured or non-text data MUST
-use `options.payload` with a queryless URI.
+Query values MUST remain text; `+` is literal. The binding MUST reject malformed percent-encoding, duplicate decoded query names, invalid fragments, query plus `options.payload`, or fragment plus `options.handlerHint` before invocation. A fragment MUST satisfy the `IntentHandlerHint` address constraints.
 
-The runtime MUST reject a normalized wire request when:
+Only NAP-INTENT invocation accepts fragments; other convention-URI operations MUST reject them. A queryless URI MAY combine a fragment with `options.payload`.
 
-- `convention` contains a query or fragment;
-- the convention archetype differs from `request.archetype`; or
-- the convention intent differs from `request.action`.
+The runtime MUST reject a request unless `convention` is exactly the queryless, fragment-free `napplet:<archetype>/<action>` matching its `archetype` and `action` fields.
 
 **`invoke(uri, options?)`** — Normalizes the URI, resolves a handler, and asks
 the runtime to accept delivery responsibility. A successful result may precede
@@ -255,6 +238,9 @@ neither catalog discovery nor invocation requires a `shell` domain or handshake.
 and `IntentDelivery.sender` use the same runtime-assigned identifier space.
 Identifiers are opaque text: callers MUST preserve them exactly and MUST NOT
 interpret them as a `d` tag, event address, or running-instance identifier.
+
+`handlerHint.address` is a recommendation coordinate, not a catalog identifier. The runtime resolves a permitted recommendation to a verified catalog entry before selecting its identifier; callers MUST NOT substitute a hint coordinate for an explicit `handler`.
+
 The runtime MUST reserve `default` and `choose` for handler selection.
 
 Identifiers MUST distinguish publishers and manifest kinds. Named napplets are
@@ -457,7 +443,7 @@ a second result to the source.
 
 The shell MUST apply this precedence:
 
-1. An explicit authorized `handler` address or `handler: "choose"` selection.
+1. An explicit authorized `handler` catalog identifier or `handler: "choose"` selection.
 2. The user's applicable default handler.
 3. The recommended handler, if policy permits and it supports the requested
    archetype, action, and convention.
@@ -502,13 +488,9 @@ shell-internal; it imposes no additional capability requirement on the caller.
 
 ## References
 
-- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — napplet manifests, artifact verification, identity, domain availability, and normative web binding.
-
-## References
-
 - [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) — shareable address identifiers and relay hints.
 - [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — addressable event coordinates and resolution.
-- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web binding.
+- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — napplet manifests, artifact verification, identity, domain availability, and normative web binding.
 - [NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) — existing napplet manifests.
 
 ## Implementations
@@ -521,3 +503,5 @@ shell-internal; it imposes no additional capability requirement on the caller.
 - `6461e4b` - Adopted unnumbered convention identities for payload shapes.
 - `6c0d731` - Made convention URIs authoritative and delivery lifecycle-independent while preserving manifest-derived handler discovery.
 - `3dc945f` - Aligned manifest discovery with z/i advertisements and parameter names, supported all napplet manifest kinds with publisher-safe catalog identifiers, and adopted injected-domain availability.
+
+- `f89efbe` - Reconciled handler recommendation normalization and schemas with opaque catalog selection; kept fragments outside convention identity and payload.
