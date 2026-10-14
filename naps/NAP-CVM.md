@@ -661,3 +661,4 @@ These cases exercise the contract; they are not implementation test results.
 - `e001eaf` - Introduced NAP-CVM as a native ContextVM bridge.
 - `1873f7e` - Added a runtime registry facade for discovering CVM surfaces.
 - `69d6bbd` - Adopted injected-domain availability and linked the current upstream web binding.
+- `12ad986` - Scoped sessions, client identities, events, and payment authorization per napplet; defined MCP message completion, bounded timeouts, result errors, portable tool-hash registry selection, complete resource reads, discovery semantics, and conformance cases.
