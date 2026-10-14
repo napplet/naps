@@ -292,3 +292,4 @@ SHOULD pass canonical URL strings.
 - `c5eda99` - Made SVG rasterization isolation host-neutral.
 - `c0cffe4` - Required equivalent data-URL policy checks in the shim and runtime.
 - `2c8fc73` - Required enforced projection network isolation, standardized base64 wire bytes and web Blob conversion, specified Hashtree reference forms, and deferred concrete sidecar carrier attachments.
+- `2a911aa` - Replaced the `blossom:sha256:<hex>` form with BUD-10 `blossom:<sha256>.<ext>` URIs and made BUD-10 discovery hints advisory.
