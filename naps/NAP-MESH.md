@@ -247,3 +247,7 @@ This draft exists to start these discussions.
 ## Implementations
 
 - [Myco](https://github.com/Origami74/myco) (Android) — circle over the FIPS mesh (BLE, Wi-Fi Aware, LAN, USB). Caps default to publish 3, subscribe 2. Backlog requests are bounded at 8 s per member asked. `mesh.blobs` sends BUD-01 `HEAD /<sha256>` to each member's Blossom: six at a time, 4 s each, 12 s per call, hits remembered 60 s and misses 20 s. Up to 4096 ids are remembered per subscription for deduplication.
+
+## Changelog
+
+- `64ba55c` - Introduced NAP-MESH draft: hop-limited publish, subscribe and blob counts over the user's circle.
