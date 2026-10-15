@@ -12,11 +12,6 @@ Hop-Limited Circle Publish and Subscribe
 - `relay` — wire · required — imports `EventTemplate` for publish input and `RelayEventResult` for every delivered event.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.mesh`; domain presence signals availability.
 
-> **First draft, for discussion.** This spec describes one working
-> implementation so there is something concrete to argue with. It introduces
-> the **circle**, a term that is not in the glossary yet and needs refining
-> before anything here is settled. See [Open Questions](#open-questions).
-
 ## Description
 
 NAP-MESH gives napplets publish and subscribe over the user's **circle**: the devices of people the user has deliberately paired with, reached peer to peer, without a relay. Reach is measured in **hops** along circle edges. A relay publish (NAP-RELAY) answers "put this on my relays"; a mesh publish answers "send this to my people, this far". The shell owns the circle: who is in it, how an event travels between members, how a copy arriving by a second path is deduplicated, and how far any flood may travel. The napplet chooses only the hop budget, within a cap the user sets.
@@ -232,21 +227,9 @@ A `ttl` that is not a whole number from 0 to 255 is an error, not a zero. A napp
 - **Untrusted input.** Filters and templates come from untrusted code. The shell parses them fully and refuses anything unreadable rather than guessing. Members' backlog answers are untrusted too; the shell checks them against the subscription's filters before delivery.
 - **Asking is not free.** Every hash in `mesh.blobs` costs one request per member, often over a slow link. The 64-hash cap and the shell's own bounds keep a napplet polling on a timer from turning members' links into its cache check.
 
-## Open Questions
-
-This draft exists to start these discussions.
-
-- **What is a circle, exactly?** Here it is the set of people the user paired with, one key per person, mutual and signed. Open: how pairing is expressed on Nostr (if at all), whether a circle can be partitioned (family, work), and whether the term belongs in the glossary or in a separate convention.
-- **Who may forward what.** Hop budgets beyond 1 need members to pass on each other's events. Should per-member forwarding permission be part of this contract, or stay shell policy as drafted?
-- **Transport neutrality.** The draft assumes a peer-to-peer transport with no relay. Should a circle member reached through a relay count as a hop?
-- **Presence.** `peers` is a count by design. Is there a case for member identities behind a separate NAP, and what would it cost in privacy?
-- **Pass-on.** Re-flooding an event the napplet received, rather than signed, is useful (relaying a neighbour's alert) and is left out of this draft. Should it be here, and with what bounds?
-- **`blobs` placement.** Asking who holds a blob may belong with NAP-RESOURCE or NAP-BLOSSOM rather than here.
-- **Defaults.** Should `mesh` ever be granted by default? The one implementation does so today and intends to make it opt-in.
-
 ## Implementations
 
-- [Myco](https://github.com/Origami74/myco) (Android) — circle over the FIPS mesh (BLE, Wi-Fi Aware, LAN, USB). Caps default to publish 3, subscribe 2. Backlog requests are bounded at 8 s per member asked. `mesh.blobs` sends BUD-01 `HEAD /<sha256>` to each member's Blossom: six at a time, 4 s each, 12 s per call, hits remembered 60 s and misses 20 s. Up to 4096 ids are remembered per subscription for deduplication.
+- [Myco](https://github.com/Origami74/myco) (Android): circle over the FIPS mesh.
 
 ## Changelog
 
