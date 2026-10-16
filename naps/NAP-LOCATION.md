@@ -328,3 +328,7 @@ This section is projection guidance only. The contract above does not change.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `ac41d62` - Introduced NAP-LOCATION for coarse, precise and background position grants with shell-mediated, visibility-scoped delivery.
