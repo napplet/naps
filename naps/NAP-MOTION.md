@@ -13,12 +13,13 @@ Shell-Mediated Device Motion and Orientation
 
 ## Description
 
-NAP-MOTION gives napplets device motion and orientation without direct sensor
-access. Accelerometer, gyroscope and magnetometer readings belong to the
+NAP-MOTION gives napplets device motion and orientation through one
+shell-mediated contract that behaves the same in every shell. Accelerometer, gyroscope and magnetometer readings belong to the
 device, not to one napplet. A napplet that reads them natively can infer what
 the user types or taps in another napplet, fingerprint the device and, from
-compass heading, narrow the user's location. Under this NAP the runtime owns
-the only native reader. The shell asks the user before a napplet receives
+compass heading, narrow the user's location. Under this NAP the runtime reads
+the sensors and, where the host allows, denies napplets native access. The
+shell asks the user before a napplet receives
 motion, then delivers live samples only to a granted napplet that has input
 focus. Every subscribed napplet still sees availability, permission and focus
 status.
@@ -197,11 +198,15 @@ subscription messages.
 
 ## Shell Behavior
 
-- The runtime MUST be the only reader of motion sensors on behalf of napplets.
-  Where the host offers native motion or orientation APIs, the runtime MUST deny
-  them to napplets.
-- Where the host cannot deny native access, the shell MUST NOT present `motion`
-  as isolated and SHOULD NOT offer the `motion` domain.
+- A shell that offers `motion` MUST implement this whole contract, whether or
+  not its host can deny native sensors to napplets. Presence of the domain
+  guarantees the operations, schemas and gating in this spec. It does not
+  guarantee isolation from native APIs.
+- Where the host can deny native motion and orientation APIs to napplets, the
+  runtime MUST deny them, and MUST be the only reader of motion sensors on
+  their behalf.
+- A shell MAY offer `motion` on a host that cannot deny native access. It
+  SHOULD then tell the user that napplets can read sensors outside its grants.
 - The shell MUST respond to every `motion.permission` with a
   `motion.permission.result` carrying the same `id`.
 - The shell MUST NOT prompt the user except in response to `motion.permission`.
@@ -243,6 +248,9 @@ subscription messages.
   acceleration or rotation across a gap in samples.
 - A napplet SHOULD request `absolute` only when it needs compass heading.
 - A napplet SHOULD keep pointer and keyboard controls.
+- A napplet SHOULD use `motion` instead of native sensor APIs. Native access is
+  denied in some shells and open in others; `motion` behaves the same wherever
+  it is present.
 - The domain is optional. A napplet SHOULD NOT declare `motion` as required
   unless it cannot run without motion.
 
@@ -259,8 +267,10 @@ This section is projection guidance only. The contract above does not change.
   without any error, and Generic Sensor classes (`Accelerometer`, `Gyroscope`,
   `AbsoluteOrientationSensor`, …) report an error on `start()`.
 - Where the engine does not enforce these features, native events still reach
-  the napplet's realm. No binding replacement can block them. A shell SHOULD
-  verify enforcement per engine before offering `motion`.
+  the napplet's realm, and no binding replacement can block them. The shell
+  still offers `motion` with the full contract; only isolation from native
+  reads is lost. Engine support varies, so a shell SHOULD verify enforcement
+  per engine instead of assuming it.
 - A binding MAY then replace the event APIs with ones served from `motion.*`.
   Existing libraries then keep working unchanged. Such a replacement SHOULD:
   - replace `DeviceMotionEvent.requestPermission` and
@@ -292,9 +302,10 @@ This section is projection guidance only. The contract above does not change.
   sites. Quantization SHOULD be coarse enough to mask it.
 - Absolute orientation exposes compass heading, which aids location inference.
   It requires its own grant, and the shell SHOULD coarsen it.
-- The isolation guarantee depends on the runtime denying every native sensor
-  path to napplets. A shell that leaves native sensors reachable provides no
-  isolation, whatever this domain reports.
+- Isolation from native reads depends on the host. Where the runtime denies
+  every native sensor path, this domain's gating is the only way a napplet reads
+  motion. Where the host cannot deny them, the gating governs only `motion`
+  itself, and native reads bypass it.
 - This domain grants no device commands. Haptics, batched raw readings, ambient
   light, proximity and geolocation are out of scope.
 
