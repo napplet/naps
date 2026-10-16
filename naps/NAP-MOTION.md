@@ -301,3 +301,7 @@ This section is projection guidance only. The contract above does not change.
 ## Implementations
 
 - None yet.
+
+## Changelog
+
+- `e43dd4f` - Introduced NAP-MOTION for grant- and focus-scoped, shell-mediated device motion and orientation samples.
