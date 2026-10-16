@@ -316,3 +316,4 @@ This section is projection guidance only. The contract above does not change.
 ## Changelog
 
 - `e43dd4f` - Introduced NAP-MOTION for grant- and focus-scoped, shell-mediated device motion and orientation samples.
+- `e78fbd3` - Made the contract hold in every shell that offers `motion`; native denial is required where the host supports it, but no longer gates offering the domain.
