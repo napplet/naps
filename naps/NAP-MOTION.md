@@ -202,11 +202,13 @@ subscription messages.
   not its host can deny native sensors to napplets. Presence of the domain
   guarantees the operations, schemas and gating in this spec. It does not
   guarantee isolation from native APIs.
-- Where the host can deny native motion and orientation APIs to napplets, the
-  runtime MUST deny them, and MUST be the only reader of motion sensors on
-  their behalf.
-- A shell MAY offer `motion` on a host that cannot deny native access. It
-  SHOULD then tell the user that napplets can read sensors outside its grants.
+- The runtime MUST apply every mechanism its host offers to deny native motion
+  and orientation APIs to napplets, including mechanisms the host may not
+  enforce. Where denial holds, the runtime MUST be the only reader of motion
+  sensors on their behalf.
+- Native isolation is best effort. A shell MAY offer `motion` on a host that
+  cannot deny native access, and MAY tell the user that napplets there can
+  read sensors outside its grants.
 - The shell MUST respond to every `motion.permission` with a
   `motion.permission.result` carrying the same `id`.
 - The shell MUST NOT prompt the user except in response to `motion.permission`.
@@ -269,8 +271,8 @@ This section is projection guidance only. The contract above does not change.
 - Where the engine does not enforce these features, native events still reach
   the napplet's realm, and no binding replacement can block them. The shell
   still offers `motion` with the full contract; only isolation from native
-  reads is lost. Engine support varies, so a shell SHOULD verify enforcement
-  per engine instead of assuming it.
+  reads is lost. The shell SHOULD set the features on every engine anyway, so
+  isolation starts working wherever enforcement lands.
 - A binding MAY then replace the event APIs with ones served from `motion.*`.
   Existing libraries then keep working unchanged. Such a replacement SHOULD:
   - replace `DeviceMotionEvent.requestPermission` and
