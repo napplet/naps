@@ -15,10 +15,13 @@ Archetype Intent Dispatcher
 
 NAP-INTENT lets a napplet invoke another napplet by convention URI. The runtime
 derives the requested archetype and action, resolves an installed handler,
-accepts responsibility for delivery, and mediates the target lifecycle. The
-**source** is the invoking napplet. The **target** is the resolved handler. The
-source names a role and intent, never a target instance unless the user has
-explicitly authorized one.
+accepts responsibility for delivery, and mediates the target lifecycle. For napplet invocation, the **source** is the invoking napplet and the
+**target** is the resolved handler. A napplet names an archetype and intent;
+a catalog identifier does not select a particular running instance.
+
+The shell can also originate an intent for an existing instance selected by the
+user or shell policy. This uses the same `intent.deliver` contract. It does not
+add a napplet-facing operation or expose instance selectors to other napplets.
 
 The developer-facing URI is `napplet:<archetype>/<intent>[?params][#<naddr>]`. Its queryless, fragment-free path is the stable convention identity. The runtime-provided binding derives the normalized `archetype`, `action`, `convention`, and `payload` fields before sending the wire request. The URI is authoritative.
 
@@ -127,11 +130,17 @@ does not change which manifest formats the runtime supports.
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `sender` | yes | text | Runtime-attested source catalog identifier. |
+| `sender` | yes | text or null | Runtime-attested source catalog identifier for napplet invocation; null only for a shell-originated request. |
 | `archetype` | yes | text | Normalized target role. |
 | `action` | yes | text | Normalized action. |
 | `convention` | yes | text | Stable convention identity. |
 | `payload` | no | any | Normalized convention payload. |
+
+`sender: null` identifies the shell as the source. It is not an anonymous
+napplet and MUST NOT be represented by a reserved or fabricated catalog
+identifier. The runtime MUST derive this distinction from how the request
+originated, never from caller-supplied data. Neither form attests that the
+payload is safe.
 
 No intent delivery identifier is exposed. The wire request `id` correlates only
 `intent.invoke` with its immediate `intent.invoke.result`.
@@ -235,7 +244,7 @@ neither catalog discovery nor invocation requires a `shell` domain or handshake.
 ### Catalog identifiers
 
 `IntentCandidate.id`, an explicit `handler`, a successful result's `handler`,
-and `IntentDelivery.sender` use the same runtime-assigned identifier space.
+and a non-null `IntentDelivery.sender` use the same runtime-assigned identifier space.
 Identifiers are opaque text: callers MUST preserve them exactly and MUST NOT
 interpret them as a `d` tag, event address, or running-instance identifier.
 
@@ -251,8 +260,8 @@ MUST NOT serve as catalog identity. Identifier encoding and persistence across
 runtime restarts are runtime policy; identifiers are not portable between
 runtimes.
 
-The runtime MUST also assign an identifier to the source, even when it has no
-dispatch advertisements. It MUST derive `sender` from the source's verified
+For napplet invocation, the runtime MUST also assign an identifier to the
+source, even when it has no dispatch advertisements. It MUST derive `sender` from the source's verified
 manifest bound to its authenticated endpoint. Catalog identity does not replace
 the web projection's artifact verification or endpoint binding.
 
@@ -371,6 +380,28 @@ invoke("napplet:note/open", {
 })
 ```
 
+**Shell request for a selected existing profile viewer:**
+
+The endpoint is selected internally. No instance selector is placed in the
+convention payload:
+
+```json
+{
+  "type": "intent.deliver",
+  "delivery": {
+    "sender": null,
+    "archetype": "profile",
+    "action": "open",
+    "convention": "napplet:profile/open",
+    "payload": { "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+  }
+}
+```
+
+The target handles this through its ordinary `onDelivery` registration. The
+request does not grant new capabilities and does not prove that the profile was
+opened.
+
 **No handler installed:**
 
 ```
@@ -405,16 +436,18 @@ a second result to the source.
 
 ## Runtime Behavior
 
-- The runtime MUST derive the source `sender` from the authenticated endpoint.
-  It MUST ignore or reject caller-supplied sender data.
+- For napplet invocation, the runtime MUST derive `sender` from the
+  authenticated source endpoint. Only a shell-originated request has a null
+  sender. It MUST ignore or reject caller-supplied sender claims.
 - The runtime MUST validate normalized `archetype`, `action`, and `convention`
   consistency before handler resolution.
 - The runtime MUST keep a user-overridable default per archetype. A napplet
   cannot set or change it.
 - The runtime SHOULD offer a chooser when `handler` is `choose`, or when several
   candidates exist and no default is set.
-- The runtime MUST resolve an installed handler using manifest contracts and the
-  user's default-handler preference.
+- For catalog-based invocation, the runtime MUST resolve an installed handler
+  using manifest contracts and the user's default-handler preference.
+  Shell requests bound to an existing instance follow the rules below.
 - The runtime MUST respond to `intent.invoke` with the same request `id`.
 - An `ok: true` result MUST mean the runtime accepted delivery responsibility.
 - Before closing the source because of an invocation, the runtime MUST send
@@ -424,24 +457,58 @@ a second result to the source.
   terminally.
 - After acceptance, delivery MUST NOT depend on the source remaining alive.
 - The runtime MUST deliver `IntentDelivery` only after the target is ready.
-- The runtime MAY reuse an existing target, briefly overlap source and target,
-  or close the source before starting the target.
-- Retry behavior, target replacement, overlap, terminal failure handling, and
-  persistence across runtime restart are runtime policy.
+- For catalog-based invocation, the runtime MAY reuse an existing target,
+  briefly overlap source and target, or close the source before starting it.
+- For catalog-based invocation, retry behavior, target replacement, overlap,
+  terminal failure handling, and persistence across runtime restart are runtime
+  policy. Existing-instance delivery MUST preserve its fixed endpoint scope.
 - `behavior` fields are hints. Runtime workspace and lifecycle policy remain
   authoritative.
 - The runtime MUST source `available()` and `handlers()` from verified installed
   [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifests, not only
   running instances.
-- The runtime MUST NOT let a caller address a handler instance unless the user
-  explicitly authorized that handler.
+- A napplet-supplied catalog identifier MUST NOT be interpreted as a running
+  instance selector. Fixed-instance delivery is a shell-internal operation.
 - The runtime MUST reject an unsupported convention before acceptance.
 - The runtime SHOULD emit `intent.changed` when catalog or default-handler state
   changes.
 
+### Shell delivery to an existing instance
+
+The shell MAY request an advertised intent on a particular running instance
+under user action or shell policy. The runtime MUST bind this request to that
+instance's authenticated endpoint before delivery. The selection is internal to
+the shell/runtime; it is not a catalog identifier supplied through `handler`.
+
+For this delivery, the runtime MUST:
+
+1. Confirm that the selected instance is alive and has the `intent` domain.
+2. Check the convention against that instance's bound verified manifest using
+   the same eligible-contract and exact-identity rules as normal delivery.
+3. Apply shell policy and the ordinary payload/URI normalization rules.
+4. Deliver the ordinary `IntentDelivery` with `sender: null` to that endpoint.
+
+An explicit instance selection MUST NOT run a chooser, consult a default to
+replace the target, start another instance, or fall back to another endpoint.
+If the endpoint terminates or cannot accept the convention, the shell's request
+fails. Retrying MUST NOT transfer it to a replacement instance. A changed default
+handler does not redirect a request already bound to a selected instance.
+
+The binding retains this delivery until `onDelivery` is registered, as for any
+other intent. Delivery still does not prove that the target handled the request
+or changed its current view. An existing-instance request exposes no completion
+receipt and does not itself alter history.
+
+A napplet's `intent.invoke` MUST always produce a non-null sender derived from
+its authenticated source. It MUST NOT gain the shell's fixed-instance authority
+by supplying `sender`, an instance identifier, or a payload field. The runtime
+MUST ignore or reject those caller-supplied authority claims. This rule does not
+reserve names inside a convention's payload; payload data never selects sender
+provenance or endpoint scope.
+
 ### Recommended handler resolution
 
-The shell MUST apply this precedence:
+For catalog-based invocation, the shell MUST apply this precedence:
 
 1. An explicit authorized `handler` catalog identifier or `handler: "choose"` selection.
 2. The user's applicable default handler.
@@ -478,13 +545,27 @@ shell-internal; it imposes no additional capability requirement on the caller.
   semantics remain opaque to the runtime.
 - The target MUST validate `payload` against `convention` and treat `sender` as
   provenance, not proof that payload content is safe.
-- Handler selection is a trust boundary. Only installed manifest contracts,
-  user defaults, or explicit user choice may select a target.
+- Handler selection is a trust boundary. Catalog resolution uses verified
+  manifest contracts, user defaults, and explicit user choice. A shell-selected
+  live instance remains bound to its authenticated endpoint.
 - Default-handler state belongs to the user. A napplet MUST NOT change it.
 - Availability can reveal installed napplets. The runtime MAY redact candidate
   details according to policy.
 - Delivery MUST NOT leak payload or sender metadata to any napplet other than
   the resolved target.
+
+## Existing-Instance Delivery Conformance
+
+| Case | Required result |
+|------|-----------------|
+| Shell selects one of two instances using the same manifest | Deliver only to the selected authenticated endpoint. |
+| Shell-originated delivery | Use the ordinary delivery shape with `sender: null`; do not fabricate a catalog identity. |
+| Napplet invokes with a forged null sender or instance field | Ignore or reject the claim; derive a non-null sender and use ordinary catalog resolution. |
+| Selected instance does not advertise the convention | Reject; do not choose another handler. |
+| User defaults change after selection | Keep the selected endpoint; do not redirect. |
+| Selected endpoint terminates before delivery | Fail the request; do not restart or substitute an instance. |
+| No `onDelivery` handler is registered yet | Apply the existing delivery-buffering rule for that endpoint. |
+| Delivery is accepted or emitted | Do not claim completion or change history merely from acceptance or delivery. |
 
 ## References
 
