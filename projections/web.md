@@ -82,28 +82,29 @@ Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 ## Internal navigation binding (draft)
 
 [NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) exposes `report` and `get` through
-`window.napplet.navigation`. It requires `intent`; domain presence still follows
-the ordinary injected-namespace rules, without a `shell` handshake.
+`window.napplet.navigation` and requires `intent`. Namespace availability is
+independent of a `shell` handshake.
 
-A router adapter reports committed views as advertised convention identities
-and payload maps containing only advertised parameter names. It reports the
-complete retained history and current index. Unadvertised internal routes MUST
-NOT be retained as locations. Query sugar is transposed before reporting; stored
-convention identities are queryless and fragment-free.
+A router adapter reports each committed view as an advertised convention and a
+payload map containing only advertised parameter names. The runtime maintains
+the list, visit identifiers, and current position. The napplet reports no history
+snapshot or index. Query sugar is transposed before reporting; stored identities
+are queryless and fragment-free.
 
-Navigation requests use `window.napplet.intent` delivery handling. There is no
-separate navigation listener or outcome binding. Intent-based history traversal
-is not yet fully specified; see the draft's
-[intent integration questions](../naps/NAP-NAVIGATION.md#intent-integration-still-to-specify).
+Back/Forward uses ordinary `window.napplet.intent.onDelivery` handling. After an
+intent causes a committed transition, the napplet includes `delivery.id` as the
+navigation report's `deliveryId`. The runtime uses its own delivery-to-visit
+association to select an existing visit. The binding MUST NOT infer this id from
+a global last-delivered intent or attach it to unrelated asynchronous work.
+There is no navigation listener or outcome binding.
 
-Native `window.location`, `history.pushState`, `history.replaceState`, and hash
-changes do not report navigation by themselves. The parent MUST NOT assume it
-can inspect an opaque-origin iframe's internal router. No automatic replacement
-of browser APIs is required.
+Native location, History API, and hash changes do not report navigation by
+themselves. A parent MUST NOT assume it can inspect an opaque-origin iframe's
+router. No automatic replacement of browser APIs is required.
 
-The shell's top-level URL and browser Back button remain shell policy. A stored
-invocation MUST NOT replace the verified `srcdoc` artifact or be assigned to an
-iframe's `src`. Reporting it does not dispatch it.
+The top-level URL and browser Back button remain shell policy. A stored
+invocation MUST NOT replace the verified `srcdoc` artifact or become an iframe
+`src`. Reporting a location does not dispatch it.
 
 ## Identity & trust
 
