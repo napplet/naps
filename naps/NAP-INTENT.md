@@ -586,3 +586,4 @@ shell-internal; it imposes no additional capability requirement on the caller.
 - `3dc945f` - Aligned manifest discovery with z/i advertisements and parameter names, supported all napplet manifest kinds with publisher-safe catalog identifiers, and adopted injected-domain availability.
 
 - `f89efbe` - Reconciled handler recommendation normalization and schemas with opaque catalog selection; kept fragments outside convention identity and payload.
+- `6e4af53` - Added explicit shell provenance and endpoint-bound intent delivery to an existing instance, without catalog fallback or a new dispatch operation.
