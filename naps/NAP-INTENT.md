@@ -130,6 +130,7 @@ does not change which manifest formats the runtime supports.
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
+| `id` | yes | text | Non-empty runtime-assigned delivery identifier, scoped to the target endpoint lifetime. |
 | `sender` | yes | text or null | Runtime-attested source catalog identifier for napplet invocation; null only for a shell-originated request. |
 | `archetype` | yes | text | Normalized target role. |
 | `action` | yes | text | Normalized action. |
@@ -142,8 +143,25 @@ identifier. The runtime MUST derive this distinction from how the request
 originated, never from caller-supplied data. Neither form attests that the
 payload is safe.
 
-No intent delivery identifier is exposed. The wire request `id` correlates only
-`intent.invoke` with its immediate `intent.invoke.result`.
+The runtime MUST assign `IntentDelivery.id` before delivery. It MUST NOT reuse
+an identifier for another logical delivery during the target endpoint lifetime.
+A retry of the same delivery to that endpoint MUST preserve its identifier,
+source, convention, and payload. A different target endpoint is a different
+delivery scope. The runtime MUST retain the ability to determine whether an
+identifier was issued to an endpoint for that endpoint’s lifetime. Resource
+limits MAY prevent new deliveries; they MUST NOT silently reassign identifiers
+or make a still-live issued identifier identify another delivery.
+
+The delivery identifier identifies the request that a target is handling. It
+is not an authorization token, an instance selector, or a completion receipt.
+It MUST NOT be inserted into the convention payload. A target MAY associate its
+subsequent domain reports with this identifier under the reporting domain's
+contract. This does not require that domain or change intent acceptance.
+
+The outer wire request `id` still correlates only `intent.invoke` with its
+immediate `intent.invoke.result`. `IntentDelivery.id` is a separate identifier;
+it MUST NOT be exposed to the source as a completion promise. The runtime MUST
+ignore or reject caller-supplied delivery identifiers and assign its own.
 
 ### Convention URI normalization
 
@@ -284,7 +302,8 @@ the web projection's artifact verification or endpoint binding.
 Key design notes:
 
 - Request/result pairs use `id` only for immediate correlation.
-- `intent.deliver` is a runtime push and has no request or delivery id.
+- `intent.deliver` is a runtime push with no outer request `id`. Its
+  `delivery.id` identifies the logical delivery at the target endpoint.
 - The runtime-provided binding buffers `intent.deliver` when no `onDelivery`
   handler is registered yet.
 - Handler discovery uses stable, queryless convention identities.
@@ -363,6 +382,7 @@ target is ready, it receives:
 <- {
      "type": "intent.deliver",
      "delivery": {
+       "id": "delivery-1",
        "sender": "catalog-social-feed",
        "archetype": "profile",
        "action": "open",
@@ -389,6 +409,7 @@ convention payload:
 {
   "type": "intent.deliver",
   "delivery": {
+    "id": "delivery-2",
     "sender": null,
     "archetype": "profile",
     "action": "open",
@@ -560,6 +581,10 @@ shell-internal; it imposes no additional capability requirement on the caller.
 |------|-----------------|
 | Shell selects one of two instances using the same manifest | Deliver only to the selected authenticated endpoint. |
 | Shell-originated delivery | Use the ordinary delivery shape with `sender: null`; do not fabricate a catalog identity. |
+| Retry to the same endpoint | Preserve delivery id and content; do not mint a second logical delivery. |
+| New delivery at that endpoint | Assign an identifier never used by an earlier delivery in that endpoint lifetime. |
+| Caller supplies a delivery identifier | Ignore or reject the claim; only the runtime assigns it. |
+| Target associates a domain report with a delivery id | Apply that domain’s contract; do not turn intent acceptance into a completion receipt. |
 | Napplet invokes with a forged null sender or instance field | Ignore or reject the claim; derive a non-null sender and use ordinary catalog resolution. |
 | Selected instance does not advertise the convention | Reject; do not choose another handler. |
 | User defaults change after selection | Keep the selected endpoint; do not redirect. |
@@ -568,6 +593,8 @@ shell-internal; it imposes no additional capability requirement on the caller.
 | Delivery is accepted or emitted | Do not claim completion or change history merely from acceptance or delivery. |
 
 ## References
+
+- [NAP-NAVIGATION proposal](https://github.com/napplet/naps/pull/126) — uses delivery identifiers to associate current-location reports with runtime-owned history revisits; intent does not depend on navigation.
 
 - [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) — shareable address identifiers and relay hints.
 - [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — addressable event coordinates and resolution.
