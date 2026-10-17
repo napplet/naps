@@ -346,3 +346,4 @@ Traversal conformance cases await the NAP-INTENT integration described above.
 ## Changelog
 
 - `fd24d88` - Introduced instance-scoped location and history reports, mediated traversal with revision and failure handling, and optional shell layering with intent delivery.
+- `d0d7a6a` - Restricted retained locations to advertised intent invocations and parameter names, removed the separate traversal dispatcher, required intent layering, and exposed remaining intent-delivery integration gaps.
