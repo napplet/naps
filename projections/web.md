@@ -79,6 +79,32 @@ The fragment is a recommendation, not an explicit handler selection. The shell
 applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
 Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
+## Internal navigation binding
+
+[NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) uses
+`window.napplet.navigation` and the ordinary `postMessage` envelope. Its
+`report`, `get`, and `onNavigate` operations follow the domain's schemas.
+An `onNavigate` handler MAY return its outcome asynchronously; the binding
+correlates the outcome and sends the required follow-up report.
+
+The napplet integrates its router with this surface. After a committed route
+change it reports the complete retained history and current index. For a
+runtime-requested traversal, it restores the requested entry and returns the
+resulting snapshot without appending a visit.
+
+Domain presence does not make native `window.location` or browser session
+history visible to the parent. A shell MUST NOT assume it can inspect an
+opaque-origin iframe's internal router. Calling `history.pushState`,
+`history.replaceState`, or changing a hash alone does not report navigation.
+An adapter MAY translate a napplet's router transitions into domain reports;
+it MUST preserve the domain's revision and traversal rules and avoid duplicate
+visits. No automatic replacement of browser APIs is required.
+
+The shell's top-level URL and browser Back button remain shell policy. The
+binding MUST NOT assign a reported location to the iframe's `src` or the
+shell's location, or fetch it. An internal location is opaque data, not a
+replacement for the verified `srcdoc` artifact.
+
 ## Identity & trust
 
 The shell is the policy boundary. For every inbound message it verifies
