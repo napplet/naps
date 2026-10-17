@@ -1,36 +1,37 @@
 NAP-NAVIGATION
 ==============
 
-Internal Location and History
------------------------------
+Internal Location and Intent History
+------------------------------------
 
 `draft`
 
 **NAP ID:** NAP-NAVIGATION
 **Domain:** `navigation`
 **Depends:**
-- `intent` — layering · optional — the shell MAY associate `intent.deliver`
-  with the selected instance's subsequent navigation reports. No intent field,
-  shared wire type, or capability requirement is added to the napplet.
+- `intent` — layering · required — the runtime checks retained entries against
+  the reporting napplet's advertised intent contracts and uses intent delivery
+  for navigation requests. Navigation defines no second dispatcher.
 
 ## Description
 
-NAP-NAVIGATION makes a napplet's internal location and history available to its
-runtime. The napplet reports its current location and ordered history. The
-runtime retains the latest report for shell location displays, history menus,
-and Back/Forward controls. The runtime can ask that same instance to revisit
-an entry. The napplet owns the meaning of its locations and applies the request.
+NAP-NAVIGATION makes a napplet's reported current location and retained history
+available to its runtime. Each location is an invocation of an intent advertised
+by that napplet: a stable convention identity and a payload containing only its
+advertised parameter names. Internal routes that cannot be expressed this way
+MUST NOT be retained as locations.
 
-A **location** identifies a view inside one napplet. A **history entry** is one
-visit to a location. A **snapshot** contains the reported entries and the index
-of the current entry. These records belong to one authenticated running
-instance, including when several instances use the same manifest.
+The napplet reports the views it actually committed. The runtime retains the
+reported history for the shell. Navigation requests are intents; the napplet
+handles them through its intent handler and reports the resulting location.
+Intent acceptance or delivery alone MUST NOT create an entry or move the current
+position.
 
-The runtime MUST NOT infer internal location from intent acceptance, inspect a
-location to select another napplet, or treat a navigation request as proof of
-arrival. Reports are napplet assertions, not runtime verification of rendered
-content. The contract exposes reported history; it cannot discover unreported
-application state.
+A **history entry** is one visit to an advertised intent invocation. A
+**snapshot** contains the retained entries and the current position. Snapshots
+belong to one authenticated running instance, including when several instances
+use the same manifest. A report asserts application state; it does not prove
+what was rendered.
 
 ## API Surface
 
@@ -38,208 +39,196 @@ application state.
 |-----------|------------|--------|------|
 | `report` | `snapshot` (`NavigationSnapshot`) | `NavigationResult` | `navigation.report` / `navigation.report.result` |
 | `get` | none | `NavigationResult` | `navigation.get` / `navigation.get.result` |
-| `onNavigate` | handler for `NavigationRequest`, returning `NavigationOutcome`; handler for follow-up `NavigationError` | `Subscription` handle | `navigation.listen`, `navigation.navigate` / `navigation.navigate.result`, follow-up `navigation.report`, `navigation.unlisten` |
 
-`Subscription` is a local registration handle. Closing it removes the handler.
-It has no wire representation. At most one navigation handler MAY be registered
-per instance; the binding MUST reject a second registration without replacing
-the first. The navigation handler MAY complete asynchronously. The error handler
-receives a rejection of the automatic follow-up report described below, so the
-napplet can repair and report its current state.
+There is no navigation request handler, listener registration, or traversal
+outcome operation. [NAP-INTENT](NAP-INTENT.md) owns intent delivery.
 
 ### Schemas
-
-`NavigationLocation` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `value` | yes | text | Non-empty, napplet-defined location. Opaque and case-sensitive. |
-| `title` | no | text | Plain-text display label. |
-| `state` | no | any | Optional location data: null, boolean, finite number, text, or recursively composed lists and maps of text to these values. |
-
-The runtime MUST preserve these values without parsing, normalizing, resolving,
-or executing them. A value such as `/profile/alice` is local to its instance;
-it is not a host address or a convention invocation. Query-like or fragment-like
-text inside `value` has no special meaning to this domain. The runtime MUST NOT
-apply convention URI transposition to it. The napplet MUST validate a restored
-location before using it.
 
 `NavigationEntry` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `id` | yes | text | Non-empty, napplet-assigned visit identifier. Unique within the instance lifetime. |
-| `location` | yes | `NavigationLocation` | Location reported for this visit. |
+| `id` | yes | text | Non-empty visit identifier assigned by the napplet; unique within its instance lifetime. |
+| `convention` | yes | text | Stable, queryless, fragment-free convention identity advertised by this napplet. |
+| `payload` | no | map of text to any | Only advertised parameter names. Values must be JSON values as defined below. |
+| `title` | no | text | Plain-text display label; not an invocation parameter. |
 
-An entry's identifier MUST remain stable while that visit is retained. A
-discarded identifier MUST NOT be reused. Separate visits to equal locations
-MUST have distinct identifiers. Entry identifiers confer no authority and
-MUST NOT address another instance.
+JSON values are null, boolean, finite number, text, or recursively composed
+lists and maps of text to JSON values. No opaque route string, separate router
+state, handler selector, or lifecycle hint is part of a retained invocation.
+The entry's `id` and `title` are history metadata; they MUST NOT be inserted into
+the intent payload.
+
+An identifier MUST remain stable while its visit is retained. A discarded
+identifier MUST NOT be reused within the instance lifetime. Separate visits to
+the same convention and payload have distinct identifiers. Identifiers confer
+no authority over another instance.
 
 `NavigationSnapshot` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `revision` | yes | integer | Positive, monotonically increasing within the instance lifetime. |
-| `entries` | yes | list of `NavigationEntry` | Complete retained history, oldest to newest; at least one entry. |
-| `index` | yes | integer | Zero-based current entry; from `0` through entry count minus one. |
+| `revision` | yes | integer | Positive and monotonically increasing within the instance lifetime. |
+| `entries` | yes | list of `NavigationEntry` | Complete retained history, oldest to newest. May be empty. |
+| `index` | yes | integer or null | Zero-based current entry, or null when the current view has no retained invocation. |
 
-The current location is exactly `entries[index].location`. There is no second
-current-location field to reconcile. Earlier entries are backward history;
-later entries are forward history. The runtime has the complete reported list,
-not only its length or Back/Forward availability.
+A non-null index MUST identify an entry. An empty list requires a null index.
+The reported current location is the selected entry's convention and payload.
+There is no additional current-location string or hidden state to reconcile.
+A null index MUST NOT be displayed as the last retained entry being current.
 
-Revisions need not be consecutive. A newer snapshot MUST have a greater revision
-than every snapshot previously produced by that instance. Equal revisions MUST
-carry identical content. A revision MUST NOT wrap or reset within an instance.
+Revisions need not be consecutive. Every changed snapshot MUST have a revision
+greater than every snapshot previously produced by that instance. Equal
+revisions MUST contain identical data. Revisions MUST NOT reset within the
+instance lifetime.
 
 `NavigationView` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `snapshot` | yes | `NavigationSnapshot` or null | Latest accepted snapshot; null before the first report. |
-| `status` | yes | `"unreported"`, `"current"`, `"pending"`, or `"uncertain"` | Runtime knowledge of the reported location, as defined below. |
-| `canNavigate` | yes | boolean | Whether the runtime currently permits requests and has a registered handler. False unless status is `"current"`. |
+| `snapshot` | yes | `NavigationSnapshot` or null | Latest accepted snapshot; null before the first accepted report. |
+| `status` | yes | `"unreported"`, `"current"`, or `"uncertain"` | Whether the runtime has an accepted report of the current state. |
 
-`"current"` means the latest report is accepted and no navigation request is
-unresolved. It does not attest to the napplet's rendered content. `"pending"`
-means the runtime has requested a transition and still holds the prior snapshot.
-`"uncertain"` means that transition ended without a usable outcome. A shell
-MUST NOT display a pending or uncertain destination as a confirmed arrival.
+`current` means the latest report was accepted. It does not mean a requested
+intent was handled. A snapshot with a null index can be current: the napplet has
+reported that its current view is not represented in retained history.
+`uncertain` means a rejected report prevents the runtime from treating its last
+accepted snapshot as current. The runtime MUST keep that distinction visible to
+the shell.
 
 `NavigationResult` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `ok` | yes | boolean | Whether the runtime accepted the report or completed the read. |
-| `view` | yes | `NavigationView` | State after processing this request. |
-| `error` | no | `NavigationError` | Required exactly when `ok` is false. |
-
-`NavigationRequest` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `revision` | yes | integer | Revision on which the runtime selected the entry. |
-| `entryId` | yes | text | Identifier of an entry in that snapshot. |
-
-The runtime sends this record only to the instance that reported it. Back,
-Forward, and history-menu selection all reduce to an existing entry identifier.
-The runtime MUST NOT supply a new location or a cross-instance destination.
-
-`NavigationOutcome` fields:
-
-| Field | Required | Type | Notes |
-|-------|----------|------|-------|
-| `ok` | yes | boolean | Whether the napplet applied the requested traversal. |
-| `snapshot` | no | `NavigationSnapshot` | Required exactly when `ok` is true. |
+| `ok` | yes | boolean | Whether the report was accepted or the read completed. |
+| `view` | yes | `NavigationView` | State after processing the request. |
 | `error` | no | `NavigationError` | Required exactly when `ok` is false. |
 
 `NavigationError` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `code` | yes | text | One of the codes below. |
-| `message` | no | text | Plain-text diagnostic; never needed for program logic. |
+| `code` | yes | `"invalid"`, `"unsupported"`, `"stale"`, `"denied"`, or `"limit"` | Meaning below. |
+| `message` | no | text | Optional plain-text diagnostic. |
 
 | Code | Meaning |
 |------|---------|
-| `invalid` | Malformed record, duplicate entry identifiers, invalid index, or inconsistent revision content. |
-| `stale` | A report is older than accepted state, or a traversal's base revision no longer matches. |
-| `denied` | Shell policy or the napplet's navigation guard rejects the operation. |
-| `unavailable` | No handler, no reported history, or the requested entry can no longer be opened. |
-| `limit` | Snapshot size, entry count, or request rate exceeds runtime policy. |
-| `failed` | The napplet could not apply the traversal and kept its previous location. |
+| `invalid` | Malformed snapshot, non-map payload, duplicate identifiers, invalid index, or changed content at the accepted revision. |
+| `unsupported` | An entry uses an unadvertised convention or parameter name. |
+| `stale` | The report's revision is lower than the accepted revision. |
+| `denied` | Shell policy rejects the operation. |
+| `limit` | Entry count, payload size, or report rate exceeds runtime policy. |
+
+### Advertised intents and parameter names
+
+The runtime MUST use the eligible intent contracts of the verified manifest
+bound to the reporting endpoint. It MUST NOT accept a manifest, handler, or
+instance identifier supplied in the report as an alternative authority.
+Eligibility and manifest parsing are defined by
+[NAP-INTENT](NAP-INTENT.md#manifest-catalog-contract).
+
+For every retained entry:
+
+1. Its `convention` MUST equal an eligible advertised convention exactly.
+   The router MUST NOT parse, normalize, prefix-match, or wildcard-match it.
+2. Its payload, when present, MUST be a map. Every key MUST be an advertised
+   parameter name for that convention, compared exactly.
+3. An absent payload or an empty map is permitted. An advertisement with no
+   parameter names permits no payload fields.
+4. Advertised names are an allowlist, not a list of required fields. They do not
+   declare value types, ranges, or nested schemas. The target remains responsible
+   for validating convention semantics before acting on a delivery.
+
+These restrictions govern what navigation may retain. They do not tighten
+NAP-INTENT's general invocation rules or redefine an `i` tag as a payload schema.
+A payload valid for ordinary intent delivery can still be ineligible for history.
+
+If a convention has multiple eligible advertisements, a payload MUST fit the
+parameter names of at least one complete advertisement. The runtime MUST NOT
+union incompatible parameter lists to create an undeclared format.
+
+Invocation query sugar MUST be transposed before constructing a report. Stored
+conventions contain neither query nor fragment. Query-derived values remain
+text; structured values use the explicit payload. Navigation introduces no
+alternative URI normalization rules.
 
 ### Reporting and reading
 
-The napplet MUST report its initial location after initialization and report
-every committed internal navigation transition while using this domain. A
-report MUST describe the actual current location and retained history, not a
-proposed destination. The napplet MUST serialize its internal transitions,
-including transitions requested by the runtime.
+A napplet using this domain MUST report its initial state and every committed
+navigation transition. A report MUST describe actual state, never a proposed
+destination. When the current view cannot be represented by an eligible intent
+invocation, the napplet MUST report a null index rather than retain an
+unadvertised location or continue claiming its previous view is current.
 
-The runtime MUST validate a report and replace the stored snapshot atomically.
-It MUST reject lower revisions as `stale`. An identical retransmission of the
-latest revision is idempotent; different content at that revision is `invalid`.
-Rejected reports MUST NOT partially change stored history. A rejected report of
-a newer revision, or different content at the accepted revision, means the
-runtime cannot confirm the napplet's current state: it MUST settle any pending
-request without success and mark a non-null view `uncertain` until a valid newer
-report arrives. It MUST also do so when a malformed report has no usable
-revision. A null view remains `unreported`. An identical retransmission MUST NOT clear `pending` or
-`uncertain`; only a newer snapshot can do that.
+The runtime MUST validate every entry and replace the snapshot atomically.
+One unsupported entry rejects the entire report; the runtime MUST NOT silently
+remove entries or payload fields. Lower revisions are `stale`. An identical
+retransmission of the accepted revision is idempotent; changed content at that
+revision is `invalid`. Map key order is not significant for equality; list
+order, value types, field presence, and values are significant.
 
-`report` returns only after the snapshot has been processed. The napplet MUST
-inspect the result and, after rejection, report a valid newer snapshot of its
-actual state before relying on shell navigation controls. `get` reads the
-caller's view, including before the first report. It exposes no other instance.
-The shell reads the same retained view internally; no second API is required
-for the runtime to access the data it holds.
+Rejection MUST NOT mutate accepted history. Rejection of a newer report,
+changed data at the accepted revision, or a report without a usable revision
+MUST mark a non-null view `uncertain`. A null view remains `unreported`.
+An identical retransmission MUST NOT clear uncertainty; a valid newer report
+restores `current`.
 
-The napplet MUST maintain history using these rules:
+`report` returns after validation. The napplet MUST inspect the result and
+repair a rejected report before relying on the shell's current-location view.
+`get` returns only the caller's retained view. The shell reads that same view
+internally; the runtime does not need to invoke a napplet to read data it holds.
 
-| Transition | Snapshot change |
-|------------|-----------------|
-| Initial location | Report the initial retained history and its current index. One entry is sufficient. |
-| New visit | Discard forward entries, append a new entry with a fresh identifier, and select it. |
-| Replace current location | Keep the current entry identifier and history order; replace its location. |
-| Traverse | Keep entries and their identifiers unchanged; select the visited entry. |
-| Reset or prune | Report the full remaining history with the actual current visit retained and a valid index. Never invent unvisited entries. |
+| Committed transition | Reported change |
+|----------------------|-----------------|
+| New visit from a selected entry | Discard forward history, append a fresh identifier, and select the new entry. |
+| Replace the selected invocation | Preserve its identifier and list position; replace convention, payload, or label. |
+| Revisit a retained entry | Preserve the entries and identifiers; select that visit. |
+| Current view is not representable | Set index to null; do not add an undeclared invocation. |
+| New visit with no selected entry | Append a fresh identifier to the retained list and select it. |
+| Prune or clear | Report the complete remaining list and actual current position, or null if the current visit is no longer retained. |
 
-Each changed snapshot gets a new revision, including changes to labels or
-location state. Repeated locations do not collapse automatically. Resetting or
-pruning MUST NOT reset revision numbers or reuse discarded entry identifiers.
+Each changed snapshot advances the revision. Repeated invocations do not
+collapse automatically. Pruning or clearing MUST NOT reset revisions or permit
+identifier reuse.
 
-### Runtime-requested traversal
+## Navigation Through Intent
 
-1. The shell selects an entry from the instance's latest `current` view under
-   user action or shell policy. The runtime MUST require `canNavigate: true`.
-   Selecting the current entry is a local no-op. Otherwise it captures the
-   revision and entry identifier and marks the view `pending`.
-2. The runtime sends one `navigation.navigate`. It MUST keep at most one
-   unresolved request per instance and MUST NOT automatically replay a request
-   after failure or timeout.
-3. Before changing location, the napplet MUST check that the requested revision
-   equals its latest produced snapshot and the entry still exists. A mismatch
-   returns `stale` without applying the traversal. The napplet MAY reject a
-   traversal, for example when leaving would discard unsaved work.
-4. On success, the napplet returns a newer snapshot with the same entries and
-   the requested entry selected. This outcome is itself a report. It MUST NOT
-   append another visit or separately report the same traversal as a new visit.
-   The runtime MUST validate it as a report and also verify that its entries
-   equal the request's base snapshot, including location data, and its index
-   selects the requested identifier. It marks the view `current` only when it
-   accepts that snapshot. A mismatched outcome is malformed, not an arrival.
-5. A failed outcome MUST leave the napplet at its previous location. If it
-   cannot preserve that location, it MUST separately report its actual state;
-   the runtime MUST NOT infer an arrival from the failed outcome.
+A shell requests a retained location by delivering that entry's convention and
+payload through intent. It MUST NOT invent a second navigation command or add
+private fields to the convention payload. The target validates the invocation,
+applies its navigation guard, and reports any committed transition.
 
-Newer ordinary reports supersede a pending traversal. The runtime MUST settle
-that request as superseded, retain the newer view, and ignore its later outcome.
-The napplet MUST cancel a superseded transition before committing a subsequent
-one. Thus an older request cannot overwrite a newer local navigation or an
-intent-driven transition. A failed `stale` outcome without a newer accepted
-report leaves the view `uncertain`; other valid failures restore `current`.
-If the runtime cannot accept a successful outcome's snapshot, it MUST settle
-the request without success and leave the view `uncertain`.
+A history revisit addresses the instance that owns the history. It MUST NOT
+silently choose another handler when user defaults change or restart a terminated
+instance as if its old history remained live. Cross-napplet opens continue to use
+ordinary handler resolution under NAP-INTENT.
 
-The runtime MUST bound waiting with a finite timeout. Timeout, malformed
-outcome, handler removal while pending, or loss of the endpoint leaves the view
-`uncertain`; none is a successful traversal. A late outcome MUST NOT retroactively
-complete a settled request or change history. If the napplet finishes after a
-timeout, it MUST report its actual location with a newer revision. The binding
-MUST send an ordinary `report` of the returned snapshot after sending every
-successful handler outcome. This lets a timed-out runtime recover without
-mistaking a late outcome for request success; an already accepted revision is
-an idempotent report. The binding MUST expose a rejected follow-up report to the
-napplet's registered error handler. A `stale` follow-up report means a newer
-snapshot already won; it MUST NOT roll that snapshot back. A fresh accepted
-report restores `current`.
+Intent acceptance, delivery, or refusal alone MUST NOT change the reported
+history or current position. A navigation report is an assertion of current
+state, not an intent completion receipt. The shell MUST NOT label a requested
+destination as reached without an accepted report selecting it.
+
+### Intent integration still to specify
+
+The current NAP-INTENT contract does not fully define this history-revisit flow.
+Before traversal can be implemented interoperably, NAP-INTENT must define:
+
+- Shell-originated delivery to a particular existing instance, including
+  truthful sender provenance and no fallback to another instance.
+- How the target distinguishes a retained visit from a new visit when two
+  entries contain identical convention and payload values. Any delivery
+  metadata belongs to intent; it MUST NOT be smuggled into advertised payload
+  fields or create a mutual wire dependency.
+
+This draft does not pretend that `behavior.reuse` guarantees either property.
+Reporting and reading are specified here. Traversal remains incomplete until
+that intent contract is settled; a runtime MUST NOT claim conforming traversal
+by adding a private navigation protocol.
 
 ## Wire Protocol
 
-Messages use `navigation.*` discriminants. The projection supplies transport
-and authenticated endpoint binding.
+The projection supplies transport and authenticated endpoint binding.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -247,31 +236,17 @@ and authenticated endpoint binding.
 | `navigation.report.result` | runtime -> napplet | `id`, `result` (`NavigationResult`) |
 | `navigation.get` | napplet -> runtime | `id` |
 | `navigation.get.result` | runtime -> napplet | `id`, `result` (`NavigationResult`) |
-| `navigation.listen` | napplet -> runtime | none |
-| `navigation.unlisten` | napplet -> runtime | none |
-| `navigation.navigate` | runtime -> napplet | `id`, `request` (`NavigationRequest`) |
-| `navigation.navigate.result` | napplet -> runtime | `id`, `outcome` (`NavigationOutcome`) |
 
-Each initiator assigns a non-empty text `id`, unique among its outstanding
-requests to that endpoint. A result MUST echo that `id`. Runtime navigation
-identifiers MUST NOT be reused during the instance lifetime, so a late outcome
-cannot match another request. Outcomes from another endpoint or without an
-outstanding request MUST be ignored. A result is never itself acknowledged.
-
-The binding sends `listen` after registering the handler and `unlisten` when
-the registration closes. Both are idempotent and carry no `id`. The runtime
-MUST NOT request traversal before `listen` or after `unlisten`. A binding that
-receives an already dispatched request after handler removal MUST reply with
-`unavailable`. Registering or removing a handler never erases the snapshot.
-
-The binding MUST turn a handler's return value into one correlated outcome.
-A handler exception produces `failed`; the napplet remains responsible for
-reporting any actual location change. Every recognized napplet request with a
-usable `id` MUST receive one result, including invalid or denied requests.
+Request identifiers are non-empty text, unique among the endpoint's outstanding
+requests. Every recognized request with a usable identifier MUST receive one
+result carrying that identifier, including rejected requests. Results from the
+wrong endpoint or without an outstanding request MUST be ignored. A result is
+not itself acknowledged.
 
 ### Example
 
-The napplet reports two visited locations, with the second current:
+Assume the verified napplet advertises `napplet:profile/open` with the parameter
+name `pubkey`. It reports two visited profiles, with the second current:
 
 ```json
 {
@@ -280,130 +255,93 @@ The napplet reports two visited locations, with the second current:
   "snapshot": {
     "revision": 2,
     "entries": [
-      { "id": "visit-1", "location": { "value": "/feed", "title": "Feed" } },
-      { "id": "visit-2", "location": { "value": "/profile/alice", "title": "Alice" } }
+      {
+        "id": "visit-1",
+        "convention": "napplet:profile/open",
+        "payload": { "pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        "title": "Alice"
+      },
+      {
+        "id": "visit-2",
+        "convention": "napplet:profile/open",
+        "payload": { "pubkey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        "title": "Bob"
+      }
     ],
     "index": 1
   }
 }
 ```
 
-After accepting the report and receiving `navigation.listen`, the runtime can
-display Alice as current and Feed as a Back destination. When the user selects
-Back, it sends:
-
-```json
-{
-  "type": "navigation.navigate",
-  "id": "back-1",
-  "request": { "revision": 2, "entryId": "visit-1" }
-}
-```
-
-After the napplet opens Feed, its outcome has `ok: true` and a snapshot with
-revision `3`, the same two entries, and index `0`. The runtime now exposes Feed
-as current and Alice as a Forward destination. A subsequent new visit discards
-Alice's forward entry before appending the new entry.
+The runtime can expose Bob as current and Alice as an earlier visit. An entry
+with an unadvertised `tab` payload field is rejected, even if the napplet uses
+that field internally. An opaque `/profile/alice` route is not a retained intent.
 
 ## Runtime Behavior
 
-- The runtime MUST bind every report, read, registration, and outcome to the
-  authenticated endpoint. Caller-supplied manifest or instance claims MUST NOT
-  select the scope. Different instances MUST have independent histories.
-- The runtime MUST make the latest accepted snapshot and its status available
-  to the shell while the instance remains alive, even without a handler.
-- Before any report, the view is `unreported`, its snapshot is null, and
-  `canNavigate` is false. Empty history MUST NOT masquerade as a known location.
-- The shell MAY display a current location, Back/Forward controls, or a history
-  menu. It MUST distinguish unavailable or uncertain state and MUST NOT expose
-  controls as usable when `canNavigate` is false.
-- Shell workspace history and history within an instance are separate. This
-  domain does not choose what a global Back command does at an instance boundary.
-- The runtime MAY bound entry count, serialized snapshot size, and report rate.
-  It MUST reject excessive reports with `limit`, not silently truncate or alter
-  accepted history. Napplets MAY prune and report a newer snapshot.
-- Endpoint termination ends the instance's revision and entry-identifier scope.
-  The runtime MUST remove live navigation authority for that endpoint. Any
-  retained shell record MUST be marked inactive and MUST NOT be presented as a
-  live current location. Retention and deletion are user-controlled shell policy.
-- A new instance starts `unreported`. This contract does not silently attach an
-  old history to a restarted instance, persist it across runtime restart, or
-  make location values portable across napplets or artifact versions.
-
-## Relationship to NAP-INTENT
-
-[NAP-INTENT](NAP-INTENT.md) selects a handler and accepts responsibility for
-convention delivery. NAP-NAVIGATION reports what a particular instance actually
-did internally. Both domains remain usable independently.
-
-A handler receiving `napplet:profile/open` can validate its payload, show the
-profile, and report that view as a new visit or a replacement. It chooses which
-transition fits its application. The shell MUST NOT create a navigation entry
-merely because `intent.invoke` returned `ok: true` or `intent.deliver` was sent.
-An intent might edit data without navigating, fail inside the target, or arrive
-after another transition.
-
-The optional layering dependency permits the shell to associate delivery with
-the target instance it selected. It defines no correlation identifier or
-completion signal for the source napplet. A navigation report MUST NOT be
-treated as an intent receipt. Intent sender identity, handler selection,
-convention identity, URI normalization, and payload semantics stay with their
-existing owners; no intent wire type is embedded or redefined here.
-
-Revisiting an entry MUST NOT re-invoke the intent that originally led to it.
-The runtime asks that same instance to restore its location. This avoids
-replaying an action or choosing a different handler after user defaults change.
-Cross-napplet opens continue to use NAP-INTENT under its own policy.
+- Bind reports and reads to their authenticated endpoint. Histories from two
+  instances of the same manifest MUST remain independent.
+- Make the full accepted snapshot and its status available to the shell while
+  the instance lives. Before the first accepted report, return a null snapshot
+  and `unreported` status.
+- Keep shell workspace history separate from history within an instance. The
+  meaning of a global Back command at an instance boundary is shell policy.
+- Enforce limits by rejecting with `limit`, never by silently trimming entries
+  or payloads. Napplets MAY prune and submit a newer snapshot.
+- End live history authority when the endpoint terminates. Any retained shell
+  record MUST be marked inactive. A new instance starts `unreported`; history
+  does not silently transfer across instances, versions, or runtime restarts.
 
 ## Conformance Cases
 
-These cases apply independently to each authenticated instance.
-
 | Case | Required result |
 |------|-----------------|
-| Read before the first report | `ok: true`; null snapshot, `unreported`, `canNavigate: false`. |
-| Report visits A, B, C with index 1 | B is current; A is backward history; C is forward history. |
-| Visit D from B | Report A, B, D with index 2; discard C and never reuse its identifier. |
-| Replace B's location | Preserve B's identifier and list position; advance revision. |
-| Duplicate latest report | Return the retained view without changing revision or clearing uncertainty. |
-| Lower revision or equal revision with changed content | Reject as `stale` or `invalid`, respectively; do not overwrite the snapshot. |
-| Same location visited twice | Retain separate visit identifiers; no automatic deduplication. |
-| Back request succeeds | Accept a newer snapshot selecting the requested entry, with the same entry list; do not append a visit. |
-| Guard rejects Back | Keep the prior snapshot; do not claim the target was reached. |
-| Local navigation overtakes Back | Accept the newer local report; the pending request cannot later overwrite it. |
-| Back times out | Mark `uncertain`; disable traversal until a newer accepted report; ignore the late outcome as a completion. |
-| Successful outcome arrives after timeout | Its ordinary follow-up report can refresh the view; the timed-out request remains unsuccessful. |
-| Intent accepted without target navigation | No new entry and no change to current location. |
-| Second instance uses the same manifest and entry identifiers | Keep histories and traversal authority separate. |
-| Report exceeds a quota | Reject atomically with `limit`; never silently trim the snapshot. |
+| Read before a report | Successful read; null snapshot and `unreported`. |
+| Eligible convention and advertised payload keys | Accept the complete snapshot. |
+| Unadvertised convention, including a near match | Reject the complete snapshot as `unsupported`. |
+| Advertisement belongs to another napplet | Reject; consult only the reporting endpoint's verified manifest. |
+| An unadvertised payload key appears in any entry | Reject atomically as `unsupported`; do not strip the key. |
+| No parameter names are advertised | Accept absent or empty payload; reject any payload field. |
+| A payload omits an advertised name | Do not infer that it is required. |
+| Payload is a scalar or list | Reject as `invalid`; retained payloads are parameter maps. |
+| Advertised field has a structured JSON value | Preserve it without inventing a type restriction; the convention defines semantic validity. |
+| Query or fragment appears in a stored convention | Reject; only stable convention identities are retained. |
+| Payload keys fit only a union of separate advertisements | Reject; one complete advertised format must match. |
+| Two visits have the same invocation | Preserve separate identifiers and the explicit current index. |
+| Lower revision or changed content at equal revision | Reject as `stale` or `invalid`; preserve accepted history. |
+| Invalid newer report | Preserve the snapshot, mark it `uncertain`; an identical old retransmission does not recover it. |
+| Current view has no retained invocation | Accept a null index; never display an earlier entry as current. |
+| Intent accepted without a navigation report | Do not append history or move the current position. |
+| Second instance uses the same entry identifiers | Keep views and authority separate. |
+| Snapshot exceeds a quota | Reject atomically with `limit`. |
+
+Traversal conformance cases await the NAP-INTENT integration described above.
 
 ## Security Considerations
 
-- History can reveal private searches, profiles, and drafts. A napplet SHOULD
-  report only the location data needed to identify or restore its view and
-  SHOULD NOT include secrets or credentials. The shell MUST NOT publish or
-  share history with another napplet without separate user authorization.
-- A report proves only what its authenticated source asserted. Labels and
-  location data MUST be treated as untrusted data; labels MUST render as text.
-- The runtime MUST NOT fetch, execute, or invoke a location value, even when
-  it resembles an external address or convention URI. Reporting a location
-  grants no network, storage, or cross-napplet authority.
-- The runtime MUST mediate traversal under user action or shell policy. A
-  napplet cannot use this surface to inspect or navigate another instance.
-- Traversal restores a view. Napplets MUST NOT replay irreversible actions
-  such as publishing or payment simply because their history entry is revisited.
-- Rate and size limits SHOULD prevent history reports from exhausting runtime
-  resources. The shell SHOULD expose history retention and clearing to the user.
+- History payloads can reveal searches, profiles, and drafts. A napplet SHOULD
+  retain only data needed to reopen the view. The shell MUST NOT publish or share
+  history with another napplet without separate user authorization.
+- Treat reports as untrusted assertions and render labels as text. Advertisement
+  matching does not prove that a payload is safe or that a view was rendered.
+- Advertising an action does not authorize replaying its effects. Retained
+  invocations MUST reopen views without repeating irreversible actions such as
+  payment or publication. A destructive invocation is not a history location
+  merely because its convention is advertised.
+- A report grants no execution authority. Only a separate shell-mediated intent
+  request can ask the napplet to act. Reports MUST NOT automatically dispatch
+  their own entries.
 
 ## References
 
-- [NAP-INTENT](NAP-INTENT.md) — independent handler selection and convention delivery.
+- [NAP-INTENT](NAP-INTENT.md) — advertised contracts, invocation and delivery.
 - [Web projection](../projections/web.md) — host binding and domain availability.
-- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — normative web projection, verified manifests, and endpoint identity.
+- [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — web projection, manifests and endpoint identity.
 
 ## Implementations
 
-- None yet. This is a proposed contract; it does not establish runtime support.
+- None yet. Reporting and reading are proposed; intent-based history traversal
+  still requires the integration contract above.
 
 ## Changelog
 

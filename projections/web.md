@@ -81,29 +81,29 @@ Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
 ## Internal navigation binding (draft)
 
-[NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) uses
-`window.napplet.navigation` and the ordinary `postMessage` envelope. Its
-`report`, `get`, and `onNavigate` operations follow the domain's schemas.
-An `onNavigate` handler MAY return its outcome asynchronously; the binding
-correlates the outcome and sends the required follow-up report.
+[NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) exposes `report` and `get` through
+`window.napplet.navigation`. It requires `intent`; domain presence still follows
+the ordinary injected-namespace rules, without a `shell` handshake.
 
-The napplet integrates its router with this surface. After a committed route
-change it reports the complete retained history and current index. For a
-runtime-requested traversal, it restores the requested entry and returns the
-resulting snapshot without appending a visit.
+A router adapter reports committed views as advertised convention identities
+and payload maps containing only advertised parameter names. It reports the
+complete retained history and current index. Unadvertised internal routes MUST
+NOT be retained as locations. Query sugar is transposed before reporting; stored
+convention identities are queryless and fragment-free.
 
-Domain presence does not make native `window.location` or browser session
-history visible to the parent. A shell MUST NOT assume it can inspect an
-opaque-origin iframe's internal router. Calling `history.pushState`,
-`history.replaceState`, or changing a hash alone does not report navigation.
-An adapter MAY translate a napplet's router transitions into domain reports;
-it MUST preserve the domain's revision and traversal rules and avoid duplicate
-visits. No automatic replacement of browser APIs is required.
+Navigation requests use `window.napplet.intent` delivery handling. There is no
+separate navigation listener or outcome binding. Intent-based history traversal
+is not yet fully specified; see the draft's
+[intent integration questions](../naps/NAP-NAVIGATION.md#intent-integration-still-to-specify).
 
-The shell's top-level URL and browser Back button remain shell policy. The
-binding MUST NOT assign a reported location to the iframe's `src` or the
-shell's location, or fetch it. An internal location is opaque data, not a
-replacement for the verified `srcdoc` artifact.
+Native `window.location`, `history.pushState`, `history.replaceState`, and hash
+changes do not report navigation by themselves. The parent MUST NOT assume it
+can inspect an opaque-origin iframe's internal router. No automatic replacement
+of browser APIs is required.
+
+The shell's top-level URL and browser Back button remain shell policy. A stored
+invocation MUST NOT replace the verified `srcdoc` artifact or be assigned to an
+iframe's `src`. Reporting it does not dispatch it.
 
 ## Identity & trust
 
