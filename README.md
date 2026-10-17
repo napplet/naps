@@ -88,7 +88,7 @@ same contract everywhere; only the host idiom changes.
 
 | Projection | Status | Spec |
 |------------|--------|------|
-| **Web** — iframes + `postMessage`, injected domains, URI-to-payload binding, and internal navigation reporting on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
+| **Web** — iframes + `postMessage`, injected domains and URI-to-payload binding on `window.napplet.*`; draft internal navigation binding | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
 | WASM (host imports) | Possible | — |
 

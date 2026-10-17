@@ -79,7 +79,7 @@ The fragment is a recommendation, not an explicit handler selection. The shell
 applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
 Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
-## Internal navigation binding
+## Internal navigation binding (draft)
 
 [NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) uses
 `window.napplet.navigation` and the ordinary `postMessage` envelope. Its
