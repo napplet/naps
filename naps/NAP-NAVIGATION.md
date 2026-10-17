@@ -406,3 +406,5 @@ These cases apply independently to each authenticated instance.
 - None yet. This is a proposed contract; it does not establish runtime support.
 
 ## Changelog
+
+- `fd24d88` - Introduced instance-scoped location and history reports, mediated traversal with revision and failure handling, and optional shell layering with intent delivery.
