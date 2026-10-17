@@ -212,7 +212,10 @@ destination as reached without an accepted report selecting it.
 ### Intent integration still to specify
 
 The current NAP-INTENT contract does not fully define this history-revisit flow.
-Before traversal can be implemented interoperably, NAP-INTENT must define:
+[The existing-instance delivery proposal](https://github.com/napplet/naps/pull/128)
+addresses shell provenance and fixed endpoint targeting without a new dispatcher.
+It does not yet settle retained-visit identity. Before traversal can be
+implemented interoperably, the intent contract must cover:
 
 - Shell-originated delivery to a particular existing instance, including
   truthful sender provenance and no fallback to another instance.
