@@ -16,6 +16,18 @@ then fan out via the links below. `CLAUDE.md` is a symlink to this file.
 | [projections/](projections/) | The seam mapped to a host (e.g. [web](projections/web.md)) |
 | [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) | The web projection — **normative, living, upstream**. Link it; never mirror it here |
 | `*-TEMPLATE.md` | Start here for a new spec |
+| [INVARIANTS.md](INVARIANTS.md) | Architectural promises, owning sources, and observable checks |
+| [THREAT-MODEL.md](THREAT-MODEL.md) | Assets, trust boundaries, abuse cases, and control evidence |
+| [CONFORMANCE.md](CONFORMANCE.md) | Revision-scoped claims, check outcomes, tooling, and coverage limits |
+| [EVOLUTION.md](EVOLUTION.md) | Compatibility assessment, intentional breaks, and migration evidence |
+| [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) | Implementation sources, execution evidence, and independent interoperability reports |
+| [IMPLEMENTER-GUIDE.md](IMPLEMENTER-GUIDE.md) | A complete first-domain implementation and verification workflow |
+| [conformance/](conformance/README.md) | Shared binding/runtime fixtures; blocked cases remain explicit |
+| [decisions/](decisions/README.md) | Architectural rationale, evidence, alternatives, and supersession |
+
+The glossary, owning NAPs, and projections define protocol requirements.
+Supporting documents index, explain, or verify them. A fixture, guide, decision
+record, or implementation cannot silently resolve contradictory contract text.
 
 ## Goal — never compromise
 
@@ -128,6 +140,42 @@ imports it — not the reverse, never both).
 A dependency never moves the boundary. A NAP still owns only its own surface;
 `Depends:` documents the edge, it does not license reaching across the seam.
 
+## Protocol stewardship
+
+Before submitting a semantic change:
+
+1. Place it with its owning NAP, convention, NAAT, or projection. Use
+   [INVARIANTS.md](INVARIANTS.md) to identify affected promises and their sources.
+2. For changes to authority, identity, routing, data exposure, or lifecycle,
+   trace the affected trust boundary through [THREAT-MODEL.md](THREAT-MODEL.md).
+   Name the control and a negative scenario; report absent evidence explicitly.
+3. Assess old/new callers, bindings, runtimes, and handlers with
+   [EVOLUTION.md](EVOLUTION.md). Put an intentional break or interoperability
+   threat first in the PR, with its migration and verification evidence.
+4. Report checks under [CONFORMANCE.md](CONFORMANCE.md): pin contract,
+   implementation, projection, tool, and corpus revisions. Keep pass, fail,
+   blocked, not-run, and not-applicable distinct. Use applicable
+   [shared fixtures](conformance/README.md) in the implementation's existing
+   runner; do not introduce another runner just to consume test data.
+5. Keep implementation and independent exchange evidence in
+   [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) when that evidence changes.
+   A source link, SDK, mock shell, or passing shape validator is not proof of
+   complete runtime behavior or independent interoperability.
+6. For a consequential architectural choice, add or supersede a
+   [decision record](decisions/README.md). Link the owning contract and actual
+   review. Preserve rationale and distinguish evidence from inference.
+
+Use [IMPLEMENTER-GUIDE.md](IMPLEMENTER-GUIDE.md) for a first-domain workflow.
+These documents support the existing informal governance; they create no formal
+acceptance stages, mandatory domain set, global negotiation, or certification.
+
+If sources conflict, surface the conflicting clauses in the owning review and
+mark affected checks blocked. Continue unaffected checks where their
+expectations are unambiguous. Reconcile the contract before changing a blocked
+case into a passing expectation. When a semantic change affects a supporting
+index, threat/control, fixture, guide, or evidence entry, update that affected
+artifact in the same review; avoid unrelated documentation rewrites.
+
 ## Terminology
 
 Use [glossary](README.md#glossary) terms verbatim — *seam, napplet, runtime/shell,
@@ -179,11 +227,29 @@ One concern per branch, commit, and PR. Never tangle.
 
 - **Specs** (`naps/`) → branch + PR, **one spec per PR**.
 - **Governance / meta** (README.md, ARCHETYPES.md, `*-TEMPLATE.md`, this file) →
-  committed **directly to `master`**.
+  committed **directly to `master`**, unless the maintainer requests a PR.
+  Reviewed governance, stewardship documents, fixtures, and decision records
+  use one concern per independent branch + PR.
 - Never mix a spec with a README rework, or two specs in one branch.
 - `.planning/` is local-only — never push.
 - Before claiming done: `git diff origin/master...<branch>` must show **only** the
   intended files.
+
+### Squash merges and related PRs
+
+- Base each independent branch on the current `origin/master`. Avoid stacking
+  unrelated changes or copying another PR's commits into a review branch.
+- State real dependencies and merge order in PR bodies. Keep shared entry-point
+  edits in one final integration PR when separate content PRs add new documents.
+  Merge content first, then their integration, so every new local link resolves.
+- A final integration PR changes the entry point and workflow only. It links the
+  content PRs rather than duplicating their files or commits.
+- After a dependency is squash-merged, refresh `origin/master` and rebase the
+  dependent review branch onto the resulting history. Original PR commit SHAs
+  are provenance, not proof that their commits are ancestors of `master`.
+- Recheck the complete branch diff, local links, and affected verification after
+  rebasing. Inspect current state before resolving conflicts; preserve changes
+  made by other collaborators.
 
 ## Keep adjacent docs in sync — in the same commit
 
@@ -214,15 +280,22 @@ Every NAP spec carries its history at the bottom under `## Changelog`.
 
 ## PR format — identical every time
 
-- **Branch:** kebab of the spec — `nap-relay`, `nap-storage`.
-- **Title:** `NAP-<NAME>: <imperative one-line summary>`
+- **NAP spec branch:** kebab of the spec — `nap-relay`, `nap-storage`.
+- **NAP spec title:** `NAP-<NAME>: <imperative one-line summary>`.
+- **Reviewed governance / supporting artifact branch:** descriptive kebab —
+  `docs-invariants`, `docs-evolution`, `docs-agents-integration`.
+- **Reviewed governance / supporting artifact title:** `<Area>: <imperative one-line summary>`;
+  never invent a NAP ID for a supporting document.
 - **Body**, these sections, in order:
 
       ## Summary      one paragraph — what changed and why
       ## Changes      specific bullets
       ## Downstream   boundary / doc-sync impact (omit if none)
 
-  State `draft`; give the namespace (`window.napplet.<domain>`); link NIP-5D.
+  State `draft`; give the affected namespace (`window.napplet.<domain>` for a
+  domain, or `window.napplet.*` for cross-domain guidance); link
+  [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303). Name validation,
+  coverage limits, and actual dependent PRs when relevant.
 
 ## Surface threats first
 
