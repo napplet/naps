@@ -163,7 +163,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-UPLOAD](https://github.com/napplet/naps/pull/33) | `upload` |  | `relay` | Shell-mediated file and blob upload (NIP-96, Blossom) | Draft |
 | [NAP-VALUE](https://github.com/napplet/naps/pull/30) | `value` |  | `relay` | Shell-mediated value transfer and zaps | Draft |
 | [NAP-OUTBOX](https://github.com/napplet/naps/pull/32) | `outbox` |  | `relay` | Outbox-aware relay routing and queries | Draft |
-| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Native ContextVM / MCP-over-Nostr bridge | Draft |
+| [NAP-CVM](https://github.com/napplet/naps/pull/31) | `cvm` |  | `value` | Isolated MCP-over-Nostr sessions, user-authorized payments, and tool-hash registry | Draft |
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | [NAP-DISPLAY](https://github.com/napplet/naps/pull/97) | `display` |  | — | Runtime-controlled pixel displays (list, push) | Draft |
