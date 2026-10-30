@@ -20,6 +20,7 @@ contracts.
 - [Boundary rule](#boundary-rule)
 - [Governance](#governance)
 - [Templates](#templates)
+- [Authoring skill](#authoring-skill)
 - [License](#license)
 - [References](#references)
 
@@ -241,6 +242,20 @@ NIP-style informal process:
 
 - Interface proposals: [NAP-WORD-TEMPLATE.md](NAP-WORD-TEMPLATE.md)
 - Convention notes: [CONVENTION-TEMPLATE.md](CONVENTION-TEMPLATE.md)
+
+## Authoring skill
+
+Install the [NAP authoring skill](skills/nap-authoring/SKILL.md) for an agent that
+writes or reviews NAP specifications:
+
+```sh
+npx skills add napplet/naps
+```
+
+The skill covers format, philosophy, ownership boundaries, and contract
+hardening. It reads the current registry and templates rather than bundling a
+second copy of the protocol. It is for specification work; napplet application
+development uses the implementation toolchain's skills.
 
 ## License
 
