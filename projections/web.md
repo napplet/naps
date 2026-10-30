@@ -79,6 +79,70 @@ The fragment is a recommendation, not an explicit handler selection. The shell
 applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
 Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
+## Worker binding (draft)
+
+[NAP-WORKER](../naps/NAP-WORKER.md) proposes `window.napplet.worker` for
+runtime-owned dedicated Web Workers. This section binds that draft's operations;
+the core transport and identity rules remain defined by
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303).
+
+**A Worker created by the parent frame is not automatically a napplet sandbox.**
+The runtime MUST enforce NAP-WORKER isolation before exposing this domain.
+[Worker origin rules](https://html.spec.whatwg.org/multipage/workers.html#script-settings-for-workers)
+can associate a worker with its creator's origin. Creating a Blob URL in the
+shell is not sufficient isolation. Blocking network requests alone does not
+isolate origin-scoped storage or communication channels.
+
+The shell in the parent frame owns the Worker objects and proxies messages
+between each napplet iframe and its workers. It MUST NOT expose a Worker object
+or transfer a direct communication port to the napplet. The napplet iframe's
+sandbox and network restrictions remain in force.
+
+| Contract | Web binding |
+|----------|-------------|
+| Domain availability | Presence of `window.napplet.worker`, injected before napplet scripts run. |
+| `info`, `create`, `post`, `terminate` | Asynchronous methods on that object; resolve to their contract result, or reject with `WorkerError`. Acknowledgments resolve without a value. |
+| `create(source)` | Source is a self-contained classic JavaScript worker program, passed as text. No URL argument, module imports, or external script loading. |
+| Program receives data | Standard worker `message` event; input is `event.data`. |
+| Program sends data | Standard worker `postMessage(data)`; only `WorkerData` is accepted. |
+| Program closes | Standard worker `close()`; the binding reports `worker.closed` with reason `selfClosed`. |
+| `onEvent(handler)` | Receives the NAP's event record and returns a local unsubscribe function. |
+| Message size | UTF-8 byte length of compact JSON serialization of `data`, without an envelope. |
+
+The shell MUST validate both directions as `WorkerData`, despite the broader
+values accepted by browser structured cloning. Transfer lists, MessagePorts,
+ArrayBuffers, and SharedArrayBuffers are outside this draft. Serialization MUST
+NOT silently discard unsupported values or turn non-finite numbers into null.
+
+For each Worker, the runtime MUST install its receiver before running supplied
+source and retain the authenticated owning iframe endpoint. Worker output is
+wrapped as `worker.message.data`; an output object resembling a NAP envelope
+MUST NOT enter the shell's request dispatcher. Worker events are bound through
+the actual Worker object, never through an identity claimed inside its output.
+The binding MUST observe program closure and execution failures, order events
+after the creation result, and preserve the NAP's terminal-event rules.
+
+The runtime MUST prevent access to shell-origin storage, credentials, network,
+cross-context channels, and nested workers. Removing selected globals or
+rewriting supplied source alone is not a security boundary. The execution
+environment MUST enforce these restrictions independently of the program. A
+runtime unable to do so MUST leave `window.napplet.worker` absent.
+
+Illustrative napplet-side use, with a listener installed before creation:
+
+```js
+const stopListening = window.napplet.worker.onEvent(event => {
+  if (event.type === 'worker.message') console.log(event.workerId, event.data);
+});
+const { workerId } = await window.napplet.worker.create(
+  'self.onmessage = event => self.postMessage(event.data);'
+);
+await window.napplet.worker.post(workerId, { hello: 'worker' });
+// Later, when computation is no longer needed:
+await window.napplet.worker.terminate(workerId);
+stopListening();
+```
+
 ## Identity & trust
 
 The shell is the policy boundary. For every inbound message it verifies
