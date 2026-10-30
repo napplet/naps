@@ -863,3 +863,4 @@ or a top-level `error`. Failure MUST NOT fabricate a status snapshot.
 
 - `c0200f0` - Adopted injected-domain availability and linked the current upstream web binding.
 - `fe66d8e` - Restricted the contract to torrent transfers with generic, validated sources; removed Nostr discovery, publishing, comments, event conversion, event schemas, and dependencies, and kept discovery integration informative.
+- `fd9a092` - Added verified range reads, cancellation, file save/open, metainfo export, atomic live settings, retained-job recovery, and explicit v1/v2/hybrid identities with separate content-disclosure authorization.
