@@ -10,6 +10,7 @@ Media Session Control
 **Domain:** `media`
 **Depends:**
 - `resource` — capability · optional — `artwork.url` bytes are fetched via `resource.bytes`
+- `torrent` — layering · optional — shell-owned playback resolves an authorized job file through the runtime's torrent engine, preserving [NAP-TORRENT](https://github.com/napplet/naps/pull/72) verification, selection, quotas, and retention rules.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.media`; domain presence signals availability.
 
 ## Description
@@ -45,62 +46,84 @@ Stronger napplets can still choose shell-owned playback when they want shell pol
 
 ### Schemas
 
-```cddl
-MediaPlaybackOwner = "shell" / "napplet"
-MediaAction = "play" / "pause" / "stop" / "next" / "prev" / "seek" / "volume"
+| Name | Values |
+|------|--------|
+| `MediaPlaybackOwner` | "shell" or "napplet" |
+| `MediaAction` | "play", "pause", "stop", "next", "prev", "seek", or "volume" |
 
-MediaSessionCreate = {
-  owner: MediaPlaybackOwner,
-  ? sessionId: tstr,
-  ? source: MediaSourceRef,
-  ? metadata: MediaMetadata,
-  ? context: MediaSessionContext,
-  ? capabilities: [* MediaAction],
-  ? autoplay: bool,
-  ? live: bool,
-}
+`MediaSessionCreate` fields:
 
-MediaSourceRef = {
-  ? url: tstr,
-  ? blossomHash: tstr,
-  ? nostr: MediaNostrRef,
-  ? mimeType: tstr,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `owner` | yes | MediaPlaybackOwner | — |
+| `sessionId` | no | text | — |
+| `source` | no | MediaSourceRef | — |
+| `metadata` | no | MediaMetadata | — |
+| `context` | no | MediaSessionContext | — |
+| `capabilities` | no | list of MediaAction | — |
+| `autoplay` | no | boolean | — |
+| `live` | no | boolean | — |
 
-MediaNostrRef = {
-  ? eventId: tstr,
-  ? address: tstr,
-  ? relays: [* tstr],
-}
+`MediaSourceRef` fields:
 
-MediaArtwork = {
-  ? url: tstr,
-  ? hash: tstr,
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `url` | no | text | — |
+| `blossomHash` | no | text | — |
+| `nostr` | no | MediaNostrRef | — |
+| `mimeType` | no | text | Advisory hint; the shell validates the actual media format. |
+| `torrent` | no | MediaTorrentSource | Optional source form; exclusive of url, blossomHash, and nostr. |
 
-MediaMetadata = {
-  ? title: tstr,
-  ? artist: tstr,
-  ? album: tstr,
-  ? artwork: MediaArtwork,
-  ? duration: number,
-  ? mediaType: "audio" / "video",
-}
+`MediaTorrentSource` fields:
 
-MediaSessionContext = {
-  ? label: tstr,
-  ? detail: tstr,
-  ? index: uint,
-  ? total: uint,
-  ? links: [* MediaContextLink],
-}
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `jobId` | yes | text | Existing job identifier resolved within the caller's verified napplet principal and user profile. |
+| `fileIndex` | yes | integer | Non-negative, stable index from the job's verified file metadata. |
 
-MediaContextLink = {
-  rel: tstr,
-  ? title: tstr,
-  ? nostr: MediaNostrRef,
-}
-```
+`MediaNostrRef` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `eventId` | no | text | — |
+| `address` | no | text | — |
+| `relays` | no | list of text | — |
+
+`MediaArtwork` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `url` | no | text | — |
+| `hash` | no | text | — |
+
+`MediaMetadata` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `title` | no | text | — |
+| `artist` | no | text | — |
+| `album` | no | text | — |
+| `artwork` | no | MediaArtwork | — |
+| `duration` | no | number | — |
+| `mediaType` | no | "audio" or "video" | — |
+
+`MediaSessionContext` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `label` | no | text | — |
+| `detail` | no | text | — |
+| `index` | no | integer | Non-negative. |
+| `total` | no | integer | Non-negative. |
+| `links` | no | list of MediaContextLink | — |
+
+`MediaContextLink` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `rel` | yes | text | — |
+| `title` | no | text | — |
+| `nostr` | no | MediaNostrRef | — |
 
 **Resource resolution.** The `artwork.url` field is a URL string. Napplets and shells that need the artwork bytes (for example, to render album art on a media controls surface) MUST fetch them through NAP-RESOURCE: `window.napplet.resource.bytes(url)`. The optional `artwork.hash` field, when present, MAY be used by shells as a content-addressed cache key but is not a substitute for the URL fetch — napplets address artwork by URL through the resource NAP. Artwork URLs do not grant direct network access. The web projection's runtime
 network policy governs external loads; an opaque sandbox origin alone does not
@@ -224,6 +247,7 @@ completion or permission to resume from `stopped` or `paused` alone.
 | `destroyed` | The napplet requested session destruction. |
 | `backend-exited` | The playback backend exited without a more specific known cause. |
 | `policy` | The shell revoked the session under its policy. |
+| `source-unavailable` | The bound source was removed or permanently became unusable; for torrent sources this retires the session. |
 
 Playback owners SHOULD include the known reason on state transitions. A natural
 completion that leaves the session usable MUST be reported as `status: "stopped"`
@@ -290,11 +314,126 @@ MUST NOT revive a retired session.
 
 ### Source References
 
-`source` identifies media the shell may play for a shell-owned session. It supports direct URLs, Blossom content hashes, and Nostr event/address references. Shells MAY support a subset of source forms and reject unsupported forms during session creation.
+`source` identifies media the shell may play for a shell-owned session. It supports direct URLs, Blossom content hashes, Nostr event/address references, and optional torrent job-file selectors. Shells MAY support a subset of source forms and reject unsupported forms during session creation.
 
 For `owner: "shell"`, `source` is required unless the shell defines a separate out-of-band source binding for the napplet. The shell MUST fetch and validate source bytes through shell-controlled policy. The napplet does not gain direct network access.
 
 For `owner: "napplet"`, `source` is optional metadata. The shell MUST NOT treat a napplet-owned `source` as permission to fetch or play media on the napplet's behalf.
+
+### Torrent file sources
+
+For shell-owned playback, `source.torrent` selects one file in an existing
+[NAP-TORRENT](https://github.com/napplet/naps/pull/72) job. `MediaTorrentSource`
+is owned by this NAP. It embeds no external wire record and carries no grant.
+The `torrent` dependency is optional shell-internal composition. Supporting
+this source does not require exposing torrent operations to every media caller.
+A caller that creates or manages its own jobs separately declares and uses the
+`torrent` capability under its own policy.
+
+A source containing `torrent` MUST NOT also contain `url`, `blossomHash`, or
+`nostr`. `mimeType` remains an advisory format hint. The shell MUST reject
+ambiguous selectors with `invalid source`. Existing source forms keep their
+contracts. For `owner: "napplet"`, the selector is advisory metadata only:
+it MUST NOT cause shell job resolution, reading, or playback.
+
+**Admission and authority.** The shell MUST resolve the job using the original
+requesting endpoint's verified napplet principal and user profile. It MUST NOT
+accept caller-supplied ownership or resolve the identifier under an ambient
+shell/service identity with wider access. A user-approved session-scoped job
+alias may be used only within its existing delegated authority. Copying a job
+identifier between napplets MUST NOT transfer access. Unknown or inaccessible
+jobs return the same `source not found` error.
+
+The shell MUST independently authorize playback of the selected content.
+Permission to seed local files is not permission to play them. A playback
+grant MUST NOT grant raw-byte access to the napplet, expand file selection,
+change ownership, or authorize a different job. The session binds to the
+resolved job identity and stable file index; it MUST NOT silently rebind if
+an alias disappears or another job uses a similar identifier.
+
+The shell MUST validate verified torrent metadata and an existing selected
+file before successful creation. Missing metadata returns `source not ready`;
+an invalid index returns `invalid source`; an unselected file or denied
+playback grant returns `source blocked`. The caller may retry after resolving
+the condition through the torrent domain. Creating a media session MUST NOT
+create, resume, reconfigure, or select files in a torrent job.
+
+Torrent files are finite sources; `live: true` is invalid and returns
+`invalid source`. Complete file data is not required for creation. A successful
+creation result confirms an authorized binding, not successful decoding. It
+MUST precede all state and capability notifications for that session. For this
+source, omitted `autoplay` means false: the initial state is `paused`. With
+permitted autoplay, report `buffering` until enough verified media data is
+available, then `playing`. A shell lacking this source resolver returns
+`unsupported source`; domain presence alone does not promise source support.
+No new discovery operation is required before attempting creation.
+
+**Playback and seeking.** The runtime's internal reader MUST preserve torrent
+integrity checks, selection, paused-job restrictions, bandwidth limits, and
+per-principal quotas. It may consume verified cached data from a paused job,
+but MUST NOT resume its network activity. This is a shell-internal reader;
+it need not pass encoded byte messages through the napplet or use the
+endpoint-scoped public `torrent.read` request IDs. Any quota accounting MUST
+remain attached to the originating principal, including detached playback.
+
+The shell owns media probing, decoding, and mapping a seek in seconds to byte
+ranges. It MUST validate the actual container and codecs; `mimeType` cannot
+bypass format checks. Unsupported media known before creation returns
+`unsupported media`. An unrecoverable format or source-integrity failure
+discovered after creation retires the session with reason `error` under the
+terminal-ordering rules. A corrupt peer piece rejected and retried by the
+torrent engine is not by itself a terminal playback failure.
+Implementations MUST bound probing, buffering, and outstanding range demand
+under runtime policy. While playback is requested, temporary starvation uses
+`buffering`; exhaustion of the shell's bounded stall/probe policy retires the
+session with reason `error`. The stall timer MUST NOT count time spent in an
+explicit media pause or stop. Data arrival, transfer pause/resume, or a seek
+MUST NOT override the user's media pause/stop or restart output automatically.
+
+The shell MUST advertise only playback actions it can perform for this source.
+An advertised seek may need to buffer while verified data arrives; it need
+not wait until the whole file is downloaded to be advertised. Each accepted
+seek MUST cancel obsolete demand and replace only this session's temporary
+range priorities. It MUST NOT alter persistent file selection, another
+session's reader, or the torrent's configured priorities. Pausing/stopping
+playback, focus-induced pause, or retirement releases that temporary demand.
+Pausing playback MUST NOT implicitly pause the torrent or stop seeding.
+`play` after a pause or stop remains subject to normal capabilities and policy.
+
+**Source and session lifetime.** Destroying or retiring a media session releases
+only its reader, temporary priorities, and playback grant. It MUST NOT remove
+the job, delete its data, or revoke another reader. Torrent download completion
+is not playback completion. Reaching media end-of-file uses the existing
+natural-completion rules; it does not stop seeding or remove the torrent.
+
+Removing the job, losing its source permanently, losing the delegated alias,
+or deselecting the selected file MUST retire dependent media sessions with
+reason `source-unavailable`. Revoking playback or source authorization MUST
+stop output, cancel reads, discard buffered output, and retire the session
+with reason `policy`. Previously buffered bytes MUST NOT continue playing
+after revocation or source retirement. During requested playback, transient
+lack of peers or a paused transfer is a buffering condition, not natural
+completion. An explicitly paused or stopped media session keeps its state. Notification
+ordering, late-message suppression, and stale-command rejection follow
+Session retirement and preemption.
+
+Shell promotion to persistent playback requires an already-persistent source
+job and explicit authorization to retain the playback binding beyond endpoint
+closure. A session-retained job or endpoint-scoped delegated alias cannot
+support that promotion. The shell MUST NOT silently change job retention or
+preserve an expiring grant. If the prerequisites are absent, playback stops
+and the session is retired on endpoint closure. If promotion is admitted,
+the shell detaches the playback binding before destroying the endpoint,
+retains its original principal/profile restrictions, and rechecks revocation.
+Recovering a retained torrent job does not restore an old media session ID;
+a replacement napplet endpoint must create a new media session.
+
+**Composition boundary.** This source is resolved inside the runtime; it does
+not introduce a `torrent:` URL scheme, extend `resource.bytes` to support
+ranges, or return a transferable cross-napplet file reference. The existing
+resource dependency remains for artwork. Browser/native streaming mechanisms
+are implementation choices; support for torrent files does not imply support
+for every media container or codec.
 
 ### Session Context
 
@@ -411,11 +550,80 @@ superseded the focus pause.
 <- { "type": "media.session.create.result", "id": "m1", "sessionId": "s1", "error": "session limit exceeded" }
 ```
 
+**Create shell-owned torrent playback and seek into missing data:**
+
+The job is already authorized, its metadata is verified, and file 0 is selected. The shell supports its container/codecs. Pausing and destroying playback do not pause or remove the torrent job.
+
+```
+-> {"type": "media.session.create", "id": "tm1", "owner": "shell", "source": {"torrent": {"jobId": "torrent-7", "fileIndex": 0}}, "autoplay": true}
+<- {"type": "media.session.create.result", "id": "tm1", "sessionId": "torrent-player-1", "owner": "shell"}
+<- {"type": "media.capabilities", "sessionId": "torrent-player-1", "actions": ["play", "pause", "stop", "seek", "volume"]}
+<- {"type": "media.state", "sessionId": "torrent-player-1", "status": "buffering"}
+<- {"type": "media.state", "sessionId": "torrent-player-1", "status": "playing", "position": 0}
+-> {"type": "media.command", "sessionId": "torrent-player-1", "action": "seek", "value": 120}
+<- {"type": "media.state", "sessionId": "torrent-player-1", "status": "buffering", "position": 120}
+<- {"type": "media.state", "sessionId": "torrent-player-1", "status": "playing", "position": 120}
+-> {"type": "media.command", "sessionId": "torrent-player-1", "action": "pause"}
+<- {"type": "media.state", "sessionId": "torrent-player-1", "status": "paused", "reason": "user"}
+-> {"type": "media.session.destroy", "sessionId": "torrent-player-1"}
+<- {"type": "media.session.ended", "sessionId": "torrent-player-1", "reason": "destroyed"}
+```
+
+**Wait for metadata before retrying creation:**
+
+The caller retries with a new request ID after metadata becomes available. Omitted autoplay leaves the admitted session paused.
+
+```
+-> {"type": "media.session.create", "id": "tm2", "owner": "shell", "source": {"torrent": {"jobId": "torrent-7", "fileIndex": 0}}}
+<- {"type": "media.session.create.result", "id": "tm2", "error": "source not ready"}
+-> {"type": "media.session.create", "id": "tm3", "owner": "shell", "source": {"torrent": {"jobId": "torrent-7", "fileIndex": 0}}}
+<- {"type": "media.session.create.result", "id": "tm3", "sessionId": "torrent-player-2", "owner": "shell"}
+<- {"type": "media.state", "sessionId": "torrent-player-2", "status": "paused"}
+```
+
+**Revoke source authorization during buffered playback:**
+
+The shell stops output and discards buffered content before retirement. The subsequent stale command is ignored.
+
+```
+-> {"type": "media.command", "sessionId": "torrent-player-2", "action": "play"}
+<- {"type": "media.state", "sessionId": "torrent-player-2", "status": "buffering"}
+<- {"type": "media.session.ended", "sessionId": "torrent-player-2", "reason": "policy"}
+-> {"type": "media.command", "sessionId": "torrent-player-2", "action": "play"}
+```
+
+**Reject an inaccessible job without revealing ownership:**
+
+```
+-> {"type": "media.session.create", "id": "tm4", "owner": "shell", "source": {"torrent": {"jobId": "other-job", "fileIndex": 0}}}
+<- {"type": "media.session.create.result", "id": "tm4", "error": "source not found"}
+```
+
+**Reject an unsupported resolver:**
+
+```
+-> {"type": "media.session.create", "id": "tm5", "owner": "shell", "source": {"torrent": {"jobId": "torrent-7", "fileIndex": 0}}}
+<- {"type": "media.session.create.result", "id": "tm5", "error": "unsupported source"}
+```
+
+**Retire playback when the torrent job is removed:**
+
+This session had already been admitted. Job removal terminates its binding; buffered bytes do not keep it alive.
+
+```
+<- {"type": "media.session.ended", "sessionId": "torrent-player-3", "reason": "source-unavailable"}
+```
+
 ### Error Handling
 
 `media.session.create.result` includes an `error` field (string) on failure. Common errors: `"session limit exceeded"`, `"invalid session ID"`. When `error` is present, the session was not created.
 
 For shell-owned sessions, common creation errors also include `"missing source"`, `"unsupported source"`, `"source blocked"`, and `"autoplay denied"`.
+
+Torrent-source creation also defines `"invalid source"`, `"source not found"`,
+`"source not ready"`, and `"unsupported media"`. These are machine-readable
+values, not arbitrary diagnostics. An error creates no session and MUST NOT
+be followed by state, capability, or retirement notifications for that attempt.
 
 Messages referencing an unknown `sessionId` (e.g., `media.state` for a destroyed session) MUST be silently ignored by both napplet and shell.
 
@@ -436,6 +644,8 @@ Commands that are not valid for the current owner mode, source, or capabilities 
 - The shell MAY enforce audio policy (e.g., mute sessions on focus loss, duck overlapping sources, enforce a single-active-output policy).
 - The shell SHOULD make audio focus decisions across all sessions, regardless of owner.
 - For shell-owned sessions, the shell MUST own fetching, playback lifecycle, state emission, and policy enforcement.
+- Torrent sources MUST follow Torrent file sources for verified reading,
+  independent playback permission, source failure, and persistence admission.
 - For napplet-owned sessions, the shell MUST NOT fetch/play `source` on the napplet's behalf unless the napplet creates a separate shell-owned session.
 - When the owning napplet/window closes, the shell MUST destroy napplet-owned sessions and SHOULD stop shell-owned sessions unless the shell explicitly promotes the session to persistent playback.
 - If shell-promoted persistent playback is allowed, the shell MUST detach the persistent session from the closed iframe before destroying the napplet's message endpoint, and MUST define how the user can stop or revoke that playback.
@@ -470,6 +680,9 @@ For shell-owned sessions:
 - Session context is napplet-supplied metadata. Shells SHOULD validate Nostr references before using them for UI or routing and MUST ignore unknown context links.
 - Artwork URLs are fetched by the shell, not the napplet (the napplet is sandboxed with no network access). The shell SHOULD validate URLs and enforce a content security policy for fetched resources.
 - Shell-owned `source` URLs are fetched and played by the shell, not the napplet. The shell MUST apply the same resource safety policy it applies to artwork and other external bytes.
+- Torrent selectors MUST be resolved under the original caller's authority.
+  They MUST NOT bypass content verification, expose local filesystem paths,
+  or turn seeding permission into playback or raw-byte permission.
 - Blossom artwork hashes allow the shell to resolve artwork through its own Blossom infrastructure without the napplet needing network access. The shell controls which Blossom servers are queried.
 - For napplet-owned sessions, volume control is advisory -- the napplet controls actual audio output. A malicious napplet could ignore volume commands. The shell MAY enforce volume limits at the iframe level using the Web Audio API or iframe attribute policies if available. For shell-owned sessions, the shell controls actual output volume.
 - Session creation is rate-limited by the shell. A napplet that creates excessive sessions can be throttled or denied.
@@ -489,3 +702,4 @@ For shell-owned sessions:
 
 - `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
 - `bd521c6` - Added playback and command reasons, terminal session notifications, stale-command rejection, ordered retirement delivery, and audio-focus resumption rules; aligned the operations table with the wire contract.
+- `451cc68` - Added optional torrent job-file sources for shell-owned playback with scoped authorization, verified buffering and seeking, source retirement, and persistence admission independent of torrent transfer control.
