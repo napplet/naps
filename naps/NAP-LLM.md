@@ -221,8 +221,12 @@ Explicit failure and partial completion:
 
 ### Error Handling
 
-An Error has required text fields `code` and `message`. Messages are safe,
-human-readable diagnostics, not raw provider bodies or credential-store errors.
+**Error**
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `code` | yes | text | Stable failure category from the table below |
+| `message` | yes | text | Safe human-readable diagnostic, never a raw provider body or credential-store error |
 
 | Code | Meaning |
 |------|---------|
@@ -290,9 +294,13 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 
 ## Implementations
 
-- [napplet.soy / soyLI experimental reference](https://github.com/soytec/napplet-soy/tree/bba958034849df0cbba19d3ab1c94bb5e19e7971):
-  [implementation guide](https://github.com/soytec/napplet-soy/blob/bba958034849df0cbba19d3ab1c94bb5e19e7971/docs/LLM.md),
-  [optional consumer](https://github.com/soytec/napplet-soy/blob/bba958034849df0cbba19d3ab1c94bb5e19e7971/examples/nap-llm.ts)
+- [napplet.soy / soyLI experimental reference](https://github.com/soytec/napplet-soy/tree/0200e7c82675a781ea11292a57801f16a93d3101):
+  [implementation guide](https://github.com/soytec/napplet-soy/blob/0200e7c82675a781ea11292a57801f16a93d3101/docs/LLM.md),
+  [optional consumer](https://github.com/soytec/napplet-soy/blob/0200e7c82675a781ea11292a57801f16a93d3101/examples/nap-llm.ts)
   and executable conformance fixtures. It is not deployed and does not claim
   upstream acceptance or independent-shell interoperability. Provider responses
   are buffered; synthetic stream fixtures exercise delta and termination rules.
+
+## Changelog
+
+- `4bb12f3` - Define user-selected inference, endpoint-scoped selections, disclosure consent, generation/cancellation lifecycles, typed errors and conformance cases; add the draft registry entry and reference links.
