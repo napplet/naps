@@ -610,3 +610,5 @@ No NAP-NZB implementation is verified by this proposal. NZBGet and SABnzbd are
 reference integration targets, not claimed NAP implementations.
 
 ## Changelog
+
+- `53d2b0e` - Defined native and external NZB downloader jobs, advertised controls and optional file reads, mutation replay, and runtime authority boundaries.
