@@ -474,3 +474,5 @@ No implementation of this NAP has been verified. Existing Soulseek clients and
 backends do not imply support for the `soulseek` domain.
 
 ## Changelog
+
+- `252a8f4` - Introduced runtime-mediated Soulseek search, share browsing, endpoint-owned downloads, bounded file reads, and user-mediated saving.
