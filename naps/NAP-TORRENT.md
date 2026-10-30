@@ -6,66 +6,48 @@
 
 **NAP ID:** NAP-TORRENT
 **Domain:** `torrent`
-**Depends:**
-- `identity` -- capability · required -- publishing NIP-35 torrent and comment events uses the current shell-user identity as event author.
-- `relay` -- capability · required -- searches, reads, comments on, and publishes NIP-35 torrent events through the runtime relay surface.
-- `relay` -- wire · required -- imports `RelayEventResult` for raw NIP-35 event returns.
-- `resource` -- wire · optional -- imported `RelayEventResult.sidecar.resources?` carries `ResourceSidecarEntry[]`, a type owned by the `resource` domain.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.torrent`; domain presence signals availability.
 
 ## Description
 
-NAP-TORRENT gives napplets a runtime-mediated interface for NIP-35 torrent
-indexes and torrent transfers. A napplet can search, parse, publish, and comment
-on NIP-35 kind `2003` torrent events, then ask the runtime to download, seed, or
-inspect the referenced torrent.
+NAP-TORRENT gives napplets a runtime-mediated interface for torrent
+transfers. A napplet can request downloads or seeding, select files, and
+observe transfer jobs using magnet links, info hashes, metainfo bytes, or
+runtime-owned file sets.
 
 The runtime owns the torrent engine, transport choice, storage, file picker,
-bandwidth limits, tracker/DHT/WebTorrent policy, relay use, signing, and user
-consent. Napplets never get raw TCP, UDP, WebRTC, HTTP tracker, DHT, filesystem,
-or signing access through this interface.
+bandwidth limits, tracker/DHT/WebTorrent policy, and user consent. Napplets
+never get raw TCP, UDP, WebRTC, HTTP tracker, DHT, or filesystem access through
+this interface.
 
 This NAP supports both WebTorrent-style runtimes and standard BitTorrent
 runtimes. A shell may use HTTP/WebRTC/WebSocket transports, TCP/UDP/DHT
 transports, local torrent daemons, or another backend. The napplet requests the
-intent and observes a job. It does not own the transport.
+transfer and observes a job. It does not own the transport.
 
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
 | `capabilities` | none | `TorrentCapabilities` | `torrent.capabilities` / `.result` |
-| `fromEvent` | `event` (`NostrEvent`) | `TorrentDescriptorResult` | `torrent.fromEvent` / `.result` |
-| `toMagnet` | `descriptor` (`TorrentDescriptor`) | `TorrentMagnetResult` | `torrent.toMagnet` / `.result` |
-| `search` | `query` (`TorrentSearchQuery`) | list of `TorrentSearchResult` | `torrent.search` / `.result` |
-| `publish` | `request` (`TorrentPublishRequest`) | `TorrentPublishResult` | `torrent.publish` / `.result` |
-| `comment` | `request` (`TorrentCommentRequest`) | `TorrentPublishResult` | `torrent.comment` / `.result` |
 | `pickFiles` | optional `options` (`TorrentPickOptions`) | `TorrentFileSetResult` | `torrent.pickFiles` / `.result` |
 | `add` | `request` (`TorrentAddRequest`) | `TorrentJobAck` | `torrent.add` / `.result`, then push messages |
-| `status` | `jobId` (`tstr`) | `TorrentJobStatus` | `torrent.status` / `.result` |
+| `status` | `jobId` (`text`) | `TorrentJobStatus` | `torrent.status` / `.result` |
 | `jobs` | optional `filter` (`TorrentJobFilter`) | list of `TorrentJobSummary` | `torrent.jobs` / `.result` |
-| `files` | `jobId` (`tstr`) | list of `TorrentFileStatus` | `torrent.files` / `.result` |
-| `selectFiles` | `jobId` (`tstr`), `selection` (`TorrentFileSelection`) | `TorrentJobStatus` | `torrent.selectFiles` / `.result` |
-| `pause` | `jobId` (`tstr`) | `TorrentJobStatus` | `torrent.pause` / `.result` |
-| `resume` | `jobId` (`tstr`) | `TorrentJobStatus` | `torrent.resume` / `.result` |
-| `remove` | `jobId` (`tstr`), optional `options` (`TorrentRemoveOptions`) | `TorrentRemoveResult` | `torrent.remove` / `.result` |
+| `files` | `jobId` (`text`) | list of `TorrentFileStatus` | `torrent.files` / `.result` |
+| `selectFiles` | `jobId` (`text`), `selection` (`TorrentFileSelection`) | `TorrentJobStatus` | `torrent.selectFiles` / `.result` |
+| `pause` | `jobId` (`text`) | `TorrentJobStatus` | `torrent.pause` / `.result` |
+| `resume` | `jobId` (`text`) | `TorrentJobStatus` | `torrent.resume` / `.result` |
+| `remove` | `jobId` (`text`), optional `options` (`TorrentRemoveOptions`) | `TorrentRemoveResult` | `torrent.remove` / `.result` |
 
 ### Schemas
 
-`RelayEventResult` is owned by NAP-RELAY. NAP-TORRENT imports it by name for
-raw NIP-35 events returned from search or descriptor conversion. Publish and
-comment operations still return shell-created signed events as `NostrEvent`.
-
-Primitive aliases and imported types:
+Primitive types:
 
 | Name | Definition |
 |------|------------|
-| `HexInfoHash` | BitTorrent info hash encoded as lowercase hex |
-| `HexPubkey` | 32-byte public key encoded as lowercase hex |
-| `NostrEventId` | 32-byte event id encoded as lowercase hex |
-| `NostrEvent` | Nostr event object |
-| `NostrTag` | list of text tag fields |
-| `RelayEventResult` | external type owned by NAP-RELAY |
+| `HexInfoHash` | v1 BitTorrent info hash encoded as 40 lowercase hexadecimal characters |
+| `MetainfoBytes` | binary contents of a `.torrent` file; the host representation is projection-defined |
 
 Enums:
 
@@ -74,42 +56,187 @@ Enums:
 | `TorrentTransport` | `webtorrent`, `bittorrent`, `auto`, or runtime-defined text |
 | `TorrentMode` | `download`, `seed`, `download-and-seed` |
 | `TorrentJobState` | `queued`, `metadata`, `downloading`, `seeding`, `paused`, `complete`, `cancelled`, `error` |
-| `TorrentSourceType` | `nip35`, `magnet`, `infohash`, `metainfo`, `runtime-file-set` |
+| `TorrentSourceType` | `magnet`, `infohash`, `metainfo`, `runtime-file-set` |
 | `TorrentStorage` | `temporary`, `persistent`, `user-selected` |
-| `TorrentReferencePrefix` | `tcat`, `newznab`, `tmdb`, `ttvdb`, `imdb`, `mal`, `anilist`, or other text |
 
-Record fields:
+#### TorrentCapabilities
 
-| Record | Required fields | Optional fields |
-|--------|-----------------|-----------------|
-| `TorrentCapabilities` | `transports: list of TorrentTransport`, `modes: list of TorrentMode` | `maxActiveJobs: uint`, `maxTorrentSize: uint`, `canPublishNip35: bool`, `canComment: bool`, `canSeedRuntimeFiles: bool`, `canUseDht: bool`, `canUseTrackers: bool`, `canUseWebSeeds: bool` |
-| `TorrentFile` | `path: tstr` | `size: uint` |
-| `TorrentReference` | `prefix: TorrentReferencePrefix`, `value: tstr` | none |
-| `TorrentDescriptor` | `infoHash: HexInfoHash`, `files: list of TorrentFile`, `trackers: list of tstr`, `tags: list of tstr`, `references: list of TorrentReference` | `title: tstr`, `description: tstr`, `magnet: tstr`, `eventId: NostrEventId`, `author: HexPubkey`, `createdAt: uint`, `result: RelayEventResult` |
-| `TorrentDescriptorResult` | `ok: bool` | `descriptor: TorrentDescriptor`, `error: tstr`, `reason: tstr` |
-| `TorrentMagnetResult` | `ok: bool` | `magnet: tstr`, `error: tstr`, `reason: tstr` |
-| `TorrentSearchQuery` | none | `text: tstr`, `infoHash: HexInfoHash`, `tags: list of tstr`, `references: list of TorrentReference`, `authors: list of HexPubkey`, `since: uint`, `until: uint`, `limit: uint` |
-| `TorrentSearchResult` | `descriptor: TorrentDescriptor`, `result: RelayEventResult` | none |
-| `TorrentPublishRequest` | `descriptor: TorrentDescriptor` | `content: tstr`, `relays: list of tstr`, `publish: bool` |
-| `TorrentCommentRequest` | `torrentEventId: NostrEventId`, `torrentAuthor: HexPubkey`, `content: tstr` | `relays: list of tstr` |
-| `TorrentPublishResult` | `ok: bool` | `eventId: NostrEventId`, `event: NostrEvent`, `relays: map of relay URL to bool`, `error: tstr`, `reason: tstr` |
-| `TorrentPickOptions` | none | `multiple: bool`, `suggestedName: tstr` |
-| `TorrentRuntimeFileSet` | `runtimeFileSetId: tstr`, `files: list of TorrentFile`, `totalBytes: uint` | `displayName: tstr` |
-| `TorrentFileSetResult` | `ok: bool` | `fileSet: TorrentRuntimeFileSet`, `error: tstr`, `reason: tstr` |
-| `TorrentSource` | `sourceType: TorrentSourceType` | `event: NostrEvent`, `descriptor: TorrentDescriptor`, `magnet: tstr`, `infoHash: HexInfoHash`, `metainfo: bstr`, `runtimeFileSetId: tstr` |
-| `TorrentAddOptions` | none | `mode: TorrentMode`, `transport: TorrentTransport`, `startPaused: bool`, `seedAfterComplete: bool`, `downloadLimitBytesPerSecond: uint`, `uploadLimitBytesPerSecond: uint`, `storage: TorrentStorage`, `trackers: list of tstr`, `webSeeds: list of tstr`, `fileSelection: TorrentFileSelection` |
-| `TorrentAddRequest` | `source: TorrentSource` | `jobId: tstr`, `options: TorrentAddOptions` |
-| `TorrentJobAck` | `ok: bool` | `jobId: tstr`, `state: TorrentJobState`, `error: tstr`, `reason: tstr` |
-| `TorrentPeerStats` | `peers: uint`, `seeds: uint`, `leeches: uint` | none |
-| `TorrentJobStatus` | `ok: bool`, `jobId: tstr`, `state: TorrentJobState`, `mode: TorrentMode`, `transport: TorrentTransport`, `infoHash: HexInfoHash`, `downloadedBytes: uint`, `uploadedBytes: uint`, `totalBytes: uint`, `progress: number`, `downloadRate: number`, `uploadRate: number`, `ratio: number`, `peers: TorrentPeerStats` | `title: tstr`, `etaSeconds: uint`, `storage: TorrentStorage`, `error: tstr`, `reason: tstr` |
-| `TorrentJobSummary` | `jobId: tstr`, `state: TorrentJobState`, `mode: TorrentMode`, `transport: TorrentTransport`, `infoHash: HexInfoHash`, `progress: number`, `downloadRate: number`, `uploadRate: number`, `ratio: number` | `title: tstr` |
-| `TorrentJobFilter` | none | `states: list of TorrentJobState`, `modes: list of TorrentMode` |
-| `TorrentFileStatus` | `index: uint`, `path: tstr`, `size: uint`, `selected: bool`, `priority: int`, `downloadedBytes: uint`, `progress: number` | none |
-| `TorrentFileSelection` | none | `indexes: list of uint`, `paths: list of tstr`, `priority: int` |
-| `TorrentRemoveOptions` | none | `deleteData: bool` |
-| `TorrentRemoveResult` | `ok: bool`, `jobId: tstr` | `deletedData: bool`, `error: tstr`, `reason: tstr` |
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `transports` | yes | list of TorrentTransport | — |
+| `modes` | yes | list of TorrentMode | — |
+| `maxActiveJobs` | no | integer | Non-negative. |
+| `maxTorrentSize` | no | integer | Non-negative. |
+| `canSeedRuntimeFiles` | no | boolean | — |
+| `canUseDht` | no | boolean | — |
+| `canUseTrackers` | no | boolean | — |
+| `canUseWebSeeds` | no | boolean | — |
 
-When `TorrentPublishRequest.publish` is omitted, the default is `true`.
+#### TorrentFile
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `path` | yes | text | — |
+| `size` | no | integer | Non-negative. |
+
+#### TorrentPickOptions
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `multiple` | no | boolean | — |
+| `suggestedName` | no | text | — |
+
+#### TorrentRuntimeFileSet
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `runtimeFileSetId` | yes | text | — |
+| `files` | yes | list of TorrentFile | — |
+| `totalBytes` | yes | integer | Non-negative. |
+| `displayName` | no | text | — |
+
+#### TorrentFileSetResult
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | — |
+| `fileSet` | no | TorrentRuntimeFileSet | — |
+| `error` | no | text | — |
+| `reason` | no | text | — |
+
+#### TorrentSource
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `sourceType` | yes | TorrentSourceType | Selects the source field. |
+| `magnet` | no | text | Required when selected by `sourceType`. |
+| `infoHash` | no | HexInfoHash | Required when selected by `sourceType`. |
+| `metainfo` | no | MetainfoBytes | Required when selected by `sourceType`. |
+| `runtimeFileSetId` | no | text | Required when selected by `sourceType`. |
+
+#### TorrentAddOptions
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `mode` | no | TorrentMode | — |
+| `transport` | no | TorrentTransport | — |
+| `startPaused` | no | boolean | — |
+| `seedAfterComplete` | no | boolean | — |
+| `downloadLimitBytesPerSecond` | no | integer | Non-negative. |
+| `uploadLimitBytesPerSecond` | no | integer | Non-negative. |
+| `storage` | no | TorrentStorage | — |
+| `trackers` | no | list of text | — |
+| `webSeeds` | no | list of text | — |
+| `fileSelection` | no | TorrentFileSelection | — |
+
+#### TorrentAddRequest
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `source` | yes | TorrentSource | — |
+| `jobId` | no | text | — |
+| `options` | no | TorrentAddOptions | — |
+
+#### TorrentJobAck
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | — |
+| `jobId` | no | text | — |
+| `state` | no | TorrentJobState | — |
+| `error` | no | text | — |
+| `reason` | no | text | — |
+
+#### TorrentPeerStats
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `peers` | yes | integer | Non-negative. |
+| `seeds` | yes | integer | Non-negative. |
+| `leeches` | yes | integer | Non-negative. |
+
+#### TorrentJobStatus
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | — |
+| `jobId` | yes | text | — |
+| `state` | yes | TorrentJobState | — |
+| `mode` | yes | TorrentMode | — |
+| `transport` | yes | TorrentTransport | — |
+| `infoHash` | yes | HexInfoHash | — |
+| `downloadedBytes` | yes | integer | Non-negative. |
+| `uploadedBytes` | yes | integer | Non-negative. |
+| `totalBytes` | yes | integer | Non-negative. |
+| `progress` | yes | number | — |
+| `downloadRate` | yes | number | — |
+| `uploadRate` | yes | number | — |
+| `ratio` | yes | number | — |
+| `peers` | yes | TorrentPeerStats | — |
+| `title` | no | text | — |
+| `etaSeconds` | no | integer | Non-negative. |
+| `storage` | no | TorrentStorage | — |
+| `error` | no | text | — |
+| `reason` | no | text | — |
+
+#### TorrentJobSummary
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `jobId` | yes | text | — |
+| `state` | yes | TorrentJobState | — |
+| `mode` | yes | TorrentMode | — |
+| `transport` | yes | TorrentTransport | — |
+| `infoHash` | yes | HexInfoHash | — |
+| `progress` | yes | number | — |
+| `downloadRate` | yes | number | — |
+| `uploadRate` | yes | number | — |
+| `ratio` | yes | number | — |
+| `title` | no | text | — |
+
+#### TorrentJobFilter
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `states` | no | list of TorrentJobState | — |
+| `modes` | no | list of TorrentMode | — |
+
+#### TorrentFileStatus
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `index` | yes | integer | Non-negative. |
+| `path` | yes | text | — |
+| `size` | yes | integer | Non-negative. |
+| `selected` | yes | boolean | — |
+| `priority` | yes | integer | — |
+| `downloadedBytes` | yes | integer | Non-negative. |
+| `progress` | yes | number | — |
+
+#### TorrentFileSelection
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `indexes` | no | list of integer | Each index is non-negative. |
+| `paths` | no | list of text | — |
+| `priority` | no | integer | — |
+
+#### TorrentRemoveOptions
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `deleteData` | no | boolean | — |
+
+#### TorrentRemoveResult
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | — |
+| `jobId` | yes | text | — |
+| `deletedData` | no | boolean | — |
+| `error` | no | text | — |
+| `reason` | no | text | — |
+
 When `TorrentAddOptions.mode` is omitted, the default is `download`.
 When `TorrentAddOptions.transport` is omitted, the default is `auto`.
 
@@ -117,46 +244,30 @@ When `TorrentAddOptions.transport` is omitted, the default is `auto`.
 napplet. `transports` names supported backend families, not a promise that a
 specific tracker, peer, or network path will work.
 
-**`fromEvent(event)`** -- Validates a NIP-35 kind `2003` event and converts its
-tags into a `TorrentDescriptor`. It MUST read `x` as the v1 BitTorrent info
-hash, `title` as the title, `file` tags as file path plus optional size,
-`tracker` tags as tracker hints, `t` tags as search tags, and `i` tags as
-prefixed references. It MUST reject events without a valid `x` tag.
-
-**`toMagnet(descriptor)`** -- Builds a magnet URI using
-`xt=urn:btih:<infoHash>`. It MAY include `dn` from `title` and `tr` values from
-`trackers`. It MUST NOT require a `.torrent` file, because NIP-35 indexes do not
-store torrent files on Nostr.
-
-**`search(query)`** -- Searches for NIP-35 kind `2003` events through runtime
-relay policy, indexes, or cache. It returns normalized descriptors plus source
-events as `RelayEventResult`. Search matching is runtime-owned; the stable
-contract is the query shape and returned descriptor.
-
-**`publish(request)`** -- Builds a NIP-35 kind `2003` torrent event from a
-descriptor, signs it as the current shell-user, and publishes it through the
-runtime relay surface. `publish: false` returns a preview event without
-publishing. The runtime owns tag formatting and SHOULD preserve only NIP-35
-fields it can validate.
-
-**`comment(request)`** -- Publishes a NIP-35 kind `2004` comment that replies
-to a torrent event. It MUST follow NIP-10 reply tagging for the referenced
-torrent.
-
 **`pickFiles(options?)`** -- Opens a runtime-owned user file picker and returns
 a `runtimeFileSetId` handle. The handle can be used only as a
 `runtime-file-set` source for a seed/upload job. It is not a filesystem path and
 does not let the napplet read the selected bytes.
 
-**`add(request)`** -- Creates a runtime transfer job from a NIP-35 event,
-descriptor, magnet link, info hash, metainfo bytes, or runtime-owned file set.
-The returned `jobId` is scoped to the requesting napplet. Transfers run in the
-runtime, not inside the napplet.
+**`add(request)`** -- Creates a runtime transfer job from a magnet link,
+info hash, metainfo bytes, or runtime-owned file set. The runtime MUST validate
+the source before starting a transfer. The returned `jobId` is scoped to the
+requesting napplet. Transfers run in the runtime.
+
+`TorrentSource.sourceType` selects exactly one source field. The selected
+field MUST be present; other source fields MUST be absent.
+
+| `sourceType` | Required source field |
+|--------------|-----------------------|
+| `magnet` | `magnet` |
+| `infohash` | `infoHash` |
+| `metainfo` | `metainfo` |
+| `runtime-file-set` | `runtimeFileSetId` |
 
 For upload/seeding, callers use `sourceType: "runtime-file-set"` with
 `options.mode: "seed"` or `"download-and-seed"`. The runtime may create
-metainfo, start seeding, and optionally return a descriptor through job status
-once the info hash is known.
+metainfo and start seeding. The resulting info hash is reported through job
+status once known.
 
 **`status(jobId)`** -- Returns a one-shot job status snapshot.
 
@@ -178,23 +289,21 @@ retain metadata and partial data according to runtime storage policy.
 runtime deletion of downloaded data, but the runtime MAY deny it if the data is
 user-owned or shared by another job.
 
-## NIP-35 Mapping
+## Discovery and Nostr Integration
 
-| NIP-35 element | NAP-TORRENT field |
-|----------------|-------------------|
-| kind `2003` | torrent index event consumed by `fromEvent`, `search`, `publish`, and `add` |
-| `content` | `TorrentDescriptor.description` or `publish.content` |
-| `["title", value]` | `TorrentDescriptor.title` |
-| `["x", hash]` | `TorrentDescriptor.infoHash` |
-| `["file", path, size?]` | `TorrentDescriptor.files[]` |
-| `["tracker", url]` | `TorrentDescriptor.trackers[]` |
-| `["t", tag]` | `TorrentDescriptor.tags[]` |
-| `["i", "prefix:value"]` | `TorrentDescriptor.references[]` |
-| kind `2004` | `comment` result event |
+This section is informative. Discovery, event conversion, publishing, and
+comments are outside the `torrent` domain.
 
-`TorrentReference.prefix` follows the NIP-35 prefix set:
-`tcat`, `newznab`, `tmdb`, `ttvdb`, `imdb`, `mal`, and `anilist`. Unknown
-prefixes MAY be preserved.
+A napplet can discover a torrent through existing Nostr capabilities, convert
+its metadata locally, then pass a magnet link or info hash to `add`. For
+example, a [NIP-35](https://github.com/nostr-protocol/nips/blob/master/35.md)
+search napplet can use `outbox` for reads and publishing, with `relay` as an
+explicit escape hatch. Those operations remain subject to their owning
+contracts and shell policy. Conversion can live in a napplet library or a
+shell adapter. A shell can also integrate discovery internally.
+
+These integrations do not add dependencies to `torrent`. The transfer contract
+is the same regardless of where the napplet discovered the torrent.
 
 ## Wire Protocol
 
@@ -205,16 +314,6 @@ prefixes MAY be preserved.
 |------|-----------|----------------|
 | `torrent.capabilities` | napplet -> runtime | `id` |
 | `torrent.capabilities.result` | runtime -> napplet | `id`, `capabilities?`, `error?` |
-| `torrent.fromEvent` | napplet -> runtime | `id`, `event` |
-| `torrent.fromEvent.result` | runtime -> napplet | `id`, `result` |
-| `torrent.toMagnet` | napplet -> runtime | `id`, `descriptor` |
-| `torrent.toMagnet.result` | runtime -> napplet | `id`, `result` |
-| `torrent.search` | napplet -> runtime | `id`, `query` |
-| `torrent.search.result` | runtime -> napplet | `id`, `results?`, `error?` |
-| `torrent.publish` | napplet -> runtime | `id`, `request` |
-| `torrent.publish.result` | runtime -> napplet | `id`, `result` |
-| `torrent.comment` | napplet -> runtime | `id`, `request` |
-| `torrent.comment.result` | runtime -> napplet | `id`, `result` |
 | `torrent.pickFiles` | napplet -> runtime | `id`, `options?` |
 | `torrent.pickFiles.result` | runtime -> napplet | `id`, `result` |
 | `torrent.add` | napplet -> runtime | `id`, `request` |
@@ -251,27 +350,15 @@ Key design notes:
 
 ### Examples
 
-**Search NIP-35, convert to a magnet, then start a download:**
+**Start a download from a magnet link:**
 
 ```
--> { "type": "torrent.search", "id": "s1", "query": { "text": "dune", "tags": ["movie"], "limit": 10 } }
-<- { "type": "torrent.search.result", "id": "s1",
-     "results": [{ "descriptor": { "infoHash": "0123...", "title": "Dune", "files": [], "trackers": ["udp://tracker.example:1337"], "tags": ["movie"], "references": [] }, "result": { "event": { "kind": 2003, "tags": [] }, "sidecar": { "relayHints": ["wss://relay.example.com"] } } }] }
 -> { "type": "torrent.add", "id": "a1",
-     "request": { "source": { "sourceType": "nip35", "descriptor": { "infoHash": "0123...", "title": "Dune", "files": [], "trackers": ["udp://tracker.example:1337"], "tags": ["movie"], "references": [] } },
+     "request": { "source": { "sourceType": "magnet", "magnet": "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=archive" },
                   "options": { "mode": "download-and-seed", "transport": "auto", "storage": "user-selected" } } }
 <- { "type": "torrent.add.result", "id": "a1", "ack": { "ok": true, "jobId": "tor-1", "state": "metadata" } }
 <- { "type": "torrent.progress", "jobId": "tor-1",
-     "status": { "ok": true, "jobId": "tor-1", "state": "downloading", "mode": "download-and-seed", "transport": "bittorrent", "infoHash": "0123...", "title": "Dune", "downloadedBytes": 1048576, "uploadedBytes": 0, "totalBytes": 734003200, "progress": 0.0014, "downloadRate": 2000000, "uploadRate": 0, "ratio": 0, "peers": { "peers": 24, "seeds": 8, "leeches": 16 } } }
-```
-
-**Publish a NIP-35 torrent index:**
-
-```
--> { "type": "torrent.publish", "id": "p1",
-     "request": { "descriptor": { "infoHash": "abcd...", "title": "archive", "description": "public data set", "files": [{ "path": "archive.tar", "size": 42 }], "trackers": [], "tags": ["archive"], "references": [] } } }
-<- { "type": "torrent.publish.result", "id": "p1",
-     "result": { "ok": true, "eventId": "event...", "event": { "kind": 2003, "content": "public data set", "tags": [["title", "archive"], ["x", "abcd..."], ["file", "archive.tar", "42"], ["t", "archive"]] } } }
+     "status": { "ok": true, "jobId": "tor-1", "state": "downloading", "mode": "download-and-seed", "transport": "bittorrent", "infoHash": "0123456789abcdef0123456789abcdef01234567", "title": "archive", "downloadedBytes": 1048576, "uploadedBytes": 0, "totalBytes": 734003200, "progress": 0.0014, "downloadRate": 2000000, "uploadRate": 0, "ratio": 0, "peers": { "peers": 24, "seeds": 8, "leeches": 16 } } }
 ```
 
 **Pick local files and start a seed/upload job:**
@@ -290,17 +377,16 @@ Key design notes:
 
 ```
 -> { "type": "torrent.pause", "id": "x1", "jobId": "tor-1" }
-<- { "type": "torrent.pause.result", "id": "x1", "status": { "ok": true, "jobId": "tor-1", "state": "paused", "mode": "download-and-seed", "transport": "bittorrent", "infoHash": "0123...", "downloadedBytes": 1048576, "uploadedBytes": 0, "totalBytes": 734003200, "progress": 0.0014, "downloadRate": 0, "uploadRate": 0, "ratio": 0, "peers": { "peers": 0, "seeds": 0, "leeches": 0 } } }
+<- { "type": "torrent.pause.result", "id": "x1", "status": { "ok": true, "jobId": "tor-1", "state": "paused", "mode": "download-and-seed", "transport": "bittorrent", "infoHash": "0123456789abcdef0123456789abcdef01234567", "downloadedBytes": 1048576, "uploadedBytes": 0, "totalBytes": 734003200, "progress": 0.0014, "downloadRate": 0, "uploadRate": 0, "ratio": 0, "peers": { "peers": 0, "seeds": 0, "leeches": 0 } } }
 -> { "type": "torrent.remove", "id": "x2", "jobId": "tor-1", "options": { "deleteData": true } }
 <- { "type": "torrent.remove.result", "id": "x2", "result": { "ok": true, "jobId": "tor-1", "deletedData": true } }
 ```
 
 ## Error Handling
 
-Common errors: `invalid-event`, `invalid-infohash`, `invalid-magnet`,
+Common errors: `invalid-source`, `invalid-infohash`, `invalid-magnet`,
 `unsupported-source`, `unsupported-transport`, `unsupported-mode`,
-`not-signed-in`, `user-denied`, `relay-timeout`, `publish-failed`,
-`metadata-timeout`, `tracker-failed`, `dht-unavailable`, `no-peers`,
+`user-denied`, `metadata-timeout`, `tracker-failed`, `dht-unavailable`, `no-peers`,
 `storage-denied`, `quota-exceeded`, `too-large`, `job-not-found`,
 `file-pick-cancelled`, `unsupported-state`, `policy-denied`, `network-error`,
 `unsupported`.
@@ -314,29 +400,17 @@ result can be constructed.
 - MUST keep torrent network transports runtime-owned.
 - MUST NOT expose arbitrary TCP, UDP, WebRTC, HTTP, tracker, DHT, or filesystem
   access through this interface.
-- MUST validate NIP-35 kind `2003` events before treating them as torrent
-  descriptors.
-- MUST construct NIP-35 kind `2003` publish events from validated descriptor
-  fields, not from arbitrary caller-supplied tag arrays.
-- MUST construct kind `2004` comments with NIP-10 reply tags.
-- MUST perform all signing and publishing through runtime-owned identity and
-  relay policy.
 - MUST scope jobs and storage visibility to the requesting napplet unless the
   user explicitly grants broader access.
 - MUST keep `runtimeFileSetId` handles opaque and scoped to the requesting
   napplet.
 - MUST enforce runtime policy for trackers, DHT, peer discovery, web seeds,
   bandwidth, storage, retention, and seeding.
-- SHOULD merge observed NIP-35 relay URLs into
-  `RelayEventResult.sidecar.relayHints` when it can disclose them.
-- MAY include pre-resolved resources referenced by NIP-35 events in
-  `RelayEventResult.sidecar.resources`; NAP-RELAY's default-off sidecar privacy
-  policy and NAP-RESOURCE's fetch policy both apply.
 - SHOULD report progress through `torrent.progress` at a throttled cadence.
 - MAY use WebTorrent, standard BitTorrent, a local daemon, or a remote runtime
   service as the backend.
-- MAY require user consent before starting downloads, seeding, publishing
-  torrent indexes, deleting data, or exposing existing jobs.
+- MAY require user consent before starting downloads, seeding, deleting data,
+  or exposing existing jobs.
 
 ## Security Considerations
 
@@ -348,9 +422,9 @@ result can be constructed.
 - Seeding reveals interest and can upload user data. Runtimes SHOULD show
   torrent title, info hash, size, mode, backend, tracker/DHT policy, and seeding
   policy before starting a job.
-- NIP-35 events are unsigned claims by their authors. The info hash is an
-  integrity key, but titles, descriptions, file names, tags, references, and
-  tracker URLs are untrusted.
+- Torrent metadata and source hints are untrusted. An info hash identifies
+  torrent content; it does not authenticate its publisher or establish trust
+  in file names, titles, or tracker URLs.
 - Trackers, DHT, peers, and web seeds can observe the user's IP address unless
   the runtime provides network isolation. Runtimes SHOULD expose that policy in
   consent UI.
@@ -363,7 +437,6 @@ result can be constructed.
 ## References
 
 - [NIP-35](https://github.com/nostr-protocol/nips/blob/master/35.md) -- Torrents
-- [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) -- Text Notes and Threads
 - [BEP-53](https://www.bittorrent.org/beps/bep_0053.html) -- Magnet URI extension
 
 ## Implementations
