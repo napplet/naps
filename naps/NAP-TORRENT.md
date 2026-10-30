@@ -449,3 +449,4 @@ result can be constructed.
 - `3bc9c3a` - Changed torrent source events to use relay-owned result shape and declared the relay dependency.
 
 - `c0200f0` - Adopted injected-domain availability and linked the current upstream web binding.
+- `fe66d8e` - Restricted the contract to torrent transfers with generic, validated sources; removed Nostr discovery, publishing, comments, event conversion, event schemas, and dependencies, and kept discovery integration informative.
