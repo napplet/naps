@@ -702,3 +702,4 @@ For shell-owned sessions:
 
 - `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
 - `bd521c6` - Added playback and command reasons, terminal session notifications, stale-command rejection, ordered retirement delivery, and audio-focus resumption rules; aligned the operations table with the wire contract.
+- `451cc68` - Added optional torrent job-file sources for shell-owned playback with scoped authorization, verified buffering and seeking, source retirement, and persistence admission independent of torrent transfer control.
