@@ -668,4 +668,4 @@ targets; their existing interfaces do not establish support for this draft.
 
 ## Changelog
 
-Initial draft; semantic commit references are recorded after the first commit.
+- `bb71090` - Defined shared Git object access, commit creation, local reference transactions, remote fetch/push, optional proposals, publication receipts, and native/ngit authority boundaries.
