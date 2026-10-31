@@ -559,3 +559,4 @@ shell-internal; it imposes no additional capability requirement on the caller.
 - `f89efbe` - Reconciled handler recommendation normalization and schemas with opaque catalog selection; kept fragments outside convention identity and payload.
 - `6e4af53` - Added explicit shell provenance and endpoint-bound intent delivery to an existing instance, without catalog fallback or a new dispatch operation.
 - `4f8ebe7` - Added target-scoped delivery identifiers for report correlation, with stable retry identity, lifetime scope, and no source-facing completion promise.
+- `df8496a` - Replaced delivery identifiers and the null shell sender with additive selected-instance delivery: the shell authors no content, a replay carries the target's own catalog identifier, the endpoint never falls back, and the wire format is unchanged.
