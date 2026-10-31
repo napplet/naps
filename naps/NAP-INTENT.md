@@ -427,7 +427,8 @@ a second result to the source.
 - The runtime MAY reuse an existing target, briefly overlap source and target,
   or close the source before starting the target.
 - Retry behavior, target replacement, overlap, terminal failure handling, and
-  persistence across runtime restart are runtime policy.
+  persistence across runtime restart are runtime policy. Delivery to a selected
+  instance MUST keep its endpoint; see below.
 - `behavior` fields are hints. Runtime workspace and lifecycle policy remain
   authoritative.
 - The runtime MUST source `available()` and `handlers()` from verified installed
@@ -438,6 +439,54 @@ a second result to the source.
 - The runtime MUST reject an unsupported convention before acceptance.
 - The runtime SHOULD emit `intent.changed` when catalog or default-handler state
   changes.
+
+### Delivery to a selected instance
+
+Under user action or shell policy, the shell MAY ask the runtime to replay an
+invocation to one particular running instance. A history revisit is the
+motivating case. This adds no operation, wire message, or field: the target
+receives an ordinary `IntentDelivery`.
+
+The shell is not a source. It has no catalog identifier and MUST NOT author
+intent content. A selected-instance delivery MUST replay an invocation the
+target itself produced, such as a location it reported under another domain's
+contract. Its `sender` MUST be the target's own catalog identifier. The runtime
+MUST NOT fabricate, reserve, or null a sender for this purpose.
+
+For this delivery, the runtime MUST:
+
+1. Bind the request to the selected instance's authenticated endpoint. The
+   selection is shell-internal; it is not a catalog identifier supplied through
+   `handler`.
+2. Confirm that the instance is alive and has the `intent` domain.
+3. Check the convention against that instance's verified manifest using the
+   eligible-contract and exact-identity rules of ordinary delivery.
+4. Deliver the replayed `archetype`, `action`, `convention`, and `payload`
+   unchanged, with no added payload fields.
+
+The runtime MUST NOT run a chooser, consult a default, start another instance,
+or fall back to another endpoint. If the endpoint terminates or cannot accept
+the convention, the request fails. A retry MUST NOT transfer it to a replacement
+instance.
+
+A target MUST handle a delivery whose `sender` is its own catalog identifier
+like any other delivery. It validates the payload as usual. Delivery does not
+prove that the target handled the request, and no receipt is exposed.
+
+A napplet cannot request selected-instance delivery. Its `intent.invoke` always
+uses catalog resolution. The runtime MUST ignore or reject a napplet-supplied
+instance selector, sender, or payload field offered as one.
+
+| Case | Required result |
+|------|-----------------|
+| Shell selects one of two instances of the same manifest | Deliver only to the selected endpoint. |
+| Replay of the target's own invocation | Ordinary `IntentDelivery`; `sender` is the target's catalog identifier. |
+| Shell-authored content or a non-napplet sender | Reject; the shell is not a source. |
+| Selected instance does not advertise the convention | Fail; do not choose another handler. |
+| User default changes after selection | Keep the selected endpoint. |
+| Selected endpoint terminates before delivery | Fail; do not restart or substitute an instance. |
+| No `onDelivery` handler registered yet | Apply the ordinary buffering rule. |
+| Napplet supplies an instance selector or sender | Ignore or reject; use ordinary catalog resolution. |
 
 ### Recommended handler resolution
 
@@ -479,7 +528,9 @@ shell-internal; it imposes no additional capability requirement on the caller.
 - The target MUST validate `payload` against `convention` and treat `sender` as
   provenance, not proof that payload content is safe.
 - Handler selection is a trust boundary. Only installed manifest contracts,
-  user defaults, or explicit user choice may select a target.
+  user defaults, or explicit user choice may select a target. A
+  selected-instance delivery stays bound to its authenticated endpoint and
+  replays only that target's own invocation.
 - Default-handler state belongs to the user. A napplet MUST NOT change it.
 - Availability can reveal installed napplets. The runtime MAY redact candidate
   details according to policy.
@@ -488,6 +539,7 @@ shell-internal; it imposes no additional capability requirement on the caller.
 
 ## References
 
+- [NAP-NAVIGATION proposal](https://github.com/napplet/naps/pull/126) — replays reported locations through selected-instance delivery; intent does not depend on navigation.
 - [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) — shareable address identifiers and relay hints.
 - [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) — addressable event coordinates and resolution.
 - [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — napplet manifests, artifact verification, identity, domain availability, and normative web binding.
@@ -505,3 +557,6 @@ shell-internal; it imposes no additional capability requirement on the caller.
 - `3dc945f` - Aligned manifest discovery with z/i advertisements and parameter names, supported all napplet manifest kinds with publisher-safe catalog identifiers, and adopted injected-domain availability.
 
 - `f89efbe` - Reconciled handler recommendation normalization and schemas with opaque catalog selection; kept fragments outside convention identity and payload.
+- `6e4af53` - Added explicit shell provenance and endpoint-bound intent delivery to an existing instance, without catalog fallback or a new dispatch operation.
+- `4f8ebe7` - Added target-scoped delivery identifiers for report correlation, with stable retry identity, lifetime scope, and no source-facing completion promise.
+- `df8496a` - Replaced delivery identifiers and the null shell sender with additive selected-instance delivery: the shell authors no content, a replay carries the target's own catalog identifier, the endpoint never falls back, and the wire format is unchanged.
