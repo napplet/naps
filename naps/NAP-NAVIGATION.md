@@ -9,9 +9,10 @@ Runtime-Maintained Intent History
 **NAP ID:** NAP-NAVIGATION
 **Domain:** `navigation`
 **Depends:**
-- `intent` — layering · required — locations are validated against advertised
-  intent contracts; the runtime requests a revisit through `intent.deliver` and
-  associates the resulting report with `IntentDelivery.id`.
+- `intent` — capability · required — locations are validated against advertised
+  intent contracts; the runtime replays a retained invocation through
+  NAP-INTENT selected-instance delivery, and the napplet handles it through
+  `intent.onDelivery`.
 
 ## Description
 
@@ -43,7 +44,7 @@ even when multiple instances use the same manifest.
 
 There is no separate navigation request handler, listener registration, or
 traversal outcome operation. [NAP-INTENT](https://github.com/napplet/naps/pull/128)
-owns delivery and its identifier; navigation adds no fields to the intent payload.
+owns delivery; navigation adds no fields to the intent payload or delivery.
 
 ### Schemas
 
@@ -66,8 +67,7 @@ A title is display metadata and MUST NOT be inserted into the intent payload.
 |-------|----------|------|-------|
 | `revision` | yes | integer | Positive, increasing sequence assigned by the napplet to current-location reports. |
 | `location` | yes | `NavigationLocation` or null | Actual committed view, or null when it cannot be represented by an eligible invocation. |
-| `mode` | no | `"push"` or `"replace"` | Ordinary report disposition; defaults to `"push"`. A correlated history revisit takes precedence. Omit when location is null. |
-| `deliveryId` | no | text | `IntentDelivery.id` responsible for the committed transition; not a handler, visit, or request-envelope identifier. |
+| `mode` | no | `"push"` or `"replace"` | Ordinary report disposition; defaults to `"push"`. A report that settles a pending revisit takes precedence. MUST be absent when location is null. |
 
 Revisions order reports, not runtime history mutations. Each new report MUST
 use a revision greater than every report previously produced by that instance,
@@ -76,12 +76,12 @@ identical content. Revisions MUST NOT wrap or reset within the instance lifetime
 
 A report MUST NOT contain a history list, current index, or visit identifier.
 The runtime MUST reject these caller-supplied history controls as `invalid`.
+A report carrying `mode` with a null location is `invalid`.
 
-The napplet MUST include `deliveryId` when reporting a committed transition
-caused by an intent delivery. Local navigation omits it. The napplet MUST NOT
-attach a delivery identifier to an unrelated transition or use one received by
-another instance. A declined intent did not cause a transition: the napplet MAY
-reaffirm its unchanged location using a newer `replace` report without that id.
+A report never says why a transition happened. The napplet reports a location
+reached through an intent exactly as it reports local navigation. A guard that
+declines an intent MAY reaffirm the unchanged location with a newer `replace`
+report.
 
 `NavigationEntry` fields:
 
@@ -130,7 +130,7 @@ has been requested and its outcome is not yet established by a report.
 
 | Code | Meaning |
 |------|---------|
-| `invalid` | Malformed report, non-map payload, unusable delivery identifier, or changed content at the accepted revision. |
+| `invalid` | Malformed report, non-map payload, `mode` with a null location, or changed content at the accepted revision. |
 | `unsupported` | Unadvertised convention or payload parameter name. |
 | `stale` | Report revision is older than the accepted report. |
 | `denied` | Shell policy rejects the operation. |
@@ -196,14 +196,11 @@ revision MUST end any pending revisit without success and mark an existing view
 `uncertain`. A view with no accepted report remains `unreported`. Only a valid
 newer report can restore `current`.
 
-A supplied delivery identifier MUST identify an intent the runtime delivered
-to this endpoint. Unknown or foreign identifiers are `invalid`. A valid id does
-not authorize another instance or prove that the target rendered the view.
-
-For a report that is not completing a pending history revisit:
+For a report that does not settle a pending history revisit:
 
 | Report | Runtime history change |
 |--------|------------------------|
+| Non-null location, `push`, equal to the selected visit's invocation | Apply as `replace`; do not create a consecutive duplicate. |
 | Non-null location, `push` | Discard entries after the current index, append a new visit, and select it. With a null index, append to the retained list. |
 | Non-null location, `replace` | Replace the selected visit's location without changing its id or position. With no selected visit, append and select a new visit. |
 | Null location | Preserve history and set index to null; do not create an unadvertised entry. |
@@ -220,33 +217,36 @@ state internally. Neither read infers state from the napplet's router.
    in the same live instance. It MUST refuse a revisit when intent is absent,
    policy denies it, or the view is not current. Selecting its current entry is a
    no-op. At most one history revisit MAY be pending per instance.
-2. Before dispatch, the runtime associates a new `IntentDelivery.id` with the
-   selected entry and the accepted report revision. It marks the view `pending`
-   and delivers the entry's convention and payload to that endpoint through
-   [NAP-INTENT's existing-instance delivery](https://github.com/napplet/naps/pull/128).
-   It MUST NOT add the entry id, revision, or other private fields to the payload.
+2. Before dispatch, the runtime records the selected visit id and the highest
+   report revision it has observed. It marks the view `pending` and replays the
+   entry's convention and payload to that endpoint through
+   [NAP-INTENT selected-instance delivery](https://github.com/napplet/naps/pull/128).
+   The delivery's `sender` is the napplet's own catalog identifier. The runtime
+   MUST NOT add the entry id, revision, or other private fields to the payload.
 3. The napplet handles the intent normally, including its navigation guard. If
-   it commits a transition, it reports the resulting location and `deliveryId`.
+   it commits a transition, it reports the resulting location like any other.
    It does not choose a history index or need to know whether this was Back,
    Forward, a menu selection, or another intent.
-4. If a newer accepted report carries that pending id and its convention and
-   payload equal the selected entry, the runtime selects the existing visit.
-   It MUST NOT append a visit or discard forward history. It MAY update that
-   entry's display title from the report. `mode` does not override this rule.
-5. A correlated report of a different location, or null, does not establish the
+4. The first accepted report above the recorded revision settles the revisit.
+   If its convention and payload equal the selected entry, the runtime selects
+   that recorded visit. It MUST NOT append a visit or discard forward history.
+   It MAY update that entry's display title from the report. `mode` does not
+   override this rule.
+5. A settling report of a different location, or null, does not establish the
    requested destination. The runtime applies the ordinary report rules to the
    actual location and ends the revisit without success.
 
 Equality for invocation matching excludes the title. Payload field presence and
-value types remain significant. The runtime's delivery-to-entry association
-selects the exact retained visit even when multiple entries have identical
-convention and payload values. The napplet never guesses which duplicate to use.
+value types remain significant. The recorded visit id selects the exact retained
+visit even when several entries hold identical convention and payload values.
+The napplet never guesses which duplicate to use.
 
-A newer report unrelated to the pending delivery supersedes the revisit and is
-processed normally. An unchanged view can be reaffirmed with `replace` after a
-guard declines navigation; it does not create a duplicate or claim the target
-was reached. Intent acceptance or delivery without a report changes no history
-position. A report is not a completion receipt exposed to the invoking napplet.
+Settlement is by value, not cause. If the napplet reaches the target location
+by local navigation while the revisit is pending, the revisit is reached: the
+napplet is showing that view. A guard that declines and reaffirms its unchanged
+location with `replace` settles the revisit without success. Intent acceptance
+or delivery without a report changes no history position. A report is not a
+completion receipt exposed to any napplet.
 
 The runtime MUST bound a pending revisit by a finite timeout. Timeout, delivery
 failure, or endpoint loss ends it without success. A still-live view becomes
@@ -254,11 +254,11 @@ failure, or endpoint loss ends it without success. A still-live view becomes
 before delivery leaves the previous view current. The runtime MUST NOT
 silently replay a failed history request.
 
-Once a revisit is settled, its delivery id MUST never select that retained
-entry again. If a late handler actually commits a transition, its newer valid
-report records the actual location under the ordinary report rules. It may
-therefore create a new visit, but MUST NOT retroactively complete the old request
-or move back to its old visit id. A report older than accepted state is still
+Once a revisit is settled or ended, no later report completes it. If a late
+handler actually commits a transition, its newer valid report records the actual
+location under the ordinary report rules. It may therefore create a new visit,
+but MUST NOT retroactively complete the old request or move back to its old
+visit id. A report older than accepted state is still
 `stale`. Napplets SHOULD cancel superseded asynchronous transitions before they
 commit; if cancellation fails, they MUST report the actual resulting state.
 
@@ -280,8 +280,8 @@ The projection supplies transport and authenticated endpoint binding.
 Envelope request identifiers are non-empty text, unique among the endpoint's
 outstanding requests. Each recognized request with a usable identifier MUST
 receive one correlated result, including rejected requests. Wrong-endpoint and
-unmatched results MUST be ignored. A result is not acknowledged. Envelope ids,
-intent delivery ids, and runtime visit ids are distinct scopes.
+unmatched results MUST be ignored. A result is not acknowledged. Envelope ids
+and runtime visit ids are distinct scopes.
 
 ### Example
 
@@ -304,14 +304,14 @@ After opening Bob through a local interaction, it reports:
 ```
 
 If Alice was its first visit, the runtime now retains Alice then Bob, with Bob
-current. Back delivers Alice's stored invocation as an intent with a new delivery
-id. After opening Alice, the napplet reports Alice's location with revision 3
-and that `deliveryId`. The runtime selects Alice's existing visit and keeps Bob
-as Forward history. The napplet submits neither list nor index.
+current. Back replays Alice's stored invocation to this instance as an intent.
+After opening Alice, the napplet reports Alice's location with revision 3. The
+report matches the pending target, so the runtime selects Alice's existing visit
+and keeps Bob as Forward history. The napplet submits neither list nor index.
 
 ## Runtime Behavior
 
-- Bind reports, reads, delivery ids, visit ids, and pending requests to their
+- Bind reports, reads, visit ids, and pending requests to their
   authenticated endpoint. Instances of the same manifest remain independent.
 - Before a report, expose empty entries, null index, null report revision, and
   `unreported`. Expose the full retained view to the shell while the instance
@@ -320,8 +320,7 @@ as Forward history. The napplet submits neither list nor index.
   and user controls. It MUST preserve the current visit and any pending target;
   clearing either MUST end the pending request and make the absence explicit in
   the returned view. Pruning MUST NOT change stored invocation data or reuse ids.
-- The runtime MAY bound entry count, location size, delivery-id tracking, and
-  report rate. It MUST reject a report with `limit` if it cannot accept it under
+- The runtime MAY bound entry count, location size, and report rate. It MUST reject a report with `limit` if it cannot accept it under
   its retention policy; it MUST NOT truncate payloads. Pruning unrelated retained
   visits is a runtime history decision, not a napplet-supplied snapshot edit.
 - Retention changes do not change `reportRevision`, which identifies the last
@@ -330,8 +329,8 @@ as Forward history. The napplet submits neither list nor index.
 - Keep shell workspace history separate from history inside an instance. The
   meaning of a global Back command at an instance boundary remains shell policy.
 - Endpoint termination ends live navigation authority. Any retained shell record
-  MUST be inactive. A new instance starts unreported; history and delivery ids
-  do not silently transfer across instances, versions, or runtime restarts.
+  MUST be inactive. A new instance starts unreported; history does not silently
+  transfer across instances, versions, or runtime restarts.
 
 ## Conformance Cases
 
@@ -341,7 +340,9 @@ as Forward history. The napplet submits neither list nor index.
 | First eligible location report | Runtime creates and selects the first visit. |
 | New local visit | Runtime assigns a fresh id, truncates forward history, and appends. |
 | Replace current location | Preserve current visit id and list position. |
-| Same invocation visited twice | Retain separate runtime visit ids. |
+| Same invocation visited twice, not consecutively | Retain separate runtime visit ids. |
+| `push` equal to the selected visit's invocation | Apply as `replace`; no consecutive duplicate. |
+| `mode` with a null location | Reject as `invalid`. |
 | Unadvertised convention or parameter name | Reject atomically as `unsupported`. |
 | Convention belongs only to another manifest | Reject using the reporting endpoint's own verified manifest. |
 | Empty advertised parameter list | Permit absent/empty payload, reject any payload field. |
@@ -356,13 +357,13 @@ as Forward history. The napplet submits neither list nor index.
 | Napplet supplies entries, index, or a visit id | Reject; history controls belong to the runtime. |
 | Current view cannot be represented | Accept null location; retain history with null current index. |
 | Back emits an intent but no report arrives | Do not move the position; finite timeout leaves uncertainty. |
-| Back report matches its delivery id and selected invocation | Select the existing visit; preserve forward entries even with identical duplicate invocations elsewhere. |
-| Unrelated report has the same invocation as Back's target | Treat it as ordinary navigation; do not infer correlation from value equality. |
+| Back's settling report equals the selected invocation | Select the recorded visit; preserve forward entries even with identical duplicate invocations elsewhere. |
+| Local navigation reaches Back's target while pending | Settle the revisit and select the recorded visit; the napplet shows that view. |
 | Guard declines and reaffirms current location with replace | Preserve the current visit; end pending revisit without success. |
-| Correlated handler redirects elsewhere | Record actual location normally; do not claim the requested visit was reached. |
-| Local navigation overtakes Back | Supersede the pending association; old delivery cannot select its old visit. |
+| Handler redirects elsewhere | Record actual location normally; do not claim the requested visit was reached. |
+| Local navigation elsewhere overtakes Back | End the revisit; a later report of the target is ordinary navigation. |
 | Late successful handler reports after timeout | Record actual location normally; old request stays unsuccessful. |
-| Report carries an unknown or foreign delivery id | Reject as invalid; no cross-instance access. |
+| Report carries an unknown field | Reject as invalid; do not strip it. |
 | Intent acceptance without navigation report | No history mutation. |
 | Second instance uses the same manifest | Independent history, position, id scopes, and traversal authority. |
 | Retention prunes old visits | Returned view shows the retained list; current/pending targets remain valid or are explicitly cleared. |
@@ -380,18 +381,19 @@ as Forward history. The napplet submits neither list nor index.
   history location merely because its parameter names match.
 - Reporting grants no execution authority. Only a separate shell-mediated intent
   request asks a napplet to act. Reports MUST NOT dispatch their own locations.
-- A delivery id provides correlation, not authority or proof of completion.
-  Runtime history controls remain subject to user action and shell policy.
+- Settling a revisit by value grants no authority and does not prove the view
+  rendered. Runtime history controls remain subject to user action and shell
+  policy.
 
 ## References
 
-- [NAP-INTENT delivery proposal](https://github.com/napplet/naps/pull/128) — shell provenance, fixed-instance delivery, and delivery identifiers.
+- [NAP-INTENT selected-instance delivery](https://github.com/napplet/naps/pull/128) — replays a retained invocation to the same live instance without wire changes.
 - [Web projection](../projections/web.md) — host binding and domain availability.
 - [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — web projection, manifests, and authenticated endpoints.
 
 ## Implementations
 
-- None yet. This draft requires the companion intent delivery contract above.
+- None yet. This draft requires the companion intent change above.
 
 ## Changelog
 

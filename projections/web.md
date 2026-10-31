@@ -91,12 +91,11 @@ the list, visit identifiers, and current position. The napplet reports no histor
 snapshot or index. Query sugar is transposed before reporting; stored identities
 are queryless and fragment-free.
 
-Back/Forward uses ordinary `window.napplet.intent.onDelivery` handling. After an
-intent causes a committed transition, the napplet includes `delivery.id` as the
-navigation report's `deliveryId`. The runtime uses its own delivery-to-visit
-association to select an existing visit. The binding MUST NOT infer this id from
-a global last-delivered intent or attach it to unrelated asynchronous work.
-There is no navigation listener or outcome binding.
+Back/Forward uses ordinary `window.napplet.intent.onDelivery` handling. The
+delivery's `sender` is the napplet's own catalog identifier. After the handler
+commits a transition, the router adapter reports the resulting location like any
+other. The runtime matches that report against the pending visit; the binding
+adds no correlation field. There is no navigation listener or outcome binding.
 
 Native location, History API, and hash changes do not report navigation by
 themselves. A parent MUST NOT assume it can inspect an opaque-origin iframe's
