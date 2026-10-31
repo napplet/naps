@@ -168,7 +168,7 @@ The **Deps** column lists the domains a NAP rests on — declared in each spec's
 | [NAP-LINK](https://github.com/napplet/naps/pull/53) | `link` |  | — | Shell-mediated external link opening | Draft |
 | [NAP-POW](https://github.com/napplet/naps/pull/39) | `pow` |  | `identity` `relay` `outbox` | NIP-13 proof-of-work miner (mine, mine-and-publish, queue, progress, hashrate) | Draft |
 | [NAP-DISPLAY](https://github.com/napplet/naps/pull/97) | `display` |  | — | Runtime-controlled pixel displays (list, push) | Draft |
-| [NAP-GIT](naps/NAP-GIT.md) | `git` |  | — | Git objects, local reference transactions, remote synchronization, and proposals | Draft |
+| [NAP-GIT](https://github.com/napplet/naps/pull/137) | `git` |  | — | Git objects, local reference transactions, remote synchronization, and proposals | Draft |
 | *[NAP-CLASS](https://github.com/napplet/naps/pull/16)* | *`class`* |  | *—* | *Napplet class authority (sub-track root)* | *Deferred* |
 | *[NAP-CONNECT](https://github.com/napplet/naps/pull/19)* | *`connect`* |  | *—* | *User-gated direct network access* | *Deferred* |
 
