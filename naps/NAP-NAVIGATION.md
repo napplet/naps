@@ -400,3 +400,4 @@ and keeps Bob as Forward history. The napplet submits neither list nor index.
 - `fd24d88` - Introduced instance-scoped location and history reports, mediated traversal with revision and failure handling, and optional shell layering with intent delivery.
 - `d0d7a6a` - Restricted retained locations to advertised intent invocations and parameter names, removed the separate traversal dispatcher, required intent layering, and exposed remaining intent-delivery integration gaps.
 - `896c0dc` - Moved visit creation, ordering, retention and position to the runtime; replaced snapshot submissions with current-location reports and correlated intent delivery ids for revisits, supersession and timeout recovery.
+- `d929d45` - Settled history revisits by matching the next report against the recorded visit instead of delivery ids, applied a push equal to the selected visit as replace, made `mode` with a null location invalid, and declared `intent` a required capability.
