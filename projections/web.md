@@ -79,6 +79,32 @@ The fragment is a recommendation, not an explicit handler selection. The shell
 applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
 Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
+## Internal navigation binding (draft)
+
+[NAP-NAVIGATION](../naps/NAP-NAVIGATION.md) exposes `report` and `get` through
+`window.napplet.navigation` and requires `intent`. Namespace availability is
+independent of a `shell` handshake.
+
+A router adapter reports each committed view as an advertised convention and a
+payload map containing only advertised parameter names. The runtime maintains
+the list, visit identifiers, and current position. The napplet reports no history
+snapshot or index. Query sugar is transposed before reporting; stored identities
+are queryless and fragment-free.
+
+Back/Forward uses ordinary `window.napplet.intent.onDelivery` handling. The
+delivery's `sender` is the napplet's own catalog identifier. After the handler
+commits a transition, the router adapter reports the resulting location like any
+other. The runtime matches that report against the pending visit; the binding
+adds no correlation field. There is no navigation listener or outcome binding.
+
+Native location, History API, and hash changes do not report navigation by
+themselves. A parent MUST NOT assume it can inspect an opaque-origin iframe's
+router. No automatic replacement of browser APIs is required.
+
+The top-level URL and browser Back button remain shell policy. A stored
+invocation MUST NOT replace the verified `srcdoc` artifact or become an iframe
+`src`. Reporting a location does not dispatch it.
+
 ## Identity & trust
 
 The shell is the policy boundary. For every inbound message it verifies
