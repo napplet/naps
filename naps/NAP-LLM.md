@@ -21,8 +21,11 @@ napplet direct network access or access to other napplets' conversations.
 
 This interface has no dependency on another NAP. A purpose-built remote service
 can instead expose an application contract through [NAP-CVM](https://github.com/napplet/naps/pull/31).
-Service checkout, payments, tool execution, embeddings, audio and video generation
-are outside this proposal.
+Service checkout, payments, embeddings, audio and video generation are outside
+this proposal. Tool **calls and results** are part of the wire so napplets and
+runtimes can represent agentic turns honestly. The runtime MUST NOT execute a
+provider-returned tool call through this domain; execution belongs to the
+napplet or to NAP-CVM.
 
 ## API Surface
 
@@ -58,6 +61,7 @@ encodings MUST produce `invalid-request`. Optional fields may be omitted.
 | `model` | no | non-empty text | Exact provider model identifier; omission allows user choice |
 | `images` | no | boolean | `true` requires image input; omitted or `false` imposes no requirement |
 | `json` | no | boolean | `true` requires JSON-object output; omitted or `false` imposes no requirement |
+| `tools` | no | boolean | `true` requires tool-calling support; omitted or `false` imposes no requirement |
 
 **Model**
 
@@ -69,6 +73,7 @@ encodings MUST produce `invalid-request`. Optional fields may be omitted.
 | `route` | yes | text | Human-readable disclosure route, including intermediaries and destination; never credentials |
 | `images` | yes | boolean | Whether the connection supports image input |
 | `json` | yes | boolean | Whether it supports JSON-object output |
+| `tools` | yes | boolean | Whether it supports tool calling |
 
 The handle is not a URL, credential or transferable capability. The runtime MUST
 NOT accept a napplet-supplied provider URL, key or identity as selection authority.
@@ -82,29 +87,62 @@ within a conversation; unsupported combinations must be rejected explicitly.
 | `handle` | yes | non-empty text | A live Model handle |
 | `messages` | yes | non-empty list of Message | Ordered conversation |
 | `format` | no | `text` or `json` | Defaults to `text`; `json` requires an object, not an array or scalar |
+| `maxTokens` | no | non-negative integer | Output token limit; runtime policy MAY cap it |
+| `temperature` | no | number | Sampling temperature; unsupported values MUST produce `unsupported` |
+| `samplingParams` | no | map of text to any | Additional provider-neutral sampling parameters; the runtime MUST drop unsupported keys and MUST NOT fail the request for them |
+| `tools` | no | list of Tool | Tools the model may call |
+| `toolChoice` | no | `auto`, `none`, `required` or ToolChoice | How the model selects tools; defaults to `auto` when tools are present |
+
+**Tool**
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `name` | yes | non-empty text | Tool name |
+| `description` | no | text | What the tool does |
+| `parameters` | no | map of text to any | JSON Schema for the tool's arguments |
+
+**ToolChoice**
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `type` | yes | `tool` | Forces one named tool |
+| `name` | yes | non-empty text | Tool name to force |
 
 **Message**
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `role` | yes | `system`, `user` or `assistant` | Role of this message |
+| `role` | yes | `system`, `user`, `assistant` or `toolResult` | Role of this message |
 | `content` | yes | non-empty list of Part | Ordered content parts |
+| `toolCallId` | for `toolResult` only | non-empty text | Matches the `toolCall` part this message answers |
+| `toolName` | for `toolResult` only | non-empty text | Name of the tool that produced the result |
+| `isError` | no | boolean | For `toolResult`: whether the tool failed; defaults to `false` |
+
+A `toolResult` message MUST answer exactly one preceding `toolCall` part. An
+assistant message MAY carry multiple `toolCall` parts; the next request MUST
+answer every one of them with a matching `toolResult`, in any order. A provider
+that does not return a call id (for example Gemini) forces the runtime to
+synthesize a stable id; the same id MUST appear on the matching `toolResult`.
+`toolCallId` values are scoped to the conversation and are not credentials.
 
 **Part** is one of these records:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `type` | yes | `text` or `image` | Selects the record variant |
-| `text` | for `text` only | text | Text content |
+| `type` | yes | `text`, `image`, `thinking` or `toolCall` | Selects the record variant |
+| `text` | for `text`/`thinking` only | text | Text content |
 | `mimeType` | for `image` only | `image/png`, `image/jpeg` or `image/webp` | Declared image encoding |
 | `data` | for `image` only | non-empty text | Standard padded base64 bytes, no whitespace, data-URI prefix or remote URL |
+| `toolCallId` | for `toolCall` only | non-empty text | Stable id matching the later `toolResult` |
+| `name` | for `toolCall` only | non-empty text | Tool name |
+| `arguments` | for `toolCall` only | map of text to any | Tool arguments as JSON |
 
 **Generation**
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `text` | yes | text | Complete accumulated output, including any streamed portion |
-| `finish` | yes | `stop`, `length` or `refusal` | Normal completion, output limit reached, or provider refusal |
+| `content` | yes | non-empty list of Part | Complete accumulated output, including text, thinking and tool-call parts |
+| `finish` | yes | `stop`, `length`, `refusal` or `toolUse` | Normal completion, output limit reached, provider refusal, or a tool call |
 | `usage` | no | Usage | Provider-reported token counts, when available |
 
 **Usage**
@@ -113,12 +151,17 @@ within a conversation; unsupported combinations must be rejected explicitly.
 |-------|----------|------|-------|
 | `inputTokens` | yes | non-negative integer | Reported input tokens |
 | `outputTokens` | yes | non-negative integer | Reported output tokens |
+| `cacheReadTokens` | no | non-negative integer | Tokens read from a provider cache |
+| `cacheWriteTokens` | no | non-negative integer | Tokens written to a provider cache |
+| `reasoningTokens` | no | non-negative integer | Tokens attributed to reasoning |
 
-Only `finish: "stop"` indicates normal completion. `length` and `refusal` may carry
-partial or empty text; a napplet MUST NOT present them as completed output. For
-`format: "json"`, a `stop` result MUST parse as a JSON object. This says nothing
-about its application schema, factual accuracy or suitability. Napplets remain
-responsible for those checks. Usage is not a price or settlement receipt.
+Only `finish: "stop"` indicates normal completion. `length`, `refusal` and
+`toolUse` may carry partial or empty content; a napplet MUST NOT present them as
+completed output. A `toolUse` result MUST contain at least one `toolCall` part.
+For `format: "json"`, a `stop` result MUST parse as a JSON object. This says
+nothing about its application schema, factual accuracy or suitability. Napplets
+remain responsible for those checks. Usage is not a price or settlement receipt;
+token counts, including cache and reasoning counts, do not imply a cost.
 
 **Delta**
 
@@ -126,7 +169,9 @@ responsible for those checks. Usage is not a price or settlement receipt.
 |-------|----------|------|-------|
 | `requestId` | yes | non-empty text | The originating generation's `id` |
 | `sequence` | yes | non-negative integer | Contiguous sequence starting at zero for this generation |
-| `text` | yes | text | Text to append to the provisional display |
+| `block` | yes | `text`, `thinking` or `toolcall` | Kind of content block this delta belongs to |
+| `blockIndex` | yes | non-negative integer | Zero-based index of the block within the generation's content |
+| `text` | no | text | Delta text for `text`/`thinking`; partial JSON for `toolcall` arguments. Absent when the delta only marks a block boundary |
 
 ## Wire Protocol
 
@@ -156,10 +201,11 @@ not an exactly-once or retry guarantee.
 
 Deltas are optional: a runtime MAY buffer the complete output and send no deltas.
 When sent, they MUST be ordered and routed only to the requesting endpoint. The
-terminal result is authoritative; the caller replaces provisional text with its
-`text`, rather than appending it. No deltas may follow the terminal result. On an
-error, any provisional text remains incomplete. Slow consumers may receive fewer,
-larger deltas; the runtime MUST NOT silently drop text between sequence numbers.
+terminal result is authoritative; the caller replaces provisional content with
+the result's `content`, rather than appending it. No deltas may follow the
+terminal result. On an error, any provisional content remains incomplete. Slow
+consumers may receive fewer, larger deltas; the runtime MUST NOT silently drop
+text or arguments between sequence numbers.
 
 ### Cancellation and deadlines
 
@@ -196,9 +242,26 @@ Choose and inspect a model:
 Generate, optionally stream, then finish (a buffered runtime omits the delta):
 
 ```json
-{"type":"llm.generate","id":"g1","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"Return a JSON object with a greeting."}]}],"format":"json"}}
-{"type":"llm.delta","requestId":"g1","sequence":0,"text":"{\"greeting\":"}
-{"type":"llm.generate.result","id":"g1","result":{"text":"{\"greeting\":\"Hello\"}","finish":"stop","usage":{"inputTokens":12,"outputTokens":7}}}
+{"type":"llm.generate","id":"g1","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"Return a JSON object with a greeting."}]}],"format":"json","maxTokens":128,"temperature":0.7}}
+{"type":"llm.delta","requestId":"g1","sequence":0,"block":"text","blockIndex":0,"text":"{\"greeting\":"}
+{"type":"llm.generate.result","id":"g1","result":{"content":[{"type":"text","text":"{\"greeting\":\"Hello\"}"}],"finish":"stop","usage":{"inputTokens":12,"outputTokens":7}}}
+```
+
+Call a tool, answer it, then continue. The assistant turn carries a `toolCall`
+part; the next request answers it with a `toolResult` message. Multiple parallel
+calls are allowed and MUST each be answered:
+
+```json
+{"type":"llm.generate","id":"g2","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"What is the weather in Berlin?"}]}],"tools":[{"name":"get_weather","description":"Look up current weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"toolChoice":"auto"}}
+{"type":"llm.generate.result","id":"g2","result":{"content":[{"type":"toolCall","toolCallId":"call_1","name":"get_weather","arguments":{"city":"Berlin"}}],"finish":"toolUse","usage":{"inputTokens":31,"outputTokens":12}}}
+{"type":"llm.generate","id":"g3","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"What is the weather in Berlin?"}]},{"role":"assistant","content":[{"type":"toolCall","toolCallId":"call_1","name":"get_weather","arguments":{"city":"Berlin"}}]},{"role":"toolResult","toolCallId":"call_1","toolName":"get_weather","content":[{"type":"text","text":"18°C and clear"}]}],"tools":[{"name":"get_weather","description":"Look up current weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"toolChoice":"auto"}}
+{"type":"llm.generate.result","id":"g3","result":{"content":[{"type":"text","text":"It is 18°C and clear in Berlin."}],"finish":"stop","usage":{"inputTokens":58,"outputTokens":15}}}
+```
+
+Force one named tool with `toolChoice`:
+
+```json
+{"type":"llm.generate","id":"g4","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"Check the weather."}]}],"tools":[{"name":"get_weather","description":"Look up current weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"toolChoice":{"type":"tool","name":"get_weather"}}}
 ```
 
 Cancel a separate active generation, then try again after it has ended:
@@ -214,9 +277,9 @@ Cancel a separate active generation, then try again after it has ended:
 Explicit failure and partial completion:
 
 ```json
-{"type":"llm.generate.result","id":"g3","error":{"code":"unsupported","message":"This connection does not accept image input."}}
-{"type":"llm.generate.result","id":"g4","result":{"text":"Incomplete answer","finish":"length"}}
-{"type":"llm.generate.result","id":"g5","error":{"code":"timeout","message":"Generation deadline reached; provider charges may still apply."}}
+{"type":"llm.generate.result","id":"g5","error":{"code":"unsupported","message":"This connection does not accept image input."}}
+{"type":"llm.generate.result","id":"g6","result":{"content":[{"type":"text","text":"Incomplete answer"}],"finish":"length"}}
+{"type":"llm.generate.result","id":"g7","error":{"code":"timeout","message":"Generation deadline reached; provider charges may still apply."}}
 ```
 
 ### Error Handling
@@ -282,7 +345,7 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 |----|----------|----------------------|
 | LLM-C01 | Select, describe, generate; also omit the optional domain | Matching correlation/results; no handshake dependency; absent-domain caller fallback |
 | LLM-C02 | Malformed record, base64, enum or explicit null | `invalid-request`; no provider generation |
-| LLM-C03 | Unsupported images/JSON/exact model or provider-specific input | Explicit `unsupported`; no silent downgrade or provider generation |
+| LLM-C03 | Unsupported images/JSON/tools/exact model or provider-specific input | Explicit `unsupported`; no silent downgrade or provider generation |
 | LLM-C04 | Decline consent after selecting a valid model | `user-cancelled`; zero provider generations |
 | LLM-C05 | Two endpoints reuse IDs and attempt each other's handles/cancel | Handles rejected; foreign cancellation false; no cross-delivery |
 | LLM-C06 | Duplicate an active generation ID | No second provider generation; explicit failure |
@@ -291,6 +354,9 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 | LLM-C09 | Buffered and streamed responses; cancellation/completion race | Zero-based ordered deltas if any; one terminal result; none after termination |
 | LLM-C10 | Limit/refusal, missing finish marker or invalid JSON-object completion | Partial results remain partial; malformed completion is `provider-error` |
 | LLM-C11 | Provider failure containing input or credentials | Safe typed error; no body, credential or other endpoint data leakage |
+| LLM-C12 | Assistant turn with multiple `toolCall` parts; next request omits one result | Request rejected as `invalid-request`; no provider generation |
+| LLM-C13 | `toolChoice` forcing a named tool; provider ignores it | `provider-error`; no silent substitution or plain-text fallback |
+| LLM-C14 | Provider returns no tool call id (Gemini-style) | Runtime synthesizes a stable id; matching `toolResult` round-trips |
 
 ## Implementations
 
@@ -304,3 +370,4 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 ## Changelog
 
 - `4bb12f3` - Define user-selected inference, endpoint-scoped selections, disclosure consent, generation/cancellation lifecycles, typed errors and conformance cases; add the draft registry entry and reference links.
+- `<short-sha>` - Widen the wire subset to the common denominator of chat-completions and messages APIs: generation controls (`maxTokens`, `temperature`, `samplingParams`), tool definitions and choice, `thinking` and `toolCall` parts, the `toolResult` role with an error flag, block-aware deltas, cache and reasoning token counts without cost, and `Generation.content` as a part list; answer parallel-tool-call and provider-synthesized-id questions inline.
