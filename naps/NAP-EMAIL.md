@@ -655,3 +655,4 @@ establish support for this draft.
 
 - `51bce7f` - Defined shell-configured SMTP/POP3 accounts, scoped inbox and MIME access, structured submission, durable retry outcomes, and email authority boundaries.
 - `2ee6cd8` - Added incoming reply metadata, account-scoped sent history with separate grants, filtered mailbox queries, and authorized cross-napplet locator resolution.
+- `85f76e1` - Declared optional contacts integration for recipient selection and separately granted browsing, with explicit address mapping, independent authority, and manual-entry fallback.
