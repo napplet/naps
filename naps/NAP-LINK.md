@@ -35,9 +35,10 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `status` | `opened` or `denied` | yes | Whether the shell accepted or refused the navigation request. |
+| `status` | `"opened"` or `"denied"` | yes | Whether the shell accepted or refused the navigation request. |
+| `error` | `text` | no | Reason when `status` is `"denied"`; same value as the wire field; absent when `status` is `"opened"`. |
 
-**`open(url, options?)`** -- Requests that the shell open `url` for the user. `url` MUST be an absolute URL. `label` is optional human-readable text for the shell prompt; it is not trusted policy input. Resolves with `"opened"` when the shell accepted the request and handed it to the user agent, or `"denied"` when user or shell policy refused it.
+**`open(url, options?)`** -- Requests that the shell open `url` for the user. `url` MUST be an absolute URL. `label` is optional human-readable text for the shell prompt; it is not trusted policy input. Resolves with a `LinkOpenResult`: `status` is `"opened"` when the shell accepted the request and handed it to the user agent, or `"denied"` when user or shell policy refused it; `error`, when present on the wire, is passed through unchanged.
 
 ## Wire Protocol
 
