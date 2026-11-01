@@ -16,11 +16,12 @@ described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html).
 ## Description
 
 NAP-EMAIL lets napplets read email and submit messages using accounts configured
-in the shell. The napplet designs the inbox, reader, and composer. The shell
-mediates account selection, disclosure, and sending authority. The runtime holds
+in the shell. The napplet designs the inbox, reader, composer, and thread view.
+The shell mediates account selection, disclosure, and sending authority. The runtime holds
 credentials, retrieves mail through POP3 (Post Office Protocol version 3), and
 submits mail through SMTP (Simple Mail Transfer Protocol). The user can grant a
-reader access to incoming mail and a separate composer permission to send.
+reader access to incoming mail, a thread view access to retained incoming and
+outgoing mail, and a separate composer permission to send.
 
 ### Boundary
 
@@ -32,15 +33,17 @@ seam. An email address, account handle, or declared domain grants no authority.
 |---------|-------|
 | Account creation, removal, server names, ports, TLS and authentication settings | User, through trusted shell UI |
 | Passwords, application passwords, tokens, credential refresh, server connections | Runtime |
-| Account and sender selection, read grants, send grants, recipient restrictions and confirmation | Shell, under user control |
-| Retrieval, MIME parsing and construction, message storage, submission records | Runtime |
+| Account and sender selection, inbox and sent-history read grants, send grants, recipient restrictions and confirmation | Shell, under user control |
+| Retrieval, MIME parsing and construction, shared account message storage, private submission records | Runtime |
 | Inbox presentation, composing, reply and threading choices, local drafts | Napplet |
 | Network endpoints, protocol commands, server sessions and message-number mapping | Runtime internals |
 
 SMTP and POP3 are separate account services. An account MAY have either or both.
 SMTP supplies no inbox; POP3 supplies no submission service, folders, synchronized
-read flags, or sent-mail archive. This draft exposes a runtime-held inbox and
-explicit submission records. It does not promise those server features.
+read flags, or sent-mail archive. This draft exposes a runtime-held inbox,
+account-level sent history, and private submission records. Sent history records
+submissions made through this runtime; it does not discover messages sent by
+other clients or create a server-side sent folder.
 
 Remote deletion, mailbox administration, raw SMTP/POP3 commands, arbitrary
 headers, and account-configuration APIs are outside this surface. Email reads
@@ -56,15 +59,16 @@ parts, alternatives, and attachments.
 
 ## API Surface
 
-A runtime exposing `email` MUST implement every operation below. The `receive`
-and `send` fields describe the services exposed to the caller for each account;
-they do not override current policy. Availability is projection-defined.
+A runtime exposing `email` MUST implement every operation below. The `receive`,
+`readSent`, and `send` fields describe access exposed to the caller for each
+account; they do not override current policy. Availability is projection-defined.
 Manifests declare the bare domain `email`; declarations are not grants.
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
 | `accounts` | none | list of `EmailAccount` | `email.accounts` / `email.accounts.result` |
-| `list` | `account` (text), optional `cursor` (text), optional `limit` (integer) | `EmailPage` | `email.list` / `email.list.result` |
+| `list` | `account` (text), optional `mailbox` (text), optional `messageId` (text), optional `cursor` (text), optional `limit` (integer) | `EmailPage` | `email.list` / `email.list.result` |
+| `resolve` | `locator` (text) | `EmailLocation` | `email.resolve` / `email.resolve.result` |
 | `get` | `account` (text), `message` (text) | `EmailMessage` | `email.get` / `email.get.result` |
 | `readPart` | `account` (text), `message` (text), `part` (text), `offset` (integer), `length` (integer) | `EmailBytes` | `email.readPart` / `email.readPart.result` |
 | `submit` | `account` (text), `submissionId` (text), `draft` (`EmailDraft`) | `EmailSubmission` | `email.submit` / `email.submit.result` |
@@ -73,6 +77,8 @@ Manifests declare the bare domain `email`; declarations are not grants.
 `accounts` returns only accounts the shell has authorized this napplet to
 discover. An empty list means none are exposed; it does not reveal whether other
 accounts exist. Account setup and grants occur through the shell's own UI.
+Every operation taking an account handle requires current discovery authorization
+as well as the operation's own grant.
 The shell MAY offer account selection or permission confirmation when handling
 a request. The napplet cannot preselect an undisclosed account by address.
 
@@ -81,6 +87,7 @@ a request. The napplet cannot preselect an undisclosed account by address.
 | Value | Definition |
 |-------|------------|
 | Handles | Nonempty opaque text issued by the runtime. Account, message, part and cursor handles are not URLs, paths, protocol commands, or permission tokens. |
+| Locator | Nonempty opaque text identifying one immutable stored message entry within a shell user's account. Stable across authorized napplets and endpoint reloads in that runtime; not portable to another runtime or shell user. It conveys no authority. |
 | `submissionId` | Exactly 32 lowercase hexadecimal characters, generated randomly by the napplet for each deliberate new submission. It is separate from request correlation `id` and the email `Message-ID` header. |
 | Timestamp | Integer seconds since the Unix epoch, UTC. |
 | Encoded bytes | Canonical padded base64 with no whitespace. Byte counts and offsets refer to decoded bytes. |
@@ -98,16 +105,20 @@ fields in later revisions; napplets MUST ignore unrecognized result fields.
 | `account` | yes | text | Account handle scoped to the shell user and verified napplet identity. Stable across endpoint reloads while the account and identity remain the same. |
 | `label` | yes | text | Shell-selected display label; may be empty. No server or login details are required. |
 | `receive` | yes | boolean | Caller may request the runtime-held inbox for this account. |
+| `readSent` | yes | boolean | Caller may read account-level sent history, including submissions by other napplets. |
 | `send` | yes | boolean | Caller may request submission through this account. |
 | `senders` | yes | list of `EmailAddress` | Approved From identities. Nonempty when `send` is true; empty otherwise. |
 | `maxPageSize` | yes | integer | Positive maximum `list.limit`; omission of `limit` uses this value. |
 | `maxReadBytes` | yes | integer | Positive maximum `readPart.length`. |
 | `maxContentBytes` | yes | integer | Positive maximum sum of UTF-8 body bytes (`text` plus `html`, if present) and decoded attachment bytes per submission. |
 
-`receive` and `send` reflect both configured services and exposed grants. A
-send-only grant does not disclose inbox metadata. A read grant does not imply a
-send grant. Limits are runtime-selected and MAY change; exceeding a current
-limit returns `too-large`. Additional finite resource and rate limits MAY apply.
+Inbox reading, sent-history reading, and sending are independent grants.
+`receive` and `send` reflect configured services and exposed grants; `readSent`
+exposes retained local history independently of current SMTP configuration.
+A send-only grant does not disclose inbox or other napplets' sent messages.
+A read grant does not imply a send grant. Limits are runtime-selected and MAY
+change; exceeding a current limit returns `too-large`. Additional finite
+resource and rate limits MAY apply.
 
 ### EmailAddress
 
@@ -127,17 +138,31 @@ validation; it MUST NOT concatenate napplet text into protocol commands.
 |-------|----------|------|-------|
 | `messages` | yes | list of `EmailSummary` | At most `limit` items. Empty when the snapshot has no remaining items. |
 | `next` | yes | text or null | Opaque cursor for the next page, or `null` at the end. |
-| `syncedAt` | yes | integer or null | Completion time of the last successful POP3 retrieval reflected in the snapshot; `null` if none. |
+| `syncedAt` | yes | integer or null | Completion time of the last successful POP3 retrieval reflected in an inbox or combined snapshot; `null` if none or for a sent-only snapshot. |
 
-`list` reads the runtime-held inbox. The runtime schedules POP3 retrieval under
-shell policy; calling `list` does not force a network poll. A first page captures
-an immutable metadata snapshot, ordered by runtime ingestion time descending,
+`list.mailbox` is `"inbox"`, `"sent"`, or `"all"`; omission on a first page means
+`"inbox"`. Inbox access requires `receive`; sent access requires `readSent`;
+`"all"` requires both. The runtime MUST reject an unauthorized requested mailbox
+with `forbidden`, rather than silently return a subset. Sent history is shared
+at account scope under that grant, not partitioned by the submitting napplet.
+
+Optional `messageId` selects every retained entry whose parsed `messageId`
+matches exactly. It MUST be one valid RFC 5322 Message-ID including angle
+brackets. Comparison is case-sensitive, with no normalization inside the angle
+brackets. No match returns an empty page. Duplicate Message-IDs MUST NOT cause
+the runtime to merge entries or choose one as authoritative.
+
+The runtime schedules POP3 retrieval under shell policy; calling `list` does not
+force a network poll. A first page captures an immutable metadata snapshot,
+ordered by runtime ingestion time descending,
 then message handle in ascending Unicode code-point order. Subsequent pages
-preserve that order and `syncedAt`. New mail appears in a new first-page query.
+preserve that order and `syncedAt`. New received or outgoing entries appear in
+a new first-page query.
 Expired cursors return `stale`; callers restart without a cursor. A cursor is
-bound to its caller scope, account, and original limit; a supplied continuation
-limit MUST equal the original limit, or returns `invalid-request`. Omission on
-a continuation uses the original limit.
+bound to its caller scope, account, mailbox, Message-ID filter, and original
+limit. Explicit continuation parameters MUST equal their original values or
+return `invalid-request`; omitted parameters inherit those values. The runtime
+MUST recheck the original mailbox grants on every continuation.
 `limit` MUST be positive; a value above the current `maxPageSize` returns
 `too-large`. A reduced limit can require restarting pagination.
 
@@ -148,14 +173,19 @@ a continuation uses the original limit.
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `message` | yes | text | Opaque runtime message handle; scoped to the account. |
-| `messageId` | no | text | Parsed Message-ID including angle brackets; omitted if absent or invalid. Untrusted correspondence metadata, not a lookup key. |
+| `locator` | yes | text | Stable locator for this stored entry. Distinct from correspondence Message-ID. |
+| `mailbox` | yes | "inbox" or "sent" | Store containing this entry. An incoming copy and an outgoing copy may be separate entries. |
+| `messageId` | no | text | Parsed Message-ID including angle brackets; omitted if absent or invalid. Untrusted correspondence metadata, not a unique runtime handle. |
+| `inReplyTo` | yes | list of text | Parsed In-Reply-To Message-IDs, in header order; empty if absent or invalid. |
+| `references` | yes | list of text | Parsed References Message-IDs, in header order; empty if absent or invalid. |
 | `from` | yes | list of `EmailAddress` | Parsed From mailboxes; empty if unavailable or invalid. |
 | `replyTo` | yes | list of `EmailAddress` | Parsed Reply-To mailboxes; empty if unavailable or invalid. A suggestion, not send authority. |
 | `to` | yes | list of `EmailAddress` | Parsed To mailboxes; empty if unavailable or invalid. |
 | `cc` | yes | list of `EmailAddress` | Parsed Cc mailboxes; empty if unavailable or invalid. |
 | `subject` | yes | text | Decoded subject; empty if unavailable. |
 | `date` | yes | integer or null | Parsed message Date; `null` if unavailable or invalid. Not trusted receipt time. |
-| `ingestedAt` | yes | integer | Time the runtime first stored this message. |
+| `ingestedAt` | yes | integer | Time this entry first entered the inbox or sent history. |
+| `submissionState` | only for sent entries | "accepted" or "uncertain" | Outcome of the originating submission. Omitted for inbox entries. |
 | `parts` | only on EmailMessage | list of `EmailPart` | Non-multipart MIME entities in document order, including body alternatives and attachments. Multipart containers are traversed recursively; encapsulated messages remain opaque `message/rfc822` parts. |
 
 Header lists preserve mailbox order; groups in received address headers are
@@ -164,6 +194,9 @@ specified above. Header unfolding and encoded-word decoding follow
 [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322.html) and
 [RFC 2047](https://www.rfc-editor.org/rfc/rfc2047.html). Content-Type defaults
 follow MIME; `charset` preserves a declared charset rather than guessing one.
+Message-ID values retain the angle-bracketed identifier and omit surrounding
+comments or whitespace. Reply identifier lists preserve order and repetitions;
+the runtime MUST NOT invent identifiers or rewrite them into runtime handles.
 
 The runtime MUST preserve a handle's association with immutable message content
 until that content is removed. Removed content returns `not-found`; a handle
@@ -172,6 +205,44 @@ email Message-ID values MUST NOT serve as message handles. If persistent POP3
 identifiers are unavailable or unreliable, the runtime MUST preserve this
 association using its local store; it MAY ingest duplicates but MUST NOT return
 different content under an existing handle. See [RFC 1939](https://www.rfc-editor.org/rfc/rfc1939.html).
+
+### EmailLocation and cross-napplet reads
+
+`resolve` maps a locator to the caller's own account and message handles.
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `account` | yes | text | Caller-scoped account handle, as returned by `accounts`. |
+| `message` | yes | text | Caller-scoped message handle for `get` and `readPart`. |
+| `mailbox` | yes | "inbox" or "sent" | Determines the required read grant. |
+
+The runtime MUST require the receiver's own account-discovery and corresponding
+mailbox read grants. Missing, removed, wrong-user, and unauthorized locators
+all return `not-found` without account or message details. A locator MUST NOT
+grant access, transfer the sender's grants, or select another shell user.
+`get` and `readPart` MUST independently recheck the resolved mailbox grant.
+Locators MUST NOT be reassigned after retention removes an entry. A locator
+returned in a submission receipt does not give a send-only composer read access.
+
+### Thread views and composition
+
+An inbox napplet can list messages; a reader can resolve a selected locator and
+read its parts; a composer can submit a reply; a thread napplet can page through
+`mailbox: "all"` and group retained entries using `messageId`, `inReplyTo`, and
+`references`. Exact Message-ID filtering supports fetching retained ancestors.
+The runtime supplies message facts; grouping, ordering within a conversation,
+reply choices, and treatment of missing parents remain napplet decisions.
+
+The runtime MUST NOT treat a reply identifier as proof of sender identity,
+conversation membership, permission, or uniqueness. Thread views must tolerate
+forged identifiers, duplicates, cycles, and missing or pruned messages. This
+surface promises access to authorized retained entries, not a complete history
+of all mail exchanged through the account.
+
+Napplets MAY exchange locators through separately agreed conventions. Such
+message semantics are outside this NAP; a locator is a runtime-provided data
+reference, not a handler choice or an authorization grant. Account and message
+handles scoped to one napplet MUST NOT be used as another napplet's handles.
 
 ### EmailPart and EmailBytes
 
@@ -250,6 +321,7 @@ received attachment requires independently authorized reads and a new submission
 | `submissionId` | yes | text | Caller-supplied submission identifier. |
 | `state` | yes | "pending" or "accepted" or "failed" or "uncertain" | Defined below. |
 | `messageId` | yes | text | Runtime-generated RFC 5322 Message-ID, fixed when the record is created. |
+| `locator` | only when accepted or uncertain | text | Locator of the corresponding retained sent-history entry. It may later expire independently of this receipt. |
 | `failure` | only when failed | `EmailError` | Definitive reason the message was not accepted for submission. |
 
 | State | Meaning |
@@ -264,6 +336,22 @@ before returning success from `submit`. It MAY return `pending` or a state
 already reached. `submission` reads the current record without causing an
 attempt. `pending` MUST eventually become a terminal state under a finite
 runtime-selected deadline. Terminal states MUST NOT change.
+
+Before an SMTP attempt, the runtime MUST durably retain the frozen message and
+reserve space for its sent-history entry. Failure to reserve space MUST prevent
+the attempt and produce `failed` with `busy`. On `accepted` or `uncertain`, the
+runtime MUST atomically persist the terminal outcome and one account-level sent
+entry before exposing that outcome. The entry contains the constructed message,
+its parts, reply metadata, and `submissionState`; its Message-ID equals the
+receipt's `messageId`. An uncertain entry MUST NOT be presented as proof of
+successful submission. A repeated `submit` MUST NOT create another history entry.
+
+Pending and failed submissions MUST NOT appear in sent history. Bcc envelope
+recipients, private submission identifiers, and submitting-napplet identity MUST
+NOT be added to the shared message metadata or MIME parts. History entry
+retention MAY later remove its content independently of receipt retention;
+its locator then returns `not-found`. Archiving never creates another SMTP
+attempt or marks an incoming copy as sent.
 
 Submission identity is scoped to shell user, verified napplet identity, and
 account. Repeating `submit` with the same `submissionId` and same draft MUST
@@ -305,8 +393,10 @@ contract; no host transport is required here.
 |------|-----------|----------------|
 | `email.accounts` | napplet → runtime | `id` |
 | `email.accounts.result` | runtime → napplet | `id`, `value` or `error` |
-| `email.list` | napplet → runtime | `id`, `account`, `cursor?`, `limit?` |
+| `email.list` | napplet → runtime | `id`, `account`, `mailbox?`, `messageId?`, `cursor?`, `limit?` |
 | `email.list.result` | runtime → napplet | `id`, `value` or `error` |
+| `email.resolve` | napplet → runtime | `id`, `locator` |
+| `email.resolve.result` | runtime → napplet | `id`, `value` or `error` |
 | `email.get` | napplet → runtime | `id`, `account`, `message` |
 | `email.get.result` | runtime → napplet | `id`, `value` or `error` |
 | `email.readPart` | napplet → runtime | `id`, `account`, `message`, `part`, `offset`, `length` |
@@ -322,7 +412,7 @@ runtime MUST return exactly one corresponding result with the same `id` to
 that endpoint. Success contains `value` of the API row's result type and no
 `error`; failure contains `error` and no `value`. Correlation is endpoint-scoped.
 There are no unsolicited deliveries or wire subscriptions; callers poll inbox
-snapshots and submission records subject to shell rate limits.
+and sent-history snapshots and submission records subject to shell rate limits.
 
 ### Error Handling
 
@@ -338,7 +428,7 @@ snapshots and submission records subject to shell rate limits.
 | `invalid-request` | Invalid schema, field, encoding, syntax, or range. |
 | `forbidden` | Current policy denies account discovery or the requested account, data, sender, or recipients. |
 | `unsupported` | Account does not expose the required configured service. |
-| `not-found` | Message, part, or submission is absent in the caller's authorized scope. |
+| `not-found` | Message, part, locator, or submission is absent in the caller's authorized scope. |
 | `stale` | Cursor snapshot expired. |
 | `expired` | Submission details expired; its identifier remains reserved. |
 | `conflict` | Existing submission identifier was used with a different draft. |
@@ -355,6 +445,9 @@ indistinguishable from absent identifiers (`not-found`). Policy checks precede
 existence disclosure. A missing service returns `unsupported` only after account
 access is established. An invalid range on an authorized existing part returns
 `invalid-request`. Rate and size errors require no disclosure of hidden data.
+Locator resolution follows its indistinguishable `not-found` rule even when
+the receiver has no grant for the locator's account. Message-ID filtering does
+not widen mailbox grants, and an empty match reveals nothing about other stores.
 
 After admission, an SMTP failure is a successful API result carrying a `failed`
 submission record. API failure MUST NOT report a definitive no-send outcome for
@@ -369,16 +462,16 @@ request can still be admitted; repeating the identical request remains safe.
 
 ```text
 → { "type": "email.accounts", "id": "a1" }
-← { "type": "email.accounts.result", "id": "a1", "value": [{ "account": "a1", "label": "Personal", "receive": true, "send": true, "senders": [{ "address": "bob@example.net" }], "maxPageSize": 100, "maxReadBytes": 65536, "maxContentBytes": 10485760 }] }
+← { "type": "email.accounts.result", "id": "a1", "value": [{ "account": "a1", "label": "Personal", "receive": true, "send": true, "senders": [{ "address": "bob@example.net" }], "maxPageSize": 100, "maxReadBytes": 65536, "maxContentBytes": 10485760, "readSent": true }] }
 ```
 
 **Read an authorized account's inbox and a body part:**
 
 ```text
 → { "type": "email.list", "id": "l1", "account": "a1", "limit": 10 }
-← { "type": "email.list.result", "id": "l1", "value": { "messages": [{ "message": "m1", "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200 }], "next": null, "syncedAt": 1793491200 } }
+← { "type": "email.list.result", "id": "l1", "value": { "messages": [{ "message": "m1", "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200, "locator": "loc-in-1", "mailbox": "inbox", "messageId": "<parent@example.org>", "inReplyTo": [], "references": [] }], "next": null, "syncedAt": 1793491200 } }
 → { "type": "email.get", "id": "g1", "account": "a1", "message": "m1" }
-← { "type": "email.get.result", "id": "g1", "value": { "message": "m1", "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200, "parts": [{ "part": "p1", "mediaType": "text/plain", "charset": "utf-8", "disposition": "inline", "size": 5 }] } }
+← { "type": "email.get.result", "id": "g1", "value": { "message": "m1", "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200, "parts": [{ "part": "p1", "mediaType": "text/plain", "charset": "utf-8", "disposition": "inline", "size": 5 }], "locator": "loc-in-1", "mailbox": "inbox", "messageId": "<parent@example.org>", "inReplyTo": [], "references": [] } }
 → { "type": "email.readPart", "id": "r1", "account": "a1", "message": "m1", "part": "p1", "offset": 0, "length": 5 }
 ← { "type": "email.readPart.result", "id": "r1", "value": { "offset": 0, "data": "SGVsbG8=", "eof": true } }
 ```
@@ -395,12 +488,12 @@ request can still be admitted; repeating the identical request remains safe.
 **Admission, retry after a lost reply, and uncertain SMTP completion:**
 
 ```text
-→ { "type": "email.submit", "id": "s1", "account": "a1", "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "draft": { "from": "bob@example.net", "to": [{ "address": "alice@example.org" }], "subject": "Hello", "text": "Hello" } }
+→ { "type": "email.submit", "id": "s1", "account": "a1", "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "draft": { "from": "bob@example.net", "to": [{ "address": "alice@example.org" }], "subject": "Re: Hello", "text": "Hello", "inReplyTo": "<parent@example.org>", "references": ["<parent@example.org>"] } }
 ← { "type": "email.submit.result", "id": "s1", "value": { "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "state": "pending", "messageId": "<s1@mail.example.net>" } }
-→ { "type": "email.submit", "id": "s2", "account": "a1", "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "draft": { "from": "bob@example.net", "to": [{ "address": "alice@example.org" }], "subject": "Hello", "text": "Hello" } }
+→ { "type": "email.submit", "id": "s2", "account": "a1", "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "draft": { "from": "bob@example.net", "to": [{ "address": "alice@example.org" }], "subject": "Re: Hello", "text": "Hello", "inReplyTo": "<parent@example.org>", "references": ["<parent@example.org>"] } }
 ← { "type": "email.submit.result", "id": "s2", "value": { "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "state": "pending", "messageId": "<s1@mail.example.net>" } }
 → { "type": "email.submission", "id": "s3", "account": "a1", "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647" }
-← { "type": "email.submission.result", "id": "s3", "value": { "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "state": "uncertain", "messageId": "<s1@mail.example.net>" } }
+← { "type": "email.submission.result", "id": "s3", "value": { "submissionId": "3ca28f17da2648b3a0ad1e0281c5f647", "state": "uncertain", "messageId": "<s1@mail.example.net>", "locator": "loc-out-1" } }
 ```
 
 Both submits refer to one durable record and at most one SMTP attempt. With a
@@ -411,6 +504,41 @@ endpoint of the same verified napplet identity can query it. A different napplet
 using the same correlation id receives only its own result, and cannot inspect
 this record by copying these handles.
 
+**Another napplet lists the two-sided retained conversation:**
+
+The thread napplet has its own account handle `thread-a1` and both mailbox read
+grants. The outgoing entry comes from the composer above; its uncertainty is
+preserved. The complete snapshot can be paginated to discover descendants;
+an exact `messageId` filter can retrieve particular referenced ancestors.
+
+```text
+→ { "type": "email.list", "id": "t1", "account": "thread-a1", "mailbox": "all", "limit": 10 }
+← { "type": "email.list.result", "id": "t1", "value": { "messages": [{ "message": "thread-out-1", "locator": "loc-out-1", "mailbox": "sent", "messageId": "<s1@mail.example.net>", "inReplyTo": ["<parent@example.org>"], "references": ["<parent@example.org>"], "from": [{ "address": "bob@example.net" }], "replyTo": [], "to": [{ "address": "alice@example.org" }], "cc": [], "subject": "Re: Hello", "date": 1793491260, "ingestedAt": 1793491260, "submissionState": "uncertain" }, { "message": "thread-in-1", "locator": "loc-in-1", "mailbox": "inbox", "messageId": "<parent@example.org>", "inReplyTo": [], "references": [], "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200 }], "next": null, "syncedAt": 1793491200 } }
+→ { "type": "email.list", "id": "t2", "account": "thread-a1", "mailbox": "all", "messageId": "<parent@example.org>" }
+← { "type": "email.list.result", "id": "t2", "value": { "messages": [{ "message": "thread-in-1", "locator": "loc-in-1", "mailbox": "inbox", "messageId": "<parent@example.org>", "inReplyTo": [], "references": [], "from": [{ "address": "alice@example.org" }], "replyTo": [], "to": [{ "address": "bob@example.net" }], "cc": [], "subject": "Hello", "date": null, "ingestedAt": 1793491200 }], "next": null, "syncedAt": 1793491200 } }
+```
+
+**Resolve a handoff using the receiving reader's own grants:**
+
+A separately authorized reader receives `loc-out-1`, not the composer's private
+account handle or submission identifier. Its handles can differ from the thread
+napplet's handles while identifying the same stored entry.
+
+```text
+→ { "type": "email.resolve", "id": "h1", "locator": "loc-out-1" }
+← { "type": "email.resolve.result", "id": "h1", "value": { "account": "reader-a1", "message": "reader-out-1", "mailbox": "sent" } }
+→ { "type": "email.get", "id": "h2", "account": "reader-a1", "message": "reader-out-1" }
+← { "type": "email.get.result", "id": "h2", "value": { "message": "reader-out-1", "locator": "loc-out-1", "mailbox": "sent", "messageId": "<s1@mail.example.net>", "inReplyTo": ["<parent@example.org>"], "references": ["<parent@example.org>"], "from": [{ "address": "bob@example.net" }], "replyTo": [], "to": [{ "address": "alice@example.org" }], "cc": [], "subject": "Re: Hello", "date": 1793491260, "ingestedAt": 1793491260, "submissionState": "uncertain", "parts": [{ "part": "reader-p1", "mediaType": "text/plain", "charset": "utf-8", "disposition": "inline", "size": 5 }] } }
+```
+
+A napplet without the account's sent-history grant receives the same result as
+for a missing locator. The submitting composer's send grant cannot be reused:
+
+```text
+→ { "type": "email.resolve", "id": "h3", "locator": "loc-out-1" }
+← { "type": "email.resolve.result", "id": "h3", "error": { "code": "not-found", "message": "Message is not available in this scope." } }
+```
+
 ## Shell Behavior
 
 - The shell MUST configure and store accounts outside napplet-controlled UI and
@@ -420,12 +548,18 @@ this record by copying these handles.
 - The runtime MUST derive caller scope from the authenticated endpoint's
   verified manifest and artifact identity, as defined by the projection, plus
   the shell user. A payload's address, pubkey, manifest claim, or handle cannot
-  replace that binding. Grants MUST distinguish account discovery, receiving
-  mail, and sending mail. New artifacts require shell policy evaluation.
-- The shell MUST disclose the scope of a read grant: inbox headers, bodies, and
-  attachments. The runtime MUST enforce read authority on `list`, `get`, and
-  `readPart`, and send authority on `submit` and `submission`. The shell MAY
-  require confirmation for each draft or authorize bounded sending in advance.
+  replace that binding. Grants MUST distinguish account discovery, reading
+  inbox mail, reading sent history, and sending mail. New artifacts require shell
+  policy evaluation.
+- The shell MUST disclose the scope of each read grant: headers, bodies, and
+  attachments in the selected store. Sent-history reading includes mail submitted
+  by all napplets using the account; it excludes private drafts and submission
+  receipts. The shell MUST disclose account-level retention and history sharing
+  when authorizing sending and allow the user to manage retained history.
+  The runtime MUST enforce the appropriate mailbox read authority on `list`,
+  `resolve`, `get`, and `readPart`, and caller-private send authority on `submit`
+  and `submission`. Sending alone MUST NOT authorize sent-history reading.
+  The shell MAY require confirmation for each draft or authorize bounded sending in advance.
   Any confirmation MUST cover the sender, every recipient including Bcc, message
   body alternatives, and attachments of the immutable admitted draft.
 - The runtime MUST recheck policy before an SMTP attempt. Revocation before the
