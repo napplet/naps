@@ -110,3 +110,5 @@ Prompt choices MAY include:
 - `88a3431` - Introduced NAP-LINK as a shell-owned external link opener for sandboxed napplets.
 
 - `b40b51e` - Adopted injected-domain availability and linked the current upstream web binding.
+
+- `59f3090` - Exposed optional denial reasons in the `open` result.
