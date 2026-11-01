@@ -330,3 +330,5 @@ No implementation of this NAP is verified. Existing address books or contact
 pickers do not establish support for this draft.
 
 ## Changelog
+
+- `71903be` - Defined shell contact selection, separately granted source- and kind-scoped browsing, validated endpoints, snapshot queries, and contact disclosure boundaries.
