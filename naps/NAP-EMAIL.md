@@ -11,6 +11,8 @@ described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html).
 
 **NAP ID:** NAP-EMAIL
 **Domain:** `email`
+**Depends:**
+- `contacts` — capability · optional — `contacts.pick` selects recipient addresses; `contacts.query` and `contacts.get` support separately granted contact browsing and autocomplete. Manual recipient entry remains available without this domain.
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.email`; domain presence signals availability. This is projection guidance.
 
 ## Description
@@ -50,9 +52,10 @@ headers, and account-configuration APIs are outside this surface. Email reads
 MUST NOT cause the runtime to delete mail from the POP3 server. Any independent
 shell retention policy requires separate user authorization.
 
-No other NAP domain is required. Per-napplet configuration APIs are not a channel
-for provisioning these accounts or delivering their secrets. This NAP defines
-no cross-napplet convention and changes no projection semantics.
+No other NAP domain is required; contact integration is optional. Per-napplet
+configuration APIs are not a channel for provisioning these accounts or
+delivering their secrets. This NAP defines no cross-napplet convention and
+changes no projection semantics.
 
 MIME means Multipurpose Internet Mail Extensions: the format for email body
 parts, alternatives, and attachments.
@@ -131,6 +134,37 @@ For outbound addresses the baseline is ASCII addr-spec syntax with an ASCII
 domain; internationalized local parts are outside this draft. Display names and
 message text MAY contain Unicode. The runtime MUST perform header encoding and
 validation; it MUST NOT concatenate napplet text into protocol commands.
+
+### Contact selection
+
+A composer MAY integrate the `contacts` domain defined by
+[NAP-CONTACTS](https://github.com/napplet/naps/pull/140). It declares `contacts`
+as optional and checks availability through its projection. `contacts.pick`
+with `kind: "email"` requests trusted shell recipient selection; `multiple: true`
+allows several choices. Selecting contacts does not grant address-book browsing.
+Autocomplete or an address-book view uses `contacts.query` and `contacts.get`
+with `kind: "email"`, subject to their independent browse grants.
+
+The composer copies selected values into its own `EmailAddress` records:
+
+| Contact value | EmailAddress field | Rule |
+|---------------|--------------------|------|
+| Selected endpoint's `value` | `address` | Copy the email address as text; a contact handle is not an address. |
+| Selected contact's `name` | `name` | Optional display name; omit it when empty. |
+| Endpoint `label`, contact handle and source details | none | MUST NOT become mail headers, account choices, or recipient authority. |
+
+The napplet places those records in the draft's `to`, `cc`, or `bcc` list under
+the user's composition choices. Contact records and selection results are not
+embedded in email requests; `email` continues to own and validate `EmailAddress`.
+Email grants MUST NOT authorize contact access. Contact access MUST NOT authorize
+submission, select a sending account, or bypass email recipient restrictions or
+confirmation. The runtime MUST validate the resulting draft under this NAP even
+when its recipient values came from the shell's contact picker.
+
+When `contacts` is absent, denied, or unavailable, the composer MUST retain
+manual recipient entry. Cancellation or an empty picker result MUST leave the
+existing draft unchanged. Addresses from independently authorized mail reads
+can still be used for replies; contact browsing is not a prerequisite.
 
 ### EmailPage
 
