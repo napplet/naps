@@ -484,3 +484,5 @@ No implementation of this NAP is verified. Existing SMTP and POP3 clients do not
 establish support for this draft.
 
 ## Changelog
+
+- `51bce7f` - Defined shell-configured SMTP/POP3 accounts, scoped inbox and MIME access, structured submission, durable retry outcomes, and email authority boundaries.
