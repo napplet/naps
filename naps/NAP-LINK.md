@@ -21,7 +21,7 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 | Operation | Parameters | Result | Wire |
 |-----------|------------|--------|------|
-| `open` | `url` (`tstr`), optional `options` (`LinkOpenOptions`) | `LinkOpenResult` | `link.open` / `link.open.result` |
+| `open` | `url` (`text`), optional `options` (`LinkOpenOptions`) | `LinkOpenResult` | `link.open` / `link.open.result` |
 
 ### Schemas
 
@@ -29,7 +29,7 @@ This is for user navigation, including links to pages that cannot be opened corr
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `label` | `tstr` | no | Human-readable prompt text supplied by the napplet. |
+| `label` | `text` | no | Human-readable prompt text supplied by the napplet. |
 
 `LinkOpenResult`:
 
