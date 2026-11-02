@@ -24,8 +24,10 @@ can instead expose an application contract through [NAP-CVM](https://github.com/
 Service checkout, payments, embeddings, audio and video generation are outside
 this proposal. Tool **calls and results** are part of the wire so napplets and
 runtimes can represent agentic turns honestly. The runtime MUST NOT execute a
-provider-returned tool call through this domain; execution belongs to the
-napplet or to NAP-CVM.
+provider-returned tool call through this domain. The napplet owns tool execution
+and may use a separately authorized capability.
+The reference to NAP-CVM above is an alternative application contract, not a
+dependency of this domain.
 
 ## API Surface
 
@@ -45,7 +47,8 @@ endpoint lifetime changes. The napplet must select again after invalidation.
 
 `generate` is one stateless request: the supplied messages are the entire
 conversation for that operation. The runtime MUST NOT append another conversation
-or silently discard supplied messages, roles or image parts. Provider-specific
+or silently discard supplied messages, roles or image parts. The display-only
+`thinking` exception below does not permit discarding other conversation content. Provider-specific
 input restrictions MUST produce `unsupported` before the generation request is
 sent. Mapping roles and parts into the provider's equivalent format is permitted.
 
@@ -74,11 +77,17 @@ encodings MUST produce `invalid-request`. Optional fields may be omitted.
 | `images` | yes | boolean | Whether the connection supports image input |
 | `json` | yes | boolean | Whether it supports JSON-object output |
 | `tools` | yes | boolean | Whether it supports tool calling |
+| `toolChoiceModes` | yes | list of text | Supported modes: `auto`, `none`, `required`, `tool`; empty when `tools` is false |
 
 The handle is not a URL, credential or transferable capability. The runtime MUST
 NOT accept a napplet-supplied provider URL, key or identity as selection authority.
 `images` does not promise every provider supports every placement of an image
 within a conversation; unsupported combinations must be rejected explicitly.
+
+`tools: true` MUST support `auto` and `none`. `toolChoiceModes` MUST list
+exactly the supported modes, without duplicates. `tool` means named-tool forcing.
+A valid request for an unlisted mode MUST produce `unsupported` before provider
+submission; the runtime MUST NOT substitute another mode.
 
 **GenerationRequest**
 
@@ -87,9 +96,8 @@ within a conversation; unsupported combinations must be rejected explicitly.
 | `handle` | yes | non-empty text | A live Model handle |
 | `messages` | yes | non-empty list of Message | Ordered conversation |
 | `format` | no | `text` or `json` | Defaults to `text`; `json` requires an object, not an array or scalar |
-| `maxTokens` | no | non-negative integer | Output token limit; runtime policy MAY cap it |
+| `maxTokens` | no | positive integer | Output token limit; omission requests no napplet-defined limit. Runtime policy and model limits still apply; runtime policy MAY cap it |
 | `temperature` | no | number | Sampling temperature; unsupported values MUST produce `unsupported` |
-| `samplingParams` | no | map of text to any | Additional provider-neutral sampling parameters; the runtime MUST drop unsupported keys and MUST NOT fail the request for them |
 | `tools` | no | list of Tool | Tools the model may call |
 | `toolChoice` | no | `auto`, `none`, `required` or ToolChoice | How the model selects tools; defaults to `auto` when tools are present |
 
@@ -97,9 +105,27 @@ within a conversation; unsupported combinations must be rejected explicitly.
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `name` | yes | non-empty text | Tool name |
+| `name` | yes | text | Portable tool name matching `^[A-Za-z0-9_-]{1,64}$` |
 | `description` | no | text | What the tool does |
-| `parameters` | no | map of text to any | JSON Schema for the tool's arguments |
+| `parameters` | no | map of text to any | JSON Schema with root `type: "object"`; omission means `{"type":"object","properties":{},"additionalProperties":false}` |
+
+`parameters` uses [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/json-schema-core).
+Malformed schemas MUST produce `invalid-request`.
+
+Tool names MUST be unique within `tools`. An empty list is equivalent to omission.
+An explicit `toolChoice` requires a non-empty `tools` list; a forced name MUST
+appear in that list. Violations, invalid names and a `parameters` value without
+root `type: "object"` MUST produce `invalid-request`. A structurally valid schema
+or choice unsupported by the connection MUST produce `unsupported` before
+provider submission. JSON Schema keywords are not unknown record fields.
+
+`auto` permits zero or more calls; `none` prohibits calls; `required` requires at
+least one call; a named choice requires at least one call, all to that name.
+A successfully completed turn violating the selected mode MUST produce
+`provider-error`, not a fallback. Length and refusal remain partial outcomes.
+Historical calls and results MAY be supplied without current `tools`; this allows
+continuing a completed exchange without enabling new calls. Without `tools`, the
+runtime MUST NOT accept new provider tool calls.
 
 **ToolChoice**
 
@@ -118,12 +144,24 @@ within a conversation; unsupported combinations must be rejected explicitly.
 | `toolName` | for `toolResult` only | non-empty text | Name of the tool that produced the result |
 | `isError` | no | boolean | For `toolResult`: whether the tool failed; defaults to `false` |
 
-A `toolResult` message MUST answer exactly one preceding `toolCall` part. An
-assistant message MAY carry multiple `toolCall` parts; the next request MUST
-answer every one of them with a matching `toolResult`, in any order. A provider
-that does not return a call id (for example Gemini) forces the runtime to
-synthesize a stable id; the same id MUST appear on the matching `toolResult`.
-`toolCallId` values are scoped to the conversation and are not credentials.
+A `toolResult` message MUST answer exactly one call in the immediately preceding
+assistant turn. Results MUST immediately follow that assistant message, one per
+call, in any order, before any other message. Missing, duplicate, orphaned or
+name-mismatched results MUST produce `invalid-request`. The runtime MAY regroup
+results for its provider without changing their meaning. Call ids MUST be unique
+within the supplied conversation. When a provider omits an id, the runtime MUST
+synthesize one that remains unchanged in deltas and the terminal result; the
+napplet MUST reuse it in the subsequent assistant history and matching result.
+Ids are not credentials.
+
+`toolResult` content permits only `text` and `image`. `toolCall` and `thinking`
+parts are permitted only in assistant messages; `isError` is permitted only on
+`toolResult`. Invalid placements MUST produce `invalid-request`. A connection
+that cannot accept images in tool results MUST produce `unsupported` before
+submission. If the provider has no native error flag, the runtime MUST represent
+`isError: true` by prefixing the result with a text part containing
+`Tool execution failed.` followed by the supplied content. It MUST NOT silently
+discard the error indication.
 
 **Part** is one of these records:
 
@@ -137,11 +175,19 @@ synthesize a stable id; the same id MUST appear on the matching `toolResult`.
 | `name` | for `toolCall` only | non-empty text | Tool name |
 | `arguments` | for `toolCall` only | map of text to any | Tool arguments as JSON |
 
+`thinking` is display-only, not reasoning continuation state. The runtime MUST
+omit it from provider input when assistant history is replayed. If continuing
+that history requires opaque or signed provider state that this contract cannot
+represent, the runtime MUST return `unsupported` before provider submission.
+It MUST NOT silently restart or degrade the reasoning loop. Providers that
+return only redacted reasoning MAY omit a thinking part; no placeholder text or
+provider blob is required. Supporting opaque continuation is outside this draft.
+
 **Generation**
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `content` | yes | non-empty list of Part | Complete accumulated output, including text, thinking and tool-call parts |
+| `content` | yes | list of Part | Complete accumulated output; only text, thinking and tool-call parts; may be empty for length or refusal |
 | `finish` | yes | `stop`, `length`, `refusal` or `toolUse` | Normal completion, output limit reached, provider refusal, or a tool call |
 | `usage` | no | Usage | Provider-reported token counts, when available |
 
@@ -155,13 +201,24 @@ synthesize a stable id; the same id MUST appear on the matching `toolResult`.
 | `cacheWriteTokens` | no | non-negative integer | Tokens written to a provider cache |
 | `reasoningTokens` | no | non-negative integer | Tokens attributed to reasoning |
 
-Only `finish: "stop"` indicates normal completion. `length`, `refusal` and
-`toolUse` may carry partial or empty content; a napplet MUST NOT present them as
-completed output. A `toolUse` result MUST contain at least one `toolCall` part.
-For `format: "json"`, a `stop` result MUST parse as a JSON object. This says
-nothing about its application schema, factual accuracy or suitability. Napplets
-remain responsible for those checks. Usage is not a price or settlement receipt;
-token counts, including cache and reasoning counts, do not imply a cost.
+Only `finish: "stop"` indicates normal completed output. `length` and `refusal`
+are not completed output. A successfully completed turn containing any `toolCall`
+MUST have `finish: "toolUse"`, regardless of the provider's normal stop label;
+conversely, `toolUse` MUST contain at least one call. Tool execution MUST wait
+for an authoritative `toolUse` result, never a delta. Truncation and refusal MUST
+NOT be relabelled `toolUse`: such results MUST contain no `toolCall` parts,
+even if some calls completed before another was truncated. Previously streamed call fragments remain provisional and are discarded.
+
+Every completed call's arguments MUST parse as a JSON object, and its name MUST
+appear in the current `tools`. Malformed arguments, non-object arguments, unknown
+names or missing completion markers MUST produce `provider-error` with no raw
+provider body echoed. Incomplete arguments on an explicitly truncated/refused
+turn are discarded under the rule above, not treated as completed calls.
+
+For `format: "json"`, concatenate the text parts of a `stop` result in order;
+the concatenation MUST parse as a JSON object. This does not validate the
+application schema, factual accuracy or suitability. Usage is not a price or
+settlement receipt; cache and reasoning token counts do not imply a cost.
 
 **Delta**
 
@@ -169,9 +226,21 @@ token counts, including cache and reasoning counts, do not imply a cost.
 |-------|----------|------|-------|
 | `requestId` | yes | non-empty text | The originating generation's `id` |
 | `sequence` | yes | non-negative integer | Contiguous sequence starting at zero for this generation |
-| `block` | yes | `text`, `thinking` or `toolcall` | Kind of content block this delta belongs to |
+| `event` | yes | `start`, `delta` or `end` | Block lifecycle event |
+| `block` | yes | `text`, `thinking` or `toolCall` | Kind of content block |
 | `blockIndex` | yes | non-negative integer | Zero-based index of the block within the generation's content |
-| `text` | no | text | Delta text for `text`/`thinking`; partial JSON for `toolcall` arguments. Absent when the delta only marks a block boundary |
+| `text` | for `delta` only | text | Text fragment, or JSON argument fragment for `toolCall` |
+| `toolCallId` | for `toolCall` start only | non-empty text | Id used by the terminal call |
+| `name` | for `toolCall` start only | text | Tool name used by the terminal call |
+
+Each streamed block MUST have one `start`, zero or more `delta` events and one
+`end`, in that order. Blocks MAY interleave; indices and kinds MUST remain stable.
+Concatenated text fragments MUST equal the final block text. For a completed
+`toolCall`, concatenated argument fragments MUST parse to the final `arguments`
+object. A runtime MAY serialize a buffered argument object to produce fragments.
+A block's `end` does not authorize execution. Error, cancellation, length or
+refusal MAY terminate a provisional block without `end`; only successfully
+completed blocks are required to match the terminal content indices.
 
 ## Wire Protocol
 
@@ -234,16 +303,18 @@ Choose and inspect a model:
 
 ```json
 {"type":"llm.select","id":"s1","requirements":{"json":true}}
-{"type":"llm.select.result","id":"s1","model":{"handle":"h1","name":"My connection","model":"chosen-model","route":"Local shell → inference provider","images":false,"json":true}}
+{"type":"llm.select.result","id":"s1","model":{"handle":"h1","name":"My connection","model":"chosen-model","route":"Local shell → inference provider","images":false,"json":true,"tools":true,"toolChoiceModes":["auto","none","required","tool"]}}
 {"type":"llm.describe","id":"d1","handle":"h1"}
-{"type":"llm.describe.result","id":"d1","model":{"handle":"h1","name":"My connection","model":"chosen-model","route":"Local shell → inference provider","images":false,"json":true}}
+{"type":"llm.describe.result","id":"d1","model":{"handle":"h1","name":"My connection","model":"chosen-model","route":"Local shell → inference provider","images":false,"json":true,"tools":true,"toolChoiceModes":["auto","none","required","tool"]}}
 ```
 
-Generate, optionally stream, then finish (a buffered runtime omits the delta):
+Generate, optionally stream, then finish (a buffered runtime omits all deltas):
 
 ```json
 {"type":"llm.generate","id":"g1","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"Return a JSON object with a greeting."}]}],"format":"json","maxTokens":128,"temperature":0.7}}
-{"type":"llm.delta","requestId":"g1","sequence":0,"block":"text","blockIndex":0,"text":"{\"greeting\":"}
+{"type":"llm.delta","requestId":"g1","sequence":0,"event":"start","block":"text","blockIndex":0}
+{"type":"llm.delta","requestId":"g1","sequence":1,"event":"delta","block":"text","blockIndex":0,"text":"{\"greeting\":\"Hello\"}"}
+{"type":"llm.delta","requestId":"g1","sequence":2,"event":"end","block":"text","blockIndex":0}
 {"type":"llm.generate.result","id":"g1","result":{"content":[{"type":"text","text":"{\"greeting\":\"Hello\"}"}],"finish":"stop","usage":{"inputTokens":12,"outputTokens":7}}}
 ```
 
@@ -257,6 +328,16 @@ calls are allowed and MUST each be answered:
 {"type":"llm.generate","id":"g3","request":{"handle":"h1","messages":[{"role":"user","content":[{"type":"text","text":"What is the weather in Berlin?"}]},{"role":"assistant","content":[{"type":"toolCall","toolCallId":"call_1","name":"get_weather","arguments":{"city":"Berlin"}}]},{"role":"toolResult","toolCallId":"call_1","toolName":"get_weather","content":[{"type":"text","text":"18°C and clear"}]}],"tools":[{"name":"get_weather","description":"Look up current weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"toolChoice":"auto"}}
 {"type":"llm.generate.result","id":"g3","result":{"content":[{"type":"text","text":"It is 18°C and clear in Berlin."}],"finish":"stop","usage":{"inputTokens":58,"outputTokens":15}}}
 ```
+
+A streamed tool call identifies the call before its argument fragments:
+
+```json
+{"type":"llm.delta","requestId":"g2","sequence":0,"event":"start","block":"toolCall","blockIndex":0,"toolCallId":"call_1","name":"get_weather"}
+{"type":"llm.delta","requestId":"g2","sequence":1,"event":"delta","block":"toolCall","blockIndex":0,"text":"{\"city\":\"Berlin\"}"}
+{"type":"llm.delta","requestId":"g2","sequence":2,"event":"end","block":"toolCall","blockIndex":0}
+```
+
+These events precede the `g2` terminal result above; they are not a second call.
 
 Force one named tool with `toolChoice`:
 
@@ -314,7 +395,8 @@ than truncating messages, dropping images or silently changing models.
   and the current user account. Shared backend connections do not weaken this rule.
 - Before submitting each generation, the runtime MUST obtain user authorization
   identifying the requesting napplet, selected route/model, data being disclosed
-  and potential provider charges. It MUST NOT send prompt/image content before
+  (including tool definitions and tool results) and potential provider charges.
+  It MUST NOT send prompts, images, tool definitions or tool results before
   that authorization. A stored API key or model selection is not authorization.
 - Changing the selection while consent is pending requires fresh selection and
   consent; the runtime MUST NOT silently use the replacement connection.
@@ -325,10 +407,16 @@ than truncating messages, dropping images or silently changing models.
 
 ## Security Considerations
 
-Prompts, images and output can be sensitive. The runtime MUST NOT broadcast them,
+Prompts, images, tool definitions, tool results and output can be sensitive.
+The runtime MUST NOT broadcast them,
 include them in unrelated errors, or disclose them to another endpoint/account.
 It MUST disclose intermediaries as well as the ultimate provider; "local model"
 does not imply data stays on the user's device when the runtime is hosted.
+
+Tool results re-enter the conversation as model input and MUST be treated as
+untrusted data, including instructions embedded in them. A tool call is a request,
+not authorization; the napplet must validate it and obtain any separately required
+authority before execution.
 
 Model output is untrusted data, never an authorization to execute tools, sign,
 pay, fetch URLs or change connections. This contract grants none of those powers.
@@ -356,7 +444,16 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 | LLM-C11 | Provider failure containing input or credentials | Safe typed error; no body, credential or other endpoint data leakage |
 | LLM-C12 | Assistant turn with multiple `toolCall` parts; next request omits one result | Request rejected as `invalid-request`; no provider generation |
 | LLM-C13 | `toolChoice` forcing a named tool; provider ignores it | `provider-error`; no silent substitution or plain-text fallback |
-| LLM-C14 | Provider returns no tool call id (Gemini-style) | Runtime synthesizes a stable id; matching `toolResult` round-trips |
+| LLM-C14 | Provider returns no tool call id | Runtime synthesizes a stable id; matching `toolResult` round-trips |
+| LLM-C15 | Completed calls with different normal provider stop labels; also truncate/refuse a parallel turn after one call completes | Completed calls normalize to `toolUse`; truncation/refusal preserves finish, no executable calls |
+| LLM-C16 | Completed arguments malformed or not an object; unknown tool name | `provider-error`; no raw provider body echoed |
+| LLM-C17 | Replay thinking; connection requires opaque reasoning state | Thinking omitted from provider input; required unrepresentable state produces `unsupported`, no generation |
+| LLM-C18 | Stream interleaved tool-call blocks | Start carries id/name; ordered lifecycle; fragments parse to final arguments; no execution from provisional blocks |
+| LLM-C19 | Request an unlisted tool-choice mode | `unsupported`; no substitution or provider generation |
+| LLM-C20 | Duplicate/invalid tool names, missing tools for explicit choice, unknown forced name, non-object schema, zero maxTokens | `invalid-request`; no generation |
+| LLM-C21 | Misplaced/duplicate/orphaned results; history without current tools | Invalid histories rejected; completed history without tools accepted if connection supports it; no new calls |
+| LLM-C22 | Image tool result; error result with no provider-native flag | Unsupported image placement rejected before submission; error flag mapped to specified text prefix |
+| LLM-C23 | Consent declined with sensitive tool definitions/results | Disclosure identifies both; no provider submission |
 
 ## Implementations
 
@@ -370,4 +467,4 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 ## Changelog
 
 - `4bb12f3` - Define user-selected inference, endpoint-scoped selections, disclosure consent, generation/cancellation lifecycles, typed errors and conformance cases; add the draft registry entry and reference links.
-- `<short-sha>` - Widen the wire subset to the common denominator of chat-completions and messages APIs: generation controls (`maxTokens`, `temperature`, `samplingParams`), tool definitions and choice, `thinking` and `toolCall` parts, the `toolResult` role with an error flag, block-aware deltas, cache and reasoning token counts without cost, and `Generation.content` as a part list; answer parallel-tool-call and provider-synthesized-id questions inline.
+- `8f74132` - Widen the wire subset to the common denominator of chat-completions and messages APIs: generation controls (`maxTokens`, `temperature`, `samplingParams`), tool definitions and choice, `thinking` and `toolCall` parts, the `toolResult` role with an error flag, block-aware deltas, cache and reasoning token counts without cost, and `Generation.content` as a part list; answer parallel-tool-call and provider-synthesized-id questions inline.
