@@ -78,6 +78,7 @@ encodings MUST produce `invalid-request`. Optional fields may be omitted.
 | `json` | yes | boolean | Whether it supports JSON-object output |
 | `tools` | yes | boolean | Whether it supports tool calling |
 | `toolChoiceModes` | yes | list of text | Supported modes: `auto`, `none`, `required`, `tool`; empty when `tools` is false |
+| `sessions` | no | boolean | Whether the runtime can offer a session grant for this handle; omitted means `false` |
 
 The handle is not a URL, credential or transferable capability. The runtime MUST
 NOT accept a napplet-supplied provider URL, key or identity as selection authority.
@@ -100,6 +101,7 @@ submission; the runtime MUST NOT substitute another mode.
 | `temperature` | no | number | Sampling temperature; unsupported values MUST produce `unsupported` |
 | `tools` | no | list of Tool | Tools the model may call |
 | `toolChoice` | no | `auto`, `none`, `required` or ToolChoice | How the model selects tools; defaults to `auto` when tools are present |
+| `authorization` | no | `generation` or `session` | Kind of authorization to ask for when none covers this request; defaults to `generation` |
 
 **Tool**
 
@@ -295,7 +297,8 @@ and report `timeout` when that deadline expires. It MUST settle cancellation or
 timeout without waiting indefinitely for the provider. Neither proves that the
 provider stopped computing or charging. A caller MUST NOT automatically retry an
 ambiguous timed-out or cancelled generation. A user-initiated retry uses a new ID
-and new disclosure authorization; it may incur another charge.
+and new disclosure authorization, which a live session grant may provide; it may
+incur another charge.
 
 ### Examples
 
@@ -398,12 +401,53 @@ than truncating messages, dropping images or silently changing models.
   (including tool definitions and tool results) and potential provider charges.
   It MUST NOT send prompts, images, tool definitions or tool results before
   that authorization. A stored API key or model selection is not authorization.
+  A live session grant is that authorization for the generations it covers.
 - Changing the selection while consent is pending requires fresh selection and
   consent; the runtime MUST NOT silently use the replacement connection.
 - The runtime MUST keep credentials and private connection identifiers outside
   the napplet, preserve the sandbox, and perform provider communication itself.
 - Domain absence MUST be discoverable without a `shell` handshake. Napplets with
   an optional `llm` integration must retain their other functionality when absent.
+
+### Session authorization
+
+A multi-step exchange, such as an agent loop that calls a tool and feeds its
+result back, submits many generations for one user request. Authorizing each one
+separately means a prompt per step. A session grant lets the user authorize the
+exchange once.
+
+A runtime that offers session grants sets `sessions: true` in the Model it
+returns. A napplet MUST NOT send `authorization` unless the current Model has
+`sessions: true`: a runtime without session grants treats it as an unknown
+field and returns `invalid-request`. A runtime that recognizes the field but
+cannot offer a grant for the handle MUST treat `session` as `generation`. When
+a generation is not covered by a live grant and its request has
+`authorization: "session"`, the runtime MAY ask the user for a session grant
+instead of authorization for that one generation. The user may decline the grant
+and still authorize the single generation, or decline both, which produces
+`user-cancelled`.
+
+A session grant:
+
+- is bound to one handle, and through it to one endpoint, napplet identity and
+  account. It ends when the handle becomes invalid, the user revokes it, or a
+  runtime limit is reached. It is never transferred to another handle.
+- covers a generation on its handle only when the generation's `tools` list is
+  the same set of tools, with the same names, descriptions and parameters, as
+  the generation that obtained the grant. Any other tool set requires fresh
+  authorization. `toolChoice` may vary.
+- MUST be obtained with a disclosure that names, beyond what a single
+  generation's disclosure names, that later prompts, images and tool results
+  will be sent without further review, the tool definitions it covers, and the
+  limits that end it, such as a duration, a generation count or a charge ceiling.
+- MUST stay visible to the user while it is live, and the user MUST be able to
+  revoke it at any time. Revocation cancels the handle's active generations with
+  `user-cancelled`; later generations need fresh authorization.
+
+A runtime MAY end a grant earlier than its stated limits. It MUST NOT extend
+one without fresh authorization. A session grant changes only how generations are
+authorized: deadlines, cancellation, error handling and the rule against
+automatically retrying an ambiguous generation still apply to each generation.
 
 ## Security Considerations
 
@@ -417,6 +461,11 @@ Tool results re-enter the conversation as model input and MUST be treated as
 untrusted data, including instructions embedded in them. A tool call is a request,
 not authorization; the napplet must validate it and obtain any separately required
 authority before execution.
+
+A session grant sends data the user has not reviewed one by one. Tool results
+can carry content from files, other services or other people. Runtimes should
+keep grant limits short, express charge ceilings in the units the provider
+bills, and make revocation one action away.
 
 Model output is untrusted data, never an authorization to execute tools, sign,
 pay, fetch URLs or change connections. This contract grants none of those powers.
@@ -454,6 +503,8 @@ Tests use a controllable provider fixture and isolated authenticated endpoints.
 | LLM-C21 | Misplaced/duplicate/orphaned results; history without current tools | Invalid histories rejected; completed history without tools accepted if connection supports it; no new calls |
 | LLM-C22 | Image tool result; error result with no provider-native flag | Unsupported image placement rejected before submission; error flag mapped to specified text prefix |
 | LLM-C23 | Consent declined with sensitive tool definitions/results | Disclosure identifies both; no provider submission |
+| LLM-C24 | Obtain a session grant, then generate again with the same tools, with a different tool set, after revocation and after handle invalidation | Same tools submit without a prompt; a different tool set, revocation and invalidation each require fresh authorization; revocation cancels active work with `user-cancelled` |
+| LLM-C25 | Decline a session grant but authorize the single generation; also send `session` on a handle the runtime cannot grant | One generation submitted and the next asks again; the ungrantable request gets single-generation authorization, not an error |
 
 ## Implementations
 
