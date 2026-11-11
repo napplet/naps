@@ -378,3 +378,5 @@ revokes the capability.
 - `1a83117` - Introduced NAP-WEBRTC as a runtime-owned WebRTC signaling surface.
 
 - `394b597` - Adopted injected-domain availability and linked the current upstream web binding.
+
+- `10793e0` - Added optional delivery semantics, byte payloads, an advertised payload limit, advisory stats, and authenticated peer public keys.
