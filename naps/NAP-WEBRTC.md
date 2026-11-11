@@ -398,3 +398,5 @@ revokes the capability.
 - `394b597` - Adopted injected-domain availability and linked the current upstream web binding.
 
 - `10793e0` - Added optional delivery semantics, byte payloads, an advertised payload limit, advisory stats, and authenticated peer public keys.
+
+- `ec6819c` - Scoped delivery semantics to the whole session, including late joiners, and allowed shell-generated temporary keys.
