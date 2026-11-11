@@ -81,6 +81,34 @@ that URL. It adds no wire message. An optional `opts.signal` on `bytes` or
 `bytesMany` maps abort to the NAP's `resource.cancel` message and suppresses late
 results for the cancelled request.
 
+### Optional FIPS block binding
+
+When `resource.info().profiles` includes `"fips-hashtree/1"`, the binding exposes
+`resource.open(request, opts?)`, `resource.block(grant, hash, opts?)` and
+`resource.release(grant)`. They map to the operations in
+[NAP-RESOURCE](../naps/NAP-RESOURCE.md#optional-fips-block-profile).
+`open` returns the grant record; `block` and `release` take its `id` string.
+`block` validates/decodes `ResourceBytes` into a
+`Uint8Array`; it does not create an object URL or render the bytes. `release`
+resolves when acknowledged. `opts.signal` cancels open/read requests through
+`resource.cancel`. The binding MUST honor the grant's `timeoutMs` for block
+requests rather than applying a shorter default URL-read timeout. No
+`resource.soyFips` alias or new global/domain is specified.
+
+Seed hints for this profile MUST be absolute `wss:` URLs without credentials or
+fragments. The shell MAY ignore hints and use operator-configured seeds. Every
+actual seed connection is subject to the resource destination policy, including
+redirects; peer authentication cannot waive it. A browser host unable to enforce
+that policy MUST use an enforcing transport or refuse the destination, rather
+than treating successful WebSocket creation as policy verification. This profile
+introduces no private-address exception. Native projections may use their own
+approved FIPS transports while retaining the same provider authentication.
+
+The browser's shell owns its FIPS client and connection UI. Napplet frames receive
+only the RESOURCE binding. No iframe networking or CSP relaxation is needed or
+permitted by this profile. Approval/revocation controls must remain reachable
+above a fullscreen napplet; moving focus or entering fullscreen grants no access.
+
 ## Convention URI binding
 
 A developer MAY pass
