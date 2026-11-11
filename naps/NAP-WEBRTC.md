@@ -133,6 +133,17 @@ instead of delaying every later one.
 - Delivery semantics are fixed for the life of a session. A napplet that needs
   both reliable and lossy delivery opens two sessions with distinct `channel`
   values.
+- The reported semantics apply to the whole session: to every peer and in both
+  directions, including peers that join after `open` returns. They do not
+  change when peers join or leave.
+- The shell MUST convey a session's delivery semantics to peers during
+  signaling and MUST connect only peers whose shells established the same
+  semantics for that session. A peer whose shell did not is not part of the
+  session; the shell MUST NOT emit `peer`, `message`, `bytes`, or `stats`
+  events for it.
+- A napplet whose reported semantics differ from those it requested can
+  therefore reach fewer peers than it expected. Comparing the two is how it
+  detects this.
 
 ### Byte payloads
 
@@ -339,6 +350,10 @@ revokes the capability.
   that peer during signaling. The shell MUST NOT take either value from data a
   peer supplied over the data channel. The shell MUST NOT deliver payloads from
   a peer it cannot authenticate.
+- The shell MAY use a shell-generated temporary key for a session, including
+  when no user is signed in. `from` and `pubkey` identify the key authenticated
+  during signaling, which is not necessarily the user's usual Nostr profile
+  key.
 - The shell MAY limit relays, peers, rooms, payload sizes, data-channel labels,
   connection duration, or concurrent session count.
 - The shell MAY route a room session through a WebRTC media server or peer mesh.
@@ -356,8 +371,11 @@ revokes the capability.
   that did not create or join them.
 - Peer payloads are untrusted. Napplets MUST validate every `message` and
   `bytes` payload against their own application protocol before acting on it.
-- `from` identifies the authenticated peer. A napplet MAY treat it as the peer's
-  identity; deciding what that identity may do remains the napplet's job.
+- `from` and `pubkey` identify the key a peer authenticated during signaling.
+  Authentication establishes control of that key; it does not by itself
+  establish an association with the user's usual Nostr profile, because a shell
+  MAY use a temporary key. Deciding what that peer may do remains the napplet's
+  responsibility.
 - Stats are network metadata. Shells MAY round or withhold them and MUST NOT
   include addresses, candidate types, or other values that locate a peer's
   network.
