@@ -298,9 +298,8 @@ Result messages carry `error` on failure. Every other field is then undefined.
   per napplet.
 - For `group` and `list` neighborhoods they SHOULD stay stable for that napplet
   across restarts.
-- With the proximity extension: for `nearby`, `Member.id` MUST change at
-  least for every new encounter, and the shell MUST NOT disclose
-  `Member.pubkey` for `nearby` members.
+- With the proximity extension, `nearby` `Member.id` values MAY change
+  between encounters.
 
 **Addresses**
 - A runtime that offers `neighbor` and a consuming domain MUST accept, in that
@@ -315,12 +314,16 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - A subscription on a neighborhood address MUST return only events that
   arrived through, or were published into, that neighborhood.
 - A blob fetch through an address MUST verify the SHA-256 before delivery.
+- The shell MUST NOT put an address into any event it signs or carries,
+  including relay hints in tags. Addresses are local to the napplet.
 
 **Segregation**
 - The shell MUST NOT, by its own action, make an event or blob received in one
   neighborhood available through another neighborhood's address, or through
   the user's own relays.
 - The same event received in two neighborhoods is available through both.
+- Segregation bounds what the shell does on its own. It is not a privacy
+  guarantee (see Security Considerations).
 
 **Requests to the user**
 - `create`, `invite`, `leave` and any `setOffer` that widens access MUST be
@@ -365,16 +368,20 @@ Result messages carry `error` on failure. Every other field is then undefined.
   is, can map their social life. Grants are per neighborhood. Ids are per
   napplet, so two napplets cannot correlate them.
 - **Presence.** `reachable` and `link` reveal that people are reachable, and
-  how. With the proximity extension they reveal physical closeness; the
-  `nearby` kind never discloses keys, and its ids rotate.
+  how. With the proximity extension they reveal physical closeness.
 - **Open growth.** A neighborhood may contain people the user never met.
   Events from them are signed. A napplet MUST treat member content and
   `webrtc` payloads as untrusted input.
 - **Bridging is permitted.** A napplet granted two neighborhoods can repost
   from one into the other. Segregation constrains the shell, not the napplet.
   Grant UI SHOULD say when a napplet holds more than one neighborhood.
+- **No expectation of privacy.** A neighborhood is a propagation path for
+  ordinary Nostr events, not a private space. Events are signed by their
+  author, may be authored by non-members, and may be passed on, bridged or
+  published by any member. Anonymity is not a goal.
 - **Re-sharing is permitted.** A member holds what they received and may pass
-  it on. Nothing here prevents that.
+  it on, including outside the neighborhood. This is how events travel
+  offline and spread.
 - **Acting as the user.** Publishing to an address signs as the user, as in
   `relay`. Management operations change who the user is connected to; this is
   why they need confirmation.
