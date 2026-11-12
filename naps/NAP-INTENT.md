@@ -31,6 +31,12 @@ does not assert that the target already received or handled the intent. The
 runtime may deliver to an existing target, start a target before closing the
 source, or close the source before starting the target.
 
+`launch` is the explicit counterpart. The source names one napplet by its
+manifest coordinate. The runtime opens that napplet, or offers to install it,
+and never substitutes another. It carries no payload: delivering data remains
+`invoke`'s, under role resolution and user defaults. See
+[Explicit Launch](#explicit-launch).
+
 ## API Surface
 
 | Operation | Parameters | Result | Wire |
@@ -41,6 +47,7 @@ source, or close the source before starting the target.
 | `handlers` | none | list of `IntentAvailability` | `intent.handlers` / `intent.handlers.result` |
 | `onChanged` | handler for `IntentAvailability` | `Subscription` handle | `intent.changed` |
 | `onDelivery` | handler for `IntentDelivery` | `Subscription` handle | `intent.deliver` |
+| `launch` | target (`IntentTarget`), optional behavior (`IntentBehavior`) | `IntentLaunchResult` | `intent.launch` / `intent.launch.result` |
 
 ### Schemas
 
@@ -285,6 +292,8 @@ the web projection's artifact verification or endpoint binding.
 | `intent.handlers.result` | runtime -> napplet | `id`, `handlers`, `error`? |
 | `intent.changed` | runtime -> napplet | `availability` |
 | `intent.deliver` | runtime -> napplet | `delivery` |
+| `intent.launch` | napplet -> runtime | `id`, `target`, `behavior`? |
+| `intent.launch.result` | runtime -> napplet | `id`, `result` |
 
 Key design notes:
 
@@ -448,7 +457,8 @@ a second result to the source.
   [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) manifests, not only
   running instances.
 - The runtime MUST NOT let a caller address a handler instance unless the user
-  explicitly authorized that handler.
+  explicitly authorized that handler. `launch` names a napplet, not a running
+  instance, and is user-mediated (see [Explicit Launch](#explicit-launch)).
 - The runtime MUST reject an unsupported convention before acceptance.
 - The runtime SHOULD emit `intent.changed` when catalog or default-handler state
   changes.
@@ -483,6 +493,112 @@ It need not perform discovery or offer installation. Relay hints are untrusted
 discovery inputs and MUST NOT bypass the shell's network policy. Discovery is
 shell-internal; it imposes no additional capability requirement on the caller.
 
+## Explicit Launch
+
+`launch` opens one named napplet. An app catalog uses it to open or install
+the listing a user selected. A role invocation cannot do this: the user's
+default for the role, or an installed handler, takes precedence over a
+recommendation, so the named napplet may never be offered.
+
+`launch` carries no payload and produces no `IntentDelivery`. A source that
+needs to hand data to a napplet uses `invoke`, where the user's defaults and
+choices apply.
+
+### Launch schemas
+
+`IntentTarget` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `address` | yes | text | `<kind>:<pubkey>:<d>` coordinate of a napplet manifest: kind `35129` with a non-empty `d`, or kind `15129` with an empty `d`. |
+| `relays` | no | list of text | Discovery hints; not part of the napplet identity. |
+
+The pubkey is exactly 64 lowercase hex digits. `d` is opaque and
+case-sensitive. A snapshot (`5129`) has no stable coordinate and cannot be a
+target.
+
+`IntentLaunchResult` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `ok` | yes | boolean | Whether the runtime accepted the launch. |
+| `handler` | no | text | The target's catalog identifier. Required when `ok` is true. |
+| `error` | no | text | Pre-acceptance failure reason. Required when `ok` is false. |
+
+### Launch behavior
+
+- The runtime MUST validate `target` and reject an invalid one with
+  `"invalid target"`.
+- The runtime MUST resolve only the napplet whose verified manifest has
+  exactly `target.address`. It MUST NOT apply user defaults, recommendations,
+  or a chooser, and MUST NOT substitute another napplet.
+- **Installed target.** The runtime accepts and opens or focuses the target.
+- **Absent target.** The runtime MAY offer installation. It MUST resolve the
+  signed manifest from the coordinate and relay hints, and verify its
+  signature and exact coordinate. The runtime MUST apply its ordinary
+  installation, artifact verification, and execution rules, and MUST obtain
+  the user's confirmation before installing. When it offers installation, it
+  accepts the launch. After installation it MAY open the target. A declined
+  or failed installation is a post-acceptance failure and is not reported to
+  the source.
+- A runtime that does not offer installation MUST reject an absent target with
+  `"not installed"`, or with `"launch rejected"` under its privacy policy.
+- `launch` MUST NOT change user defaults or catalog state, except through an
+  installation the user confirmed. It is not a handler selection for `invoke`.
+- `launch` grants nothing. The target receives only its own manifest's
+  capabilities under shell policy, and learns nothing about the source.
+
+Errors: `"invalid target"`, `"not installed"`, `"user cancelled"`,
+`"launch rejected"`.
+
+### Launch examples
+
+**Launch an installed napplet:**
+
+```
+-> {
+     "type": "intent.launch",
+     "id": "l1",
+     "target": { "address": "35129:<pubkey>:profiles" }
+   }
+<- {
+     "type": "intent.launch.result",
+     "id": "l1",
+     "result": { "ok": true, "handler": "catalog-profile-viewer" }
+   }
+```
+
+**Offer an absent napplet for installation:**
+
+```
+-> {
+     "type": "intent.launch",
+     "id": "l2",
+     "target": {
+       "address": "35129:<pubkey>:chess",
+       "relays": ["wss://relay.example.com"]
+     }
+   }
+<- {
+     "type": "intent.launch.result",
+     "id": "l2",
+     "result": { "ok": true, "handler": "catalog-chess" }
+   }
+```
+
+The runtime shows its install review. If the user installs the napplet, the
+runtime may open it. If not, the source hears nothing more.
+
+**Absent, and the runtime does not offer installation:**
+
+```
+<- {
+     "type": "intent.launch.result",
+     "id": "l3",
+     "result": { "ok": false, "error": "not installed" }
+   }
+```
+
 ## Security Considerations
 
 - Invocation may navigate, focus, start, or close napplet surfaces. The runtime
@@ -499,6 +615,13 @@ shell-internal; it imposes no additional capability requirement on the caller.
   details according to policy.
 - Delivery MUST NOT leak payload or sender metadata to any napplet other than
   the resolved target.
+- `launch` lets a napplet direct the user to a napplet it chooses. The runtime
+  MUST mediate it: installation requires user confirmation, and opening
+  SHOULD require a user gesture or confirmation under policy. The runtime
+  SHOULD rate-limit launches.
+- `launch` results can reveal whether a napplet is installed. A runtime MAY
+  answer `"launch rejected"` instead of `"not installed"`, or accept and offer
+  installation, so the source cannot tell.
 
 ## References
 
