@@ -397,3 +397,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 ## Changelog
 
 - `7698892` - Introduced NAP-NEIGHBOR draft: neighborhood membership, opaque `neighborhood:` addresses consumed by `relay`, `outbox`, `resource`, `upload` and `webrtc`, and an optional proximity extension. Supersedes NAP-MESH (#122).
+- `ef04953` - Dropped Nearby anonymity requirements (pubkey disclosure, mandatory id rotation); stated no expectation of privacy and that members may re-share events anywhere; forbade the shell from putting addresses into events.
