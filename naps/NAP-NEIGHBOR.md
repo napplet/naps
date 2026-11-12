@@ -389,4 +389,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 
 ## Changelog
 
-- `PENDING` - Introduced NAP-NEIGHBOR draft: neighborhood membership, opaque `neighborhood:` addresses consumed by `relay`, `outbox`, `resource`, `upload` and `webrtc`, and an optional proximity extension. Supersedes NAP-MESH (#122).
+- `7698892` - Introduced NAP-NEIGHBOR draft: neighborhood membership, opaque `neighborhood:` addresses consumed by `relay`, `outbox`, `resource`, `upload` and `webrtc`, and an optional proximity extension. Supersedes NAP-MESH (#122).
