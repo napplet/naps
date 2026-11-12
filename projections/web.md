@@ -79,6 +79,16 @@ The fragment is a recommendation, not an explicit handler selection. The shell
 applies NAP-INTENT's user-default precedence, discovery policy, and fallback.
 Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
+### Intent launch
+
+`window.napplet.intent.launch(naddr, options?)` takes a bare NIP-19 `naddr`.
+The web binding decodes it into `target.address` and optional
+`target.relays`. It MUST reject an `naddr` that is not a kind `35129` or
+`15129` napplet coordinate.
+
+`options.behavior` passes through as `behavior`. `launch` takes no convention
+URI and no payload.
+
 ## Identity & trust
 
 The shell is the policy boundary. For every inbound message it verifies
