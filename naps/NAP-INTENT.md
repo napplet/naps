@@ -644,3 +644,4 @@ runtime may open it. If not, the source hears nothing more.
 - `6461e4b` - Adopted unnumbered convention identities for payload shapes.
 - `6c0d731` - Made convention URIs authoritative and delivery lifecycle-independent while preserving manifest-derived handler discovery.
 - `3dc945f` - Aligned manifest discovery with z/i advertisements and parameter names, supported all napplet manifest kinds with publisher-safe catalog identifiers, and adopted injected-domain availability.
+- `c6bf4d3` - Added `launch`: explicit, user-mediated opening or installation of one napplet named by its manifest coordinate, without payload delivery, and its web binding.
