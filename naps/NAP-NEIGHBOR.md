@@ -9,7 +9,6 @@ Neighborhoods and Addresses
 **NAP ID:** NAP-NEIGHBOR
 **Domain:** `neighbor`
 **Depends:**
-- `webrtc` — wire · optional — `Neighborhood.room` and `Peer.direct` carry `WebrtcScope`, a type owned by the `webrtc` domain; `serve` routes `webrtc.open` sessions.
 - `relay` — capability · optional — `neighborhood:` addresses are accepted as the `relay` of `relay.subscribe`.
 - `outbox` — capability · optional — the same addresses are accepted in `OutboxPublishOptions.relays` and the read-option `relays` of `outbox.*`.
 - `resource` — capability · optional — the same addresses are honored as a BUD-10 `xs` hint in `blossom:` URIs passed to `resource.bytes`.
@@ -32,8 +31,8 @@ any number of people, and no participant can list them.
 NAP-NEIGHBOR tells a napplet which neighborhoods the user carries, which of
 the user's peers carry each one, and how to reach them. It carries no data.
 For each neighborhood and each peer it returns an **address** (a
-`neighborhood:` URI) and a WebRTC scope. The napplet passes them to the
-domains it already uses (`relay`, `outbox`, `resource`, `upload`, `webrtc`).
+`neighborhood:` URI). The napplet passes it to the domains it already uses
+(`relay`, `outbox`, `resource`, `upload`).
 The runtime recognizes the addresses it minted and carries the traffic however
 it chooses. The contract names no transport.
 
@@ -56,24 +55,16 @@ radios; the core NAP works without it.
 | `leave` | `neighborhood` (text) | none | `neighbor.leave` / `neighbor.leave.result` |
 | `setOffer` | `neighborhood` (text), `offer` (`Offer`) | `Offer` | `neighbor.setOffer` / `neighbor.setOffer.result` |
 | `mute` | `neighborhood` (text), `author` (text), `muted` (boolean) | none | `neighbor.mute` / `neighbor.mute.result` |
-| `serve` | `protocol` (text), optional `neighborhoods` (list of text) | none | `neighbor.serve` / `neighbor.serve.result` |
-| `unserve` | `protocol` (text) | none | `neighbor.unserve` / `neighbor.unserve.result` |
 | `onEvent` | handler for `NeighborEvent` | `Subscription` handle | `neighbor.event` |
 
 ### Schemas
-
-External types:
-
-| Name | Meaning |
-|------|---------|
-| `WebrtcScope` | Owned by the `webrtc` domain. Imported by reference. |
 
 Enums:
 
 | Name | Values |
 |------|--------|
 | `NeighborhoodKind` | `private`, `public`, `nearby` |
-| `Feature` | `create`, `public`, `invite`, `leave`, `offer`, `mute`, `serve`, `nearby` |
+| `Feature` | `create`, `public`, `invite`, `leave`, `offer`, `mute`, `nearby` |
 | `LinkClass` | `proximity` (proximity extension only), `local`, `internet` |
 
 `NeighborInfo` fields:
@@ -93,7 +84,6 @@ Enums:
 | `peers` | yes | integer | The user's peers that carry it. |
 | `reachable` | yes | integer | Of those, reachable now. Reported, not promised. |
 | `address` | no | text | `neighborhood:` URI for the whole neighborhood. |
-| `room` | no | `WebrtcScope` | Room scope for the whole neighborhood. |
 | `offer` | no | `Offer` | What the user offers peers in it. Present only with the `offer` feature. |
 
 `Peer` fields:
@@ -106,7 +96,6 @@ Enums:
 | `link` | no | `LinkClass` | Coarse class of the current path. |
 | `services` | yes | list of text | Services this peer offers in this neighborhood. |
 | `address` | no | text | `neighborhood:` URI for this peer, scoped to this neighborhood. |
-| `direct` | no | `WebrtcScope` | Direct scope for this peer. |
 
 `Offer` fields:
 
@@ -117,7 +106,6 @@ Enums:
 | `relayOwn` | yes | boolean | Peers may also read events the user keeps outside any neighborhood. |
 | `blobRead` | yes | boolean | |
 | `blobWrite` | yes | boolean | |
-| `sessions` | yes | boolean | Peers may open `webrtc` sessions to served protocols. |
 | `services` | no | list of text | Further runtime-defined service names. |
 
 `CreateRequest` fields:
@@ -169,11 +157,6 @@ peers in that neighborhood. It resolves to the offer actually in force.
 `author` (a Nostr public key, hex) in that neighborhood. This is local; nobody
 else is told.
 
-**`serve(protocol, neighborhoods?)`** registers the napplet to receive
-`webrtc` sessions opened by peers with `protocol`. If `neighborhoods` is
-omitted, every granted neighborhood is meant. Nothing is advertised to peers.
-**`unserve(protocol)`** removes the registration.
-
 **`onEvent(handler)`** receives neighborhood and peer changes for granted
 neighborhoods.
 
@@ -196,7 +179,6 @@ neighborhood. The same address serves relay and blob traffic.
 | Publish into it | `outbox.publish(template, { relays: [<address>], toOutbox: false })` |
 | Fetch a blob from it | `resource.bytes("blossom:<sha256>.<ext>?xs=<address>")` (`xs` percent-encoded) |
 | Upload into it | `upload` with `<address>` as destination, where offered |
-| Talk live | `webrtc.open({ scope: <room or direct>, protocol })` |
 
 A peer address reaches that peer only. Its traffic is not passed on.
 
@@ -245,10 +227,6 @@ outside this NAP.
 | `neighbor.setOffer.result` | shell -> napplet | `id`, `offer`?, `error`? |
 | `neighbor.mute` | napplet -> shell | `id`, `neighborhood`, `author`, `muted` |
 | `neighbor.mute.result` | shell -> napplet | `id`, `error`? |
-| `neighbor.serve` | napplet -> shell | `id`, `protocol`, `neighborhoods`? |
-| `neighbor.serve.result` | shell -> napplet | `id`, `error`? |
-| `neighbor.unserve` | napplet -> shell | `id`, `protocol` |
-| `neighbor.unserve.result` | shell -> napplet | `id`, `error`? |
 | `neighbor.event` | shell -> napplet | `event` (`NeighborEvent`) |
 
 ### Examples
@@ -258,8 +236,7 @@ outside this NAP.
 -> { "type": "neighbor.list", "id": "n1" }
 <- { "type": "neighbor.list.result", "id": "n1", "neighborhoods": [
      { "id": "h_2c", "name": "Household", "kind": "private", "peers": 3,
-       "reachable": 2, "address": "neighborhood://h_2c",
-       "room": { "type": "room", "room": "h_2c" } } ] }
+       "reachable": 2, "address": "neighborhood://h_2c" } ] }
 -> { "type": "relay.subscribe", "id": "r1", "subId": "s1",
      "filters": [{ "kinds": [1], "limit": 50 }], "relay": "neighborhood://h_2c" }
 ```
@@ -271,12 +248,6 @@ outside this NAP.
 <- { "type": "neighbor.create.result", "id": "n2", "neighborhood": {
      "id": "h_91", "name": "Lowlands 2027", "kind": "public", "peers": 0,
      "reachable": 0, "address": "neighborhood://h_91" } }
-```
-
-**Serve a protocol:**
-```
--> { "type": "neighbor.serve", "id": "n3", "protocol": "doodle" }
-<- { "type": "neighbor.serve.result", "id": "n3" }
 ```
 
 **Peer change:**
@@ -309,7 +280,7 @@ Result messages carry `error` on failure. Every other field is then undefined.
   and peers in those only.
 - The shell SHOULD let the user choose neighborhoods per napplet at grant time.
 - Revoking a grant, or leaving a neighborhood, MUST end the napplet's
-  subscriptions and sessions bound to its addresses. They end with the owning
+  subscriptions and requests bound to its addresses. They end with the owning
   domain's close message and reason `"revoked"`.
 
 **Identifiers**
@@ -351,15 +322,6 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - The user MAY pre-authorize a napplet they chose as their neighborhood
   manager.
 
-**Serving**
-- The shell MUST route an incoming `webrtc` session for a served protocol only
-  to a napplet that serves it in that neighborhood.
-- A session to a protocol nobody serves, to a napplet that isn't present, or
-  one the user declined, MUST fail identically, so that a peer cannot learn
-  what is installed.
-- The shell MAY ask the user to start a napplet that is present but not
-  running.
-
 **Events and limits**
 - The shell SHOULD coalesce `neighbor.event` deliveries. It MAY rate-limit
   them.
@@ -379,6 +341,10 @@ Result messages carry `error` on failure. Every other field is then undefined.
   input. Two runtimes may reach differently for the same publish.
 - **The peering protocol.** How runtimes set up connections and carry
   neighborhoods between them is outside this NAP.
+- **Live sessions.** Real-time connections between peers belong to the
+  `webrtc` domain. A napplet can use a neighborhood to find people who want to
+  connect (for example by publishing an invitation event into it) and then
+  open a session through `webrtc`. This NAP does not route sessions.
 - **Media.** Voice and video are not part of this interface.
 
 ## Security Considerations
@@ -399,12 +365,10 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - **Presence.** `reachable` and `link` reveal that peers are reachable, and
   how. With the proximity extension they reveal physical closeness.
 - **Untrusted input.** Anyone can author events that reach a neighborhood. A
-  napplet MUST treat event content and `webrtc` payloads as untrusted.
+  napplet MUST treat event content as untrusted.
 - **Acting as the user.** Publishing to an address signs as the user, as in
   `relay`. Management operations change who the user is connected to; this is
   why they need confirmation.
-- **Probing.** Uniform `serve` failures stop peers from probing for installed
-  napplets. Rate limits on `webrtc.open` per peer SHOULD apply.
 - **Addresses are capabilities.** A leaked address is inert: it is per napplet,
   and refused for any other napplet.
 
@@ -417,3 +381,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `7698892` - Introduced NAP-NEIGHBOR draft: neighborhood membership, opaque `neighborhood:` addresses consumed by `relay`, `outbox`, `resource`, `upload` and `webrtc`, and an optional proximity extension. Supersedes NAP-MESH (#122).
 - `ef04953` - Dropped Nearby anonymity requirements (pubkey disclosure, mandatory id rotation); stated no expectation of privacy and that members may re-share events anywhere; forbade the shell from putting addresses into events.
 - `5fc9f63` - Reframed neighborhoods as propagation channels carried over the user's own peer connections: no membership, founders or invite rights. Renamed `members` to `peers` and `Member` to `Peer` (no `pubkey`); added `public` neighborhoods and kinds `private`/`public`/`nearby`; `mute` takes an author key; addresses may reach endpoints peers declare anywhere, not only the runtime's own network.
+- `PENDING` - Removed WebRTC: dropped `serve`/`unserve`, `Neighborhood.room`, `Peer.direct`, `Offer.sessions` and the `webrtc` dependency. Live sessions are left to the `webrtc` domain; neighborhoods only help napplets find who to connect to.
