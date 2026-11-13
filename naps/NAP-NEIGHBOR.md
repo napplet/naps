@@ -283,6 +283,9 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - The shell MUST expose only the neighborhoods the user granted to the napplet,
   and peers in those only.
 - The shell SHOULD let the user choose neighborhoods per napplet at grant time.
+- With the proximity extension, the shell MAY grant `nearby` without asking.
+  It SHOULD show the grant on the napplet's info surface and let the user
+  revoke it.
 - Revoking a grant, or leaving a neighborhood, MUST end the napplet's
   subscriptions and requests bound to its addresses. They end with the owning
   domain's close message and reason `"revoked"`.
@@ -389,3 +392,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `ff3ff99` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
 - `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
+- `PENDING` - Allowed the shell to grant `nearby` without asking, shown and revocable.
