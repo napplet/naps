@@ -392,4 +392,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `ff3ff99` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
 - `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
-- `PENDING` - Allowed the shell to grant `nearby` without asking, shown and revocable.
+- `e4acef9` - Allowed the shell to grant `nearby` without asking, shown and revocable.
