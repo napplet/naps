@@ -393,4 +393,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
 - `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
 - `e4acef9` - Allowed the shell to grant `nearby` without asking, shown and revocable.
-- `PENDING` - `Peer.name` may come from the peer itself when the user has not named them.
+- `a52447d` - `Peer.name` may come from the peer itself when the user has not named them.
