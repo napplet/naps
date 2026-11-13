@@ -39,8 +39,9 @@ it chooses. The contract names no transport.
 A napplet may also ask the user to start, join, share or leave a
 neighborhood. The shell mediates every such request.
 
-A runtime MAY implement the **proximity extension** (see below): a `nearby`
-neighborhood of devices physically close to the user. Not every runtime has
+A runtime MAY implement the **proximity extension** (see below): an
+auto-accepted neighborhood named `nearby`, carried on connections to devices
+physically close to the user. Not every runtime has
 radios; the core NAP works without it.
 
 ## API Surface
@@ -63,15 +64,14 @@ Enums:
 
 | Name | Values |
 |------|--------|
-| `NeighborhoodKind` | `unlisted`, `named`, `nearby` |
-| `Feature` | `create`, `named`, `invite`, `leave`, `offer`, `mute`, `nearby` |
+| `Feature` | `create`, `invite`, `leave`, `offer`, `mute`, `nearby` |
 | `LinkClass` | `proximity` (proximity extension only), `local`, `internet` |
 
 `NeighborInfo` fields:
 
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
-| `features` | yes | list of `Feature` | Operations and kinds this runtime offers. |
+| `features` | yes | list of `Feature` | Operations and extensions this runtime offers. |
 | `services` | yes | list of text | Service names peers may offer (see `Offer.services`). |
 
 `Neighborhood` fields:
@@ -80,7 +80,7 @@ Enums:
 |-------|----------|------|-------|
 | `id` | yes | text | Opaque, minted per napplet. |
 | `name` | yes | text | Display name. Not unique. |
-| `kind` | yes | `NeighborhoodKind` | `unlisted`: reached only through someone who shares it. `named`: anyone using the same name joins the same neighborhood. Neither is private. |
+| `autoAccept` | yes | boolean | New peers carrying it are accepted without asking. Anyone using the same name joins the same auto-accepted neighborhood. |
 | `peers` | yes | integer | The user's peers that carry it. |
 | `reachable` | yes | integer | Of those, reachable now. Reported, not promised. |
 | `address` | no | text | `neighborhood:` URI for the whole neighborhood. |
@@ -113,7 +113,7 @@ Enums:
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `name` | yes | text | |
-| `kind` | no | `"unlisted"` or `"named"` | Omitted means `unlisted`. `named` needs the `named` feature. |
+| `autoAccept` | no | boolean | Omitted means `false`. |
 
 `InviteResult` fields:
 
@@ -138,8 +138,10 @@ Enums:
 neighborhood. It never describes anyone further away; nobody knows who that
 is.
 
-**`create(request)`** asks the user to start a neighborhood, or for `named`,
-to join the named neighborhood of that name. It resolves after the user
+**`create(request)`** asks the user to start a neighborhood. With
+`autoAccept`, it joins the auto-accepted neighborhood of that name, which
+others may already carry. Without it, the neighborhood is new, even if another
+has the same name; it reaches people only as the user shares it. It resolves after the user
 confirms, and grants it to the calling napplet.
 
 **`invite(neighborhood, candidates?)`** asks the user to share a neighborhood
@@ -186,13 +188,14 @@ A peer address reaches that peer only. Its traffic is not passed on.
 
 Optional. A runtime that can sense nearby devices (radio, local network, tap)
 MAY implement it and lists `nearby` in `info.features`. A runtime without it
-omits `nearby`, never returns a `nearby` neighborhood, and never reports
+omits `nearby`, never returns the `nearby` neighborhood, and never reports
 `link: "proximity"`. Napplets MUST work without it.
 
 It adds:
 
-- **The `nearby` kind.** One neighborhood, maintained by the runtime, carried
-  on short-lived connections to devices close to the user right now. `create`,
+- **The `nearby` neighborhood.** Auto-accepted, named `nearby`, maintained by
+  the runtime, carried on short-lived connections to devices close to the user
+  right now. `create`,
   `invite` and `setOffer` on it fail with `"unsupported"`. Peers come and go
   as they move in and out of range, and their ids MAY change between
   encounters.
@@ -235,18 +238,18 @@ outside this NAP.
 ```
 -> { "type": "neighbor.list", "id": "n1" }
 <- { "type": "neighbor.list.result", "id": "n1", "neighborhoods": [
-     { "id": "h_2c", "name": "Household", "kind": "unlisted", "peers": 3,
+     { "id": "h_2c", "name": "Household", "autoAccept": false, "peers": 3,
        "reachable": 2, "address": "neighborhood://h_2c" } ] }
 -> { "type": "relay.subscribe", "id": "r1", "subId": "s1",
      "filters": [{ "kinds": [1], "limit": 50 }], "relay": "neighborhood://h_2c" }
 ```
 
-**Join a named neighborhood:**
+**Join an auto-accepted neighborhood:**
 ```
 -> { "type": "neighbor.create", "id": "n2",
-     "request": { "name": "Lowlands 2027", "kind": "named" } }
+     "request": { "name": "Lowlands 2027", "autoAccept": true } }
 <- { "type": "neighbor.create.result", "id": "n2", "neighborhood": {
-     "id": "h_91", "name": "Lowlands 2027", "kind": "named", "peers": 0,
+     "id": "h_91", "name": "Lowlands 2027", "autoAccept": true, "peers": 0,
      "reachable": 0, "address": "neighborhood://h_91" } }
 ```
 
@@ -264,7 +267,7 @@ Result messages carry `error` on failure. Every other field is then undefined.
 
 | Error | Meaning |
 |-------|---------|
-| `"unsupported"` | The runtime does not offer this operation or kind (see `info.features`). |
+| `"unsupported"` | The runtime does not offer this operation (see `info.features`). |
 | `"denied"` | Not granted, or refused by policy. |
 | `"cancelled"` | The user declined. |
 | `"not found"` | Unknown or ungranted neighborhood or peer id. |
@@ -383,3 +386,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `5fc9f63` - Reframed neighborhoods as propagation channels carried over the user's own peer connections: no membership, founders or invite rights. Renamed `members` to `peers` and `Member` to `Peer` (no `pubkey`); added `public` neighborhoods and kinds `private`/`public`/`nearby`; `mute` takes an author key; addresses may reach endpoints peers declare anywhere, not only the runtime's own network.
 - `f4f34ec` - Removed WebRTC: dropped `serve`/`unserve`, `Neighborhood.room`, `Peer.direct`, `Offer.sessions` and the `webrtc` dependency. Live sessions are left to the `webrtc` domain; neighborhoods only help napplets find who to connect to.
 - `ff3ff99` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
+- `PENDING` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
