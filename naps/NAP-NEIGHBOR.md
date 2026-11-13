@@ -388,4 +388,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `f4f34ec` - Removed WebRTC: dropped `serve`/`unserve`, `Neighborhood.room`, `Peer.direct`, `Offer.sessions` and the `webrtc` dependency. Live sessions are left to the `webrtc` domain; neighborhoods only help napplets find who to connect to.
 - `ff3ff99` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
-- `PENDING` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
+- `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
