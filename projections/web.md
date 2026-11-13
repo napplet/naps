@@ -43,6 +43,44 @@ are delivered by `postMessage`:
 <- { "type": "relay.publish.result", "id": "a1", "ok": true } // shell → napplet
 ```
 
+## Resource binding
+
+### Network-isolation prerequisite
+
+Exposing `window.napplet.resource` requires enforced direct-network denial for
+that napplet before any napplet-controlled code or resource is processed, and
+throughout its lifetime. An opaque iframe origin is insufficient. This is a
+NAP-RESOURCE prerequisite beyond the advisory CSP in
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303), not a claim that the
+upstream sandbox already guarantees it.
+
+The shell MUST enforce a browser policy blocking direct `fetch`, XHR,
+WebSocket, EventSource, beacon, and external subresource loads. It MUST also
+prevent workers, nested contexts, navigation, or other browser facilities from
+bypassing that policy. Follow the upstream CSP placement and artifact-verification
+rules; replacing JavaScript globals alone is not enforcement. The shell MUST NOT
+apply the upstream direct-network opt-in exception to a napplet exposed to this
+domain. If the host cannot enforce these restrictions, it MUST NOT expose
+`window.napplet.resource` to that napplet.
+
+### Bytes and local helpers
+
+All wire `blob` fields retain NAP-RESOURCE's canonical `ResourceBytes` base64
+text across `postMessage`. The binding MUST validate and decode the text, then
+construct a `Blob` from the decoded octets with the runtime-classified `mime` as
+its media type. `resource.bytes()` returns that Blob. Successful
+`resource.bytesMany()` items expose the decoded Blob in `blob`; failed items
+remain errors. Imported resource sidecars use the same conversion before cache
+hydration. The binding MUST NOT accept Blob, ArrayBuffer, or integer-array wire
+alternatives. Invalid encoding is a protocol failure and MUST NOT reach a success
+callback or cache entry.
+
+`bytesAsObjectURL(url)` is a local web helper over `bytes`: it creates an object
+URL for the returned Blob and returns `{ url, revoke }`, where `revoke` releases
+that URL. It adds no wire message. An optional `opts.signal` on `bytes` or
+`bytesMany` maps abort to the NAP's `resource.cancel` message and suppresses late
+results for the cancelled request.
+
 ## Convention URI binding
 
 A developer MAY pass
@@ -87,7 +125,8 @@ verified artifact identity defined by
 [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303). The runtime verifies the signed
 manifest and its artifact hash before execution; it does not trust an identity
 supplied by the napplet or a gateway. Napplets are untrusted: they never receive signing
-keys, wallet credentials, or raw network access. Security-critical operations are
+keys or wallet credentials. Direct-network denial for resource-enabled napplets
+is enforced as specified in [Resource binding](#resource-binding). Security-critical operations are
 performed by the shell on the napplet's behalf, gated by per-napplet capability
 policy.
 
