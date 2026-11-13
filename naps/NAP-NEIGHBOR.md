@@ -63,8 +63,8 @@ Enums:
 
 | Name | Values |
 |------|--------|
-| `NeighborhoodKind` | `private`, `public`, `nearby` |
-| `Feature` | `create`, `public`, `invite`, `leave`, `offer`, `mute`, `nearby` |
+| `NeighborhoodKind` | `unlisted`, `named`, `nearby` |
+| `Feature` | `create`, `named`, `invite`, `leave`, `offer`, `mute`, `nearby` |
 | `LinkClass` | `proximity` (proximity extension only), `local`, `internet` |
 
 `NeighborInfo` fields:
@@ -80,7 +80,7 @@ Enums:
 |-------|----------|------|-------|
 | `id` | yes | text | Opaque, minted per napplet. |
 | `name` | yes | text | Display name. Not unique. |
-| `kind` | yes | `NeighborhoodKind` | `public`: anyone using the same name joins the same neighborhood. |
+| `kind` | yes | `NeighborhoodKind` | `unlisted`: reached only through someone who shares it. `named`: anyone using the same name joins the same neighborhood. Neither is private. |
 | `peers` | yes | integer | The user's peers that carry it. |
 | `reachable` | yes | integer | Of those, reachable now. Reported, not promised. |
 | `address` | no | text | `neighborhood:` URI for the whole neighborhood. |
@@ -113,7 +113,7 @@ Enums:
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `name` | yes | text | |
-| `kind` | no | `"private"` or `"public"` | Omitted means `private`. `public` needs the `public` feature. |
+| `kind` | no | `"unlisted"` or `"named"` | Omitted means `unlisted`. `named` needs the `named` feature. |
 
 `InviteResult` fields:
 
@@ -138,8 +138,8 @@ Enums:
 neighborhood. It never describes anyone further away; nobody knows who that
 is.
 
-**`create(request)`** asks the user to start a neighborhood, or for `public`,
-to join the public neighborhood of that name. It resolves after the user
+**`create(request)`** asks the user to start a neighborhood, or for `named`,
+to join the named neighborhood of that name. It resolves after the user
 confirms, and grants it to the calling napplet.
 
 **`invite(neighborhood, candidates?)`** asks the user to share a neighborhood
@@ -235,18 +235,18 @@ outside this NAP.
 ```
 -> { "type": "neighbor.list", "id": "n1" }
 <- { "type": "neighbor.list.result", "id": "n1", "neighborhoods": [
-     { "id": "h_2c", "name": "Household", "kind": "private", "peers": 3,
+     { "id": "h_2c", "name": "Household", "kind": "unlisted", "peers": 3,
        "reachable": 2, "address": "neighborhood://h_2c" } ] }
 -> { "type": "relay.subscribe", "id": "r1", "subId": "s1",
      "filters": [{ "kinds": [1], "limit": 50 }], "relay": "neighborhood://h_2c" }
 ```
 
-**Join a public neighborhood:**
+**Join a named neighborhood:**
 ```
 -> { "type": "neighbor.create", "id": "n2",
-     "request": { "name": "Lowlands 2027", "kind": "public" } }
+     "request": { "name": "Lowlands 2027", "kind": "named" } }
 <- { "type": "neighbor.create.result", "id": "n2", "neighborhood": {
-     "id": "h_91", "name": "Lowlands 2027", "kind": "public", "peers": 0,
+     "id": "h_91", "name": "Lowlands 2027", "kind": "named", "peers": 0,
      "reachable": 0, "address": "neighborhood://h_91" } }
 ```
 
@@ -382,3 +382,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `ef04953` - Dropped Nearby anonymity requirements (pubkey disclosure, mandatory id rotation); stated no expectation of privacy and that members may re-share events anywhere; forbade the shell from putting addresses into events.
 - `5fc9f63` - Reframed neighborhoods as propagation channels carried over the user's own peer connections: no membership, founders or invite rights. Renamed `members` to `peers` and `Member` to `Peer` (no `pubkey`); added `public` neighborhoods and kinds `private`/`public`/`nearby`; `mute` takes an author key; addresses may reach endpoints peers declare anywhere, not only the runtime's own network.
 - `f4f34ec` - Removed WebRTC: dropped `serve`/`unserve`, `Neighborhood.room`, `Peer.direct`, `Offer.sessions` and the `webrtc` dependency. Live sessions are left to the `webrtc` domain; neighborhoods only help napplets find who to connect to.
+- `PENDING` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
