@@ -91,7 +91,7 @@ Enums:
 | Field | Required | Type | Notes |
 |-------|----------|------|-------|
 | `id` | yes | text | Opaque, minted per napplet and neighborhood. Not a social identity. |
-| `name` | no | text | Display name the user gave this peer, if any. |
+| `name` | no | text | Display name: the user's own name for this peer, else the name the peer asked to be called. Not unique, not verified. |
 | `reachable` | yes | boolean | |
 | `link` | no | `LinkClass` | Coarse class of the current path. |
 | `services` | yes | list of text | Services this peer offers in this neighborhood. |
@@ -393,3 +393,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
 - `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
 - `e4acef9` - Allowed the shell to grant `nearby` without asking, shown and revocable.
+- `PENDING` - `Peer.name` may come from the peer itself when the user has not named them.
