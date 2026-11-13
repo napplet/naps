@@ -104,8 +104,9 @@ Enums:
 | `relayRead` | yes | boolean | Peers may read this neighborhood's events from the user. |
 | `relayWrite` | yes | boolean | Peers may send events to the user in this neighborhood. |
 | `relayOwn` | yes | boolean | Peers may also read events the user keeps outside any neighborhood. |
-| `blobRead` | yes | boolean | |
-| `blobWrite` | yes | boolean | |
+| `blobRead` | yes | boolean | Peers may fetch blobs that arrived through, or were published into, this neighborhood. |
+| `blobWrite` | yes | boolean | Peers may upload blobs to the user in this neighborhood. |
+| `blobOwn` | yes | boolean | Peers may also fetch blobs the user keeps outside any neighborhood. |
 | `services` | no | list of text | Further runtime-defined service names. |
 
 `CreateRequest` fields:
@@ -387,3 +388,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `f4f34ec` - Removed WebRTC: dropped `serve`/`unserve`, `Neighborhood.room`, `Peer.direct`, `Offer.sessions` and the `webrtc` dependency. Live sessions are left to the `webrtc` domain; neighborhoods only help napplets find who to connect to.
 - `ff3ff99` - Renamed neighborhood kinds `private`/`public` to `unlisted`/`named` (and the `public` feature to `named`): an id can be passed on by anyone, so neither kind is private.
 - `c5d7c9e` - Removed neighborhood kinds. Added `autoAccept`: auto-accepted neighborhoods are joined by name and take new peers without asking; others are new on create even if the name repeats. `nearby` is the auto-accepted neighborhood of that name; dropped the `named` feature.
+- `PENDING` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
