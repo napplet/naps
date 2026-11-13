@@ -272,6 +272,7 @@ Result messages carry `error` on failure. Every other field is then undefined.
 | `"denied"` | Not granted, or refused by policy. |
 | `"cancelled"` | The user declined. |
 | `"not found"` | Unknown or ungranted neighborhood or peer id. |
+| `"invalid"` | Malformed request: a required field missing, or a field of the wrong type. |
 
 ## Shell Behavior
 
@@ -394,3 +395,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `a0ad196` - Added `Offer.blobOwn`, the blob counterpart of `relayOwn`, and defined `blobRead`/`blobWrite`.
 - `e4acef9` - Allowed the shell to grant `nearby` without asking, shown and revocable.
 - `a52447d` - `Peer.name` may come from the peer itself when the user has not named them.
+- `PENDING` - Added the `"invalid"` error for malformed requests, as NAP-NAVIGATION (#126) names it.
