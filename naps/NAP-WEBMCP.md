@@ -10,6 +10,8 @@ Expose live napplet operations to authorized agents
 **Domain:** `webmcp`  
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.webmcp`; domain presence signals availability.
 
+**Depends:** none.
+
 ## Description
 
 The runtime accepts typed tools from a running napplet and mediates their
@@ -43,7 +45,10 @@ MUST revoke existing exposure grants for that instance, so changed operations
 cannot inherit approval. Duplicate local names MUST be rejected; replacement
 requires withdrawal first. `reset` retains descriptors but revokes exposure and
 cancels outstanding calls. A napplet MUST reset before replacing the private
-document or equivalent context to which an exposure grant applied.
+document or equivalent context to which an exposure grant applied. It MUST await
+reset acknowledgement and prevent old executors from reading or changing the new
+context. A successful reset acknowledges grant revocation and cancellation, not
+executor settlement or rollback.
 
 ### Schemas
 
@@ -70,8 +75,9 @@ Exposure is an aggregate availability notification. It neither identifies an
 agent nor authorizes the napplet to contact one. Grants for different consumers
 remain shell policy and MUST NOT be inferred from this boolean.
 
-**Schema** is the following closed subset of JSON Schema. Keywords use their
-JSON Schema validation meanings. Each schema MUST specify one `type`.
+**Schema** is the following closed subset of
+[JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
+Keywords use that dialect's meanings. Each schema MUST specify one `type`.
 Unsupported keywords MUST fail registration, not be silently ignored.
 
 | Keyword | Applicable type | Value |
@@ -89,6 +95,9 @@ Unsupported keywords MUST fail registration, not be silently ignored.
 | `minimum`, `maximum` | number, integer | finite number |
 
 Inconsistent bounds or malformed keyword values MUST fail registration.
+String lengths count Unicode code points, not encoding units. Equality for
+`enum` and `uniqueItems` is structural: object member order does not matter;
+array order does. Keywords outside their applicable type MUST fail registration.
 References, remote schema loading, executable validators, composition and type
 coercion are outside this contract. JSON data MUST contain only finite numbers
 and ordinary JSON values. Bindings MUST prevent prototype-key assignment from
@@ -111,8 +120,13 @@ SHOULD describe the recoverable cause without exposing credentials or stack dump
 
 Messages describe the seam independently of transport. The web projection carries
 them using the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format.
+Request IDs are non-empty text, unique among that instance's pending requests.
+Every valid request MUST receive one matching result or error while the instance
+remains connected. Success fields and `error` are mutually exclusive.
 Requests and results correlate by `id`. Executor traffic correlates by both
 `callId` and `registrationId`, scoped to the authenticated napplet instance.
+Both identifiers are non-empty text. Arguments are a JSON object; progress
+`text` is text. Successful completion MUST contain `result`, even when it is null.
 
 | Type | Direction | Payload fields |
 |------|-----------|----------------|
@@ -155,7 +169,8 @@ After shell authorization:
   against `outputSchema`, when present, before delivery. The napplet MUST also
   validate arguments and application-specific preconditions.
 - The shell MUST bound registration count, descriptor/data size, queued work and
-  execution time, and document these limits. Registration overload fails with
+  execution time, and document these limits, including how approval waits count
+  toward deadlines. Registration overload fails with
   `quota-exceeded`; execution overload fails with `busy`. Queues MUST be bounded.
 - At most one executor per instance may run at once. Implementations MAY queue
   calls, rechecking authorization and registration immediately before dispatch.
@@ -165,10 +180,14 @@ After shell authorization:
   the shell MUST reject the caller, cancel dispatched work, discard queued work
   and ignore late output. The instance MUST remain busy until its executor
   settles or the instance ends. A rejected caller does not prove work stopped.
+  A late terminal response MAY establish settlement and release the execution
+  slot, but MUST NOT be delivered as a new success to the rejected caller.
 - Withdrawal cancels calls to that registration. Reset revokes all consumer
   grants and cancels all outstanding calls for the instance.
 - Reload, teardown, loss of the instance channel and shell account changes MUST
   withdraw registrations and grants. No registration survives by name alone.
+  This contract does not resume calls across instances or document replacement;
+  a consumer's continuation mechanism MUST NOT transfer the old authority.
 - A timeout after dispatch can leave effects uncertain. The shell MUST NOT
   automatically retry an invocation. Cancellation cannot undo completed effects;
   napplets SHOULD make mutations visible and offer undo where appropriate.
@@ -179,6 +198,9 @@ The runtime MUST bind each registration and executor message to the verified
 napplet instance, rather than trusting a supplied name or currently focused app.
 Consumer names MUST be namespaced by the runtime. The shell MUST preserve clear
 napplet attribution when projecting tools under its own origin or agent identity.
+It SHOULD make active work and pending host approval visible and provide a way
+to stop work or revoke access. Presentation remains shell policy, including
+keeping approval controls reachable in expanded or fullscreen views.
 
 Registration MUST NOT grant exposure. Authorization is shell-controlled and
 scoped to the instance and current document context. Read-only tools disclose
@@ -203,6 +225,13 @@ example, an export can report a file's name, media type and readiness after an
 independently authorized file operation. A virtual path is not a public URL or
 proof of download. This NAP introduces neither public artifact hosting nor an
 agent file-download permission.
+
+Accepting a call, granting a permission and completing its requested operation are
+distinct. The runtime MUST NOT report tool success merely because a user approved
+a host request. A tool returning a prepared artifact SHOULD state what is ready
+and what remains for the user or consumer to do. The shell SHOULD offer an
+accessible download action when it provides user-download delivery. No download
+receipt may be inferred from the tool's successful return.
 
 ## Authoring guidance (informative)
 
