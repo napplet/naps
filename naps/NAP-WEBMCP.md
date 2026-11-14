@@ -253,3 +253,4 @@ direction and NAP-LLM's inference exchange do not register live application tool
 ## Changelog
 
 - `5d0f26a` - Propose permissioned live tool registration, typed execution, cancellation and context-scoped exposure.
+- `9d523e2` - Clarify schema semantics, request correlation, reset acknowledgement, approval deadlines, late settlement and artifact delivery.
