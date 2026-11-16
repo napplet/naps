@@ -417,3 +417,4 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - `e4acef9` - Allowed the shell to grant `nearby` without asking, shown and revocable.
 - `a52447d` - `Peer.name` may come from the peer itself when the user has not named them.
 - `382c0f5` - Added the `"invalid"` error for malformed requests, as NAP-NAVIGATION (#126) names it.
+- `ed2977d` - Added the optional `napplet-updates` extension: the runtime shares newer manifests of installed napplets into neighborhoods with that version's files, and gets them, each a separate user choice per neighborhood. Neighborhoods are no longer granted per napplet: a napplet with `neighbor` sees all of them, under its own ids.
