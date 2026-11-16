@@ -64,7 +64,7 @@ Enums:
 
 | Name | Values |
 |------|--------|
-| `Feature` | `create`, `invite`, `leave`, `offer`, `mute`, `nearby` |
+| `Feature` | `create`, `invite`, `leave`, `offer`, `mute`, `nearby`, `napplet-updates` |
 | `LinkClass` | `proximity` (proximity extension only), `local`, `internet` |
 
 `NeighborInfo` fields:
@@ -133,7 +133,7 @@ Enums:
 **`info()`** reports features and service names. A napplet MUST check
 `features` before calling an operation it names.
 
-**`list()`** returns only the neighborhoods the user granted this napplet.
+**`list()`** returns every neighborhood the user carries.
 
 **`peers(neighborhood)`** returns the user's own peers that carry that
 neighborhood. It never describes anyone further away; nobody knows who that
@@ -143,7 +143,7 @@ is.
 `autoAccept`, it joins the auto-accepted neighborhood of that name, which
 others may already carry. Without it, the neighborhood is new, even if another
 has the same name; it reaches people only as the user shares it. It resolves after the user
-confirms, and grants it to the calling napplet.
+confirms.
 
 **`invite(neighborhood, candidates?)`** asks the user to share a neighborhood
 with people. `candidates` are `Peer.id` values from other neighborhoods this
@@ -160,8 +160,7 @@ peers in that neighborhood. It resolves to the offer actually in force.
 `author` (a Nostr public key, hex) in that neighborhood. This is local; nobody
 else is told.
 
-**`onEvent(handler)`** receives neighborhood and peer changes for granted
-neighborhoods.
+**`onEvent(handler)`** receives neighborhood and peer changes.
 
 ### Addresses
 
@@ -208,6 +207,31 @@ It adds:
 
 How the runtime discovers devices (Bluetooth LE, Wi-Fi Aware, NFC, a LAN, …) is
 outside this NAP.
+
+### Napplet-updates extension
+
+Optional. A runtime that carries napplet updates through neighborhoods lists
+`napplet-updates` in `info.features`. Napplets MUST work without it.
+
+An update is a newer manifest event, as [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)
+defines it, for a napplet slot. The runtime shares and gets updates
+proactively, with no napplet involved:
+
+| Direction | Runtime behavior |
+|-----------|------------------|
+| Share | After it installs a newer version of a napplet the user has installed, the runtime MAY publish that manifest event into neighborhoods as an ordinary neighborhood event. It MUST then make that version's files fetchable through those neighborhoods' addresses. It MUST NOT make other files fetchable this way. |
+| Get | On receiving, in a neighborhood, a manifest for a napplet the user has installed, newer than the installed one, the runtime MAY fetch its files through that neighborhood, verify them, and install it. Grants follow the runtime's usual rules for a new version. Once installed, it MAY share it onward. |
+
+- Sharing and getting are separate user choices per neighborhood. Neither is
+  negotiated with peers.
+- A shared manifest travels like any neighborhood event. Peers that don't get
+  updates still keep and pass it on by their own policy.
+- A napplet reads these manifests like any event in a neighborhood. An app
+  store can list the napplets held around the user, and check a listing's
+  files with `resource.bytes` on that neighborhood's address.
+- Runtime-specific updates (for example the runtime's own release) MAY travel
+  the same way. They are outside this NAP; peers that don't know them treat
+  them as ordinary events.
 
 ## Wire Protocol
 
@@ -271,7 +295,7 @@ Result messages carry `error` on failure. Every other field is then undefined.
 | `"unsupported"` | The runtime does not offer this operation (see `info.features`). |
 | `"denied"` | Not granted, or refused by policy. |
 | `"cancelled"` | The user declined. |
-| `"not found"` | Unknown or ungranted neighborhood or peer id. |
+| `"not found"` | Unknown neighborhood or peer id. |
 | `"invalid"` | Malformed request: a required field missing, or a field of the wrong type. |
 
 ## Shell Behavior
@@ -280,16 +304,13 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - The shell MUST respond to every request with a result message carrying the
   same `id`.
 
-**Grants and visibility**
-- The shell MUST expose only the neighborhoods the user granted to the napplet,
-  and peers in those only.
-- The shell SHOULD let the user choose neighborhoods per napplet at grant time.
-- With the proximity extension, the shell MAY grant `nearby` without asking.
-  It SHOULD show the grant on the napplet's info surface and let the user
-  revoke it.
-- Revoking a grant, or leaving a neighborhood, MUST end the napplet's
-  subscriptions and requests bound to its addresses. They end with the owning
-  domain's close message and reason `"revoked"`.
+**Visibility**
+- Neighborhoods are not tied to napplets. A napplet granted the `neighbor`
+  domain sees every neighborhood the user carries, and the peers in those,
+  under its own ids and addresses.
+- Revoking the `neighbor` grant, or leaving a neighborhood, MUST end the
+  napplet's subscriptions and requests bound to the affected addresses. They
+  end with the owning domain's close message and reason `"revoked"`.
 
 **Identifiers**
 - `Neighborhood.id`, `Peer.id` and the addresses MUST be opaque and minted per
@@ -364,12 +385,12 @@ Result messages carry `error` on failure. Every other field is then undefined.
 - **Re-sharing is permitted.** A peer holds what they received and may pass it
   on, including outside the neighborhood. This is how events travel offline
   and spread.
-- **Bridging is permitted.** A napplet granted two neighborhoods can repost
-  from one into the other. Segregation constrains the shell, not the napplet.
-  Grant UI SHOULD say when a napplet holds more than one neighborhood.
+- **Bridging is permitted.** A napplet can repost from one neighborhood into
+  another. Segregation constrains the shell, not the napplet. Grant UI SHOULD
+  say that a napplet with `neighbor` sees all of the user's neighborhoods.
 - **Social map.** Which neighborhoods the user carries, and with which peers,
-  maps their social life. Grants are per neighborhood. Ids are per napplet, so
-  two napplets cannot correlate them.
+  maps their social life, and every napplet with `neighbor` sees it. Ids are
+  per napplet, so two napplets cannot correlate them.
 - **Presence.** `reachable` and `link` reveal that peers are reachable, and
   how. With the proximity extension they reveal physical closeness.
 - **Untrusted input.** Anyone can author events that reach a neighborhood. A
