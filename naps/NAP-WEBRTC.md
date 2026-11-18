@@ -516,3 +516,5 @@ revokes the capability.
 - `10793e0` - Added optional delivery semantics, byte payloads, an advertised payload limit, advisory stats, and authenticated peer public keys.
 
 - `ec6819c` - Scoped delivery semantics to the whole session, including late joiners, and allowed shell-generated temporary keys.
+
+- `26674ff` - Required the `nap-webrtc/1` signaling profile (channel-scoped rendezvous hash, hello/offer/answer envelopes with delivery semantics, interop payload limit), added the `signaling.relays` hint and report, and fixed the default channel to `"napplet"`.
