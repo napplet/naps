@@ -540,3 +540,5 @@ revokes the capability.
 - `ec6819c` - Scoped delivery semantics to the whole session, including late joiners, and allowed shell-generated temporary keys.
 
 - `26674ff` - Required the `nap-webrtc/1` signaling profile (channel-scoped rendezvous hash, hello/offer/answer envelopes with delivery semantics, interop payload limit), added the `signaling.relays` hint and report, and fixed the default channel to `"napplet"`.
+
+- `387faa5` - Added required `WebrtcSession.localPubkey` and a transport identity rule: with `cvm` exposed to the same napplet endpoint, the session key is that endpoint's ContextVM client key; declared `cvm` as an optional layering dependency.
