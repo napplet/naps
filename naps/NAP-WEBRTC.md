@@ -59,6 +59,7 @@ Enums:
 | `protocol` | no | text |
 | `ordered` | no | boolean |
 | `maxRetransmits` | no | unsigned integer |
+| `signaling` | no | `WebrtcSignaling` |
 
 `WebrtcOpenResult` fields:
 
@@ -78,6 +79,13 @@ Enums:
 | `ordered` | no | boolean |
 | `maxRetransmits` | no | unsigned integer |
 | `maxPayloadBytes` | no | unsigned integer |
+| `signaling` | no | `WebrtcSignaling` |
+
+`WebrtcSignaling` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `relays` | no | list of text |
 
 `WebrtcEvent` variants:
 
@@ -93,10 +101,11 @@ Enums:
 **`open(request)`** — Requests a WebRTC session. For `direct`, the shell connects
 to one peer pubkey. For `room`, the shell announces presence to the room and may
 connect to discovered peers or to the requested `peers` subset. `channel` names
-the WebRTC data channel; when omitted, the shell chooses a default. `protocol`
+the WebRTC data channel; when omitted, it is `"napplet"`. `protocol`
 is an application-level label for the payloads carried after connection and has
 no NAP-WEBRTC semantics. `ordered` and `maxRetransmits` request delivery
-semantics; see [Delivery](#delivery).
+semantics; see [Delivery](#delivery). `signaling.relays` names relays for signaling;
+see [Relays](#relays).
 
 **`send(sessionId, payload)`** — Sends an opaque payload over the established
 session. The shell serializes and delivers it over the WebRTC data channel. This
@@ -308,17 +317,122 @@ Key design notes:
 
 ## Signaling
 
-NIP-100 is an unmerged draft at
-<https://github.com/nostr-protocol/nips/pull/363>. It is a useful reference for
-WebRTC signaling over Nostr, but it is not part of the NAP-WEBRTC interface.
+Peers in different runtimes connect only if their shells signal the same way.
+A conformant shell MUST signal every session with the `nap-webrtc/1` profile
+defined here. NIP-100 (<https://github.com/nostr-protocol/nips/pull/363>) is an
+unmerged draft and is not part of this interface. The profile reuses its
+ephemeral event kind.
 
-A conformant shell MAY use NIP-100, a later accepted Nostr signaling NIP, or
-another Nostr signaling scheme. That choice is a runtime detail. The napplet
-observes only the `webrtc.*` interface, session state, peer state, and opaque
-peer messages defined here.
+The napplet observes only the `webrtc.*` interface, session state, peer state,
+and opaque peer messages. Raw signaling events, envelopes, nonces, and SDP are
+shell-internal transport data. The shell MUST NOT expose them to the napplet.
 
-Regardless of signaling scheme, the shell MUST treat raw signaling payloads as
-shell-internal transport data, not as napplet-visible API data.
+### Rendezvous
+
+Each session has a `wire` value. Two sessions can connect only when their `wire`
+values are equal.
+
+| Input | Value |
+|-------|-------|
+| `napplet` | The napplet's manifest address `<kind>:<pubkey>:<identifier>`, with lowercase hex `pubkey` and an empty `identifier` for a root manifest. A snapshot manifest uses the address it names as its source. |
+| `scope` | `["room", room]` for a room. `["direct", low, high]` for a direct session, where `low` and `high` are the two lowercase hex public keys in ascending order. |
+| `channel` | The session `channel`. An omitted request `channel` is `"napplet"`. |
+| `protocol` | The request `protocol`, or `""` when omitted. |
+
+`wire` is the lowercase hex SHA-256 of the UTF-8 bytes of the JSON array
+`["nap-webrtc/1", napplet, scope, channel, protocol]`, serialized as
+[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) specifies.
+
+- `wire` binds the napplet, scope, channel, and protocol, so each session
+  signals independently. Opening or closing one session MUST NOT affect another.
+- A napplet without a manifest address has no portable rendezvous. The shell MAY
+  use a shell-local `napplet` value; such sessions do not interoperate.
+
+Test vector:
+
+```
+preimage: ["nap-webrtc/1","35129:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc:arena",["room","k3f9-room"],"state","game:v1"]
+wire:     75a9f2b0e25701356ba60d999737b79d29ad53f556e58883ee4e34f7859d8005
+```
+
+### Relays
+
+`WebrtcOpenRequest.signaling.relays` names relays the napplet wants signaling
+to use. Shells reach each other only through a relay they share.
+
+- The shell MUST publish and subscribe on every hinted relay its policy permits,
+  in addition to its own signaling relays.
+- `WebrtcSession.signaling.relays` reports every relay the shell signals on. A
+  napplet compares it with its hint to detect a refused relay.
+- If no relay remains, `open` fails with `"signaling unavailable"`.
+- A napplet that needs peers in other runtimes SHOULD pass `signaling.relays`.
+
+### Signal events
+
+Signals are kind `25050` events signed by the session key.
+
+| Tag | Required | Value |
+|-----|----------|-------|
+| `d` | yes | `wire`. Exactly one. |
+| `p` | offer and answer | Recipient public key. Absent on `hello`. |
+| `expiration` | yes | `created_at` + 60, as [NIP-40](https://github.com/nostr-protocol/nips/blob/master/40.md) defines. |
+
+`content` is the JSON text of a `SignalEnvelope`. A `hello` is plaintext. An
+offer or answer is [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md)
+encrypted to the `p` key.
+
+`SignalEnvelope` fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `v` | yes | `"nap-webrtc/1"` | Profile identifier. |
+| `wire` | yes | text | Equals the `d` tag. |
+| `nonce` | yes | text | 1–64 characters, random per session. |
+| `type` | yes | `"hello"`, `"offer"`, or `"answer"` | |
+| `to` | offer and answer | text | Recipient's `nonce`. |
+| `sdp` | offer and answer | text | Complete SDP with gathered candidates, at most 32000 characters. |
+| `delivery` | yes | `SignalDelivery` | The session's established semantics. |
+| `bytes` | yes | boolean | Whether the sender supports `sendBytes`. |
+
+`SignalDelivery` fields:
+
+| Field | Required | Type |
+|-------|----------|------|
+| `ordered` | yes | boolean |
+| `maxRetransmits` | yes | unsigned integer or `null` (reliable) |
+
+### Procedure
+
+1. The shell subscribes with `{"kinds":[25050],"#d":[wire],"since":<now - 10>}`
+   on its signaling relays, then publishes `hello`. It republishes `hello` at
+   most every 2 seconds and at least every 10 seconds while the session is open.
+2. The shell MUST ignore an event unless all of these hold: its signature is
+   valid; `created_at` is within 60 seconds of the current time; `pubkey` is not
+   the session key; the scope allows `pubkey`; any `p` tag names the session
+   key; `v` and `wire` match; a directed `to` equals the session `nonce`; and
+   `delivery` equals the session's established semantics.
+3. On a `hello` from an unknown key, or with a new `nonce` from a known key, the
+   shell drops any previous connection to that key, records the `nonce`, and
+   publishes `hello`.
+4. The lower key, comparing lowercase hex, offers. It creates one data channel
+   labelled with the session `channel`, with the established delivery
+   semantics, gathers all candidates, and publishes the offer. It republishes
+   an unanswered offer with each `hello`.
+5. The higher key answers each offer once per peer `nonce` and republishes the
+   same answer for a repeated offer.
+6. The shell MUST close a received data channel whose label or delivery
+   semantics differ from the session's.
+7. A peer joins when its data channel opens. It leaves when the channel closes,
+   the connection fails, or its `nonce` changes. A shell SHOULD drop a peer that
+   has not joined within 45 seconds.
+8. A `bytes` payload MUST NOT be sent to a peer whose envelopes report
+   `bytes: false`.
+
+### Interop limits
+
+- A shell MUST accept peer payloads of at least 16384 bytes. It MUST NOT
+  advertise `maxPayloadBytes` greater than 16384.
+- A shell MAY ignore more than 32 signal events per second for one session.
 
 ## Error Handling
 
@@ -366,6 +480,8 @@ revokes the capability.
 - WebRTC can reveal network metadata to peers. Shells MUST treat `open()` as an
   untrusted request and SHOULD require user policy or consent before starting a
   session.
+- A `hello` is plaintext. It shows relays the session key and `wire`, not the
+  room or napplet. A low-entropy room id can be guessed from `wire`.
 - Signaling room identifiers can be sensitive. Shells SHOULD prefer random,
   non-meaningful room ids and SHOULD avoid exposing private room ids to napplets
   that did not create or join them.
