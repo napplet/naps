@@ -8,7 +8,10 @@ Runtime-Mediated WebRTC Signaling
 
 **NAP ID:** NAP-WEBRTC
 **Domain:** `webrtc`
-**Depends:** none.
+**Depends:**
+- `cvm` — layering · optional — when both domains are exposed to one napplet
+  endpoint, the WebRTC session key is that endpoint's ContextVM client key; see
+  [Transport identity](#transport-identity).
 **Web binding ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)):** `window.napplet.webrtc`; domain presence signals availability.
 
 ## Description
@@ -80,6 +83,7 @@ Enums:
 | `maxRetransmits` | no | unsigned integer |
 | `maxPayloadBytes` | no | unsigned integer |
 | `signaling` | no | `WebrtcSignaling` |
+| `localPubkey` | yes | text |
 
 `WebrtcSignaling` fields:
 
@@ -193,6 +197,21 @@ second per peer.
 
 Stats are advisory. A napplet MUST NOT require them.
 
+### Transport identity
+
+`WebrtcSession.localPubkey` is the lowercase hex public key that signs the
+session's signaling. Peers see it as `from` and `pubkey`.
+
+- The shell MUST report `localPubkey`. A napplet uses it to recognize itself in
+  an application roster.
+- When the shell exposes `cvm` to the same napplet endpoint, `localPubkey` MUST
+  be the ContextVM client key the shell uses for that endpoint. A ContextVM
+  server then authenticates the same key that WebRTC peers authenticate.
+- The shell MUST NOT use one napplet endpoint's key for another napplet
+  endpoint.
+- The key is a transport identity, not the user's Nostr profile. The shell MUST
+  NOT present it as the user's identity.
+
 ## Wire Protocol
 
 `webrtc.*` messages use the [NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) wire format
@@ -240,7 +259,8 @@ Key design notes:
        "scope": { "type": "direct", "pubkey": "abc123..." },
        "channel": "chat",
        "protocol": "chat:live",
-       "state": "connecting"
+       "state": "connecting",
+       "localPubkey": "def456..."
      }
    }
 <- { "type": "webrtc.event", "event": { "type": "state", "sessionId": "sess-1", "state": "open" } }
@@ -292,7 +312,8 @@ Key design notes:
        "state": "connecting",
        "ordered": false,
        "maxRetransmits": 0,
-       "maxPayloadBytes": 16384
+       "maxPayloadBytes": 16384,
+       "localPubkey": "def456..."
      }
    }
 ```
@@ -465,9 +486,10 @@ revokes the capability.
   peer supplied over the data channel. The shell MUST NOT deliver payloads from
   a peer it cannot authenticate.
 - The shell MAY use a shell-generated temporary key for a session, including
-  when no user is signed in. `from` and `pubkey` identify the key authenticated
-  during signaling, which is not necessarily the user's usual Nostr profile
-  key.
+  when no user is signed in, subject to
+  [Transport identity](#transport-identity). `from` and `pubkey` identify the
+  key authenticated during signaling, which is not necessarily the user's
+  usual Nostr profile key.
 - The shell MAY limit relays, peers, rooms, payload sizes, data-channel labels,
   connection duration, or concurrent session count.
 - The shell MAY route a room session through a WebRTC media server or peer mesh.
