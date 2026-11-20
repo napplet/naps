@@ -122,7 +122,7 @@ grant network authority. Standard resource policy applies to mediated fetches.
 | `identity.getRelays` | napplet -> shell | `id` |
 | `identity.getRelays.result` | shell -> napplet | `id`, `relays`, `error?` |
 | `identity.getProfile` | napplet -> shell | `id` |
-| `identity.getProfile.result` | shell -> napplet | `id`, `profile?`, `error?` |
+| `identity.getProfile.result` | shell -> napplet | `id`, `profile`, `error?` |
 | `identity.getFollows` | napplet -> shell | `id` |
 | `identity.getFollows.result` | shell -> napplet | `id`, `pubkeys`, `error?` |
 | `identity.getList` | napplet -> shell | `id`, `listType` |
@@ -141,7 +141,7 @@ Key design notes:
 - `identity.changed` is a push message. It has no `id` and is not a response to a request.
 - All results include an optional `error` field for failure cases.
 - `getPublicKey` is the simplest query and MUST always succeed (no `error` field). It returns `pubkey: ""` when no shell-user identity is currently connected.
-- `getProfile` returns `profile: null` if no kind 0 is found -- this is not an error.
+- `getProfile` returns `profile: null` if no kind 0 is found -- this is not an error. `profile` is always present: a `ProfileData` object, or `null` when no profile is found or when `error` is set.
 - `getList` includes a `listType` field to specify which categorized list to query.
 
 Recommended handshake:
