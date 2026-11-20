@@ -92,7 +92,7 @@ same contract everywhere; only the host idiom changes.
 |------------|--------|------|
 | **Web** — iframes + `postMessage`, injected domains and URI-to-payload binding on `window.napplet.*` | In use | [projections/web.md](projections/web.md) ([NIP-5D](https://github.com/nostr-protocol/nips/pull/2303)) |
 | Native (OS process + IPC/FFI) | Possible | — |
-| WASM (host imports) | Possible | — |
+| WASM (host imports) | Draft proposal | [projections/wasm.md](projections/wasm.md) |
 
 The web projection is the only implementation today, and the specs are written
 against it — but the contracts are shaped so they need not stay web-only.
