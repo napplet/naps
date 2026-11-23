@@ -16,10 +16,10 @@ schemas, error models, trust boundaries) do not change between projections.
 | Concern | Web projection |
 |---------|----------------|
 | Host | Verified napplet artifacts run in `srcdoc` iframes with `sandbox="allow-scripts"` |
-| Carrier | Messages travel over `postMessage` |
+| Carrier | NAP messages travel over a dedicated `MessagePort`, handed to the shell once at load |
 | Surface | Capabilities and convention URI transposition appear on `window.napplet.*` |
 | Discovery | Presence of `window.napplet.<domain>`, injected before napplet scripts run |
-| Identity | Runtime verifies `MessageEvent.source` and binds each message to a napplet |
+| Identity | Runtime binds the verified napplet identity to that port, per document |
 
 ## Domain surfacing
 
@@ -36,7 +36,7 @@ domains into their own host idiom.
 ## Message delivery
 
 Request/result objects (the `domain.action` envelopes described in the registry)
-are delivered by `postMessage`:
+are delivered over the bound port:
 
 ```
 -> { "type": "relay.publish", "id": "a1", "event": { … } }   // napplet → shell
@@ -47,7 +47,7 @@ are delivered by `postMessage`:
 
 A developer MAY pass
 `napplet:<archetype>/<intent>[...?params]` to a `window.napplet.*` operation that
-accepts a convention URI. Before `postMessage`, the web binding:
+accepts a convention URI. Before sending, the web binding:
 
 1. extracts any NAP-INTENT handler fragment into `handlerHint` as specified below,
 2. removes the query from the stable convention identity,
@@ -71,7 +71,7 @@ napplet:<archetype>/<intent>[?params][#<naddr>]
 The web binding MUST implement the normalization and validation in
 [NAP-INTENT](../naps/NAP-INTENT.md#convention-uri-normalization). It decodes the
 bare `naddr` into `request.handlerHint.address` and optional
-`request.handlerHint.relays` before `postMessage`. The raw fragment MUST NOT
+`request.handlerHint.relays` before sending. The raw fragment MUST NOT
 appear in the wire convention or payload. A queryless invocation MAY combine
 the fragment with an explicit structured payload.
 
@@ -81,10 +81,13 @@ Every other convention-URI operation, including NAP-INC, MUST reject fragments.
 
 ## Identity & trust
 
-The shell is the policy boundary. For every inbound message it verifies
-`MessageEvent.source` to bind the message to a napplet identity — the
-verified artifact identity defined by
-[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303). The runtime verifies the signed
+The shell is the policy boundary. It binds a napplet identity — the verified
+artifact identity defined by
+[NIP-5D](https://github.com/nostr-protocol/nips/pull/2303) — to the port the
+verified document hands over at load, and processes NAP messages only from that
+port. `MessageEvent.source` authenticates that single handoff, not each message.
+The binding belongs to the document: a navigated or reloaded frame has no port,
+identity, or grants. The runtime verifies the signed
 manifest and its artifact hash before execution; it does not trust an identity
 supplied by the napplet or a gateway. Napplets are untrusted: they never receive signing
 keys, wallet credentials, or raw network access. Security-critical operations are
