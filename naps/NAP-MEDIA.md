@@ -499,3 +499,4 @@ For shell-owned sessions:
 
 - `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
 - `bd521c6` - Added playback and command reasons, terminal session notifications, stale-command rejection, ordered retirement delivery, and audio-focus resumption rules; aligned the operations table with the wire contract.
+- `41ad416` - Listed `source unavailable` and the meaning of each shell-owned creation error, kept the list open-ended, and allowed an optional `<error> (<cause>)` suffix bounded by what the napplet could learn itself.
