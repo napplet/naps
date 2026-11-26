@@ -415,7 +415,17 @@ superseded the focus pause.
 
 `media.session.create.result` includes an `error` field (string) on failure. Common errors: `"session limit exceeded"`, `"invalid session ID"`. When `error` is present, the session was not created.
 
-For shell-owned sessions, common creation errors also include `"missing source"`, `"unsupported source"`, `"source blocked"`, and `"autoplay denied"`.
+For shell-owned sessions, common creation errors also include:
+
+| Error | Meaning |
+|-------|---------|
+| `"missing source"` | `source` was absent. |
+| `"unsupported source"` | The source reference, media type, or codec cannot be played. |
+| `"source blocked"` | Shell resource policy refused the source. |
+| `"source unavailable"` | The source could not be read, decoded, or loaded in time. |
+| `"autoplay denied"` | Host autoplay policy refused `autoplay: true`. |
+
+These values are not exhaustive. A shell MAY append a cause to any of them as `<error> (<cause>)`, for example `"source blocked (blocked-by-policy)"` or `"source unavailable (timeout)"`. A cause SHOULD be a NAP-RESOURCE error code when one applies. A cause MUST NOT disclose more than the napplet could learn by requesting the same source itself. Napplets SHOULD match on the text before ` (`.
 
 Messages referencing an unknown `sessionId` (e.g., `media.state` for a destroyed session) MUST be silently ignored by both napplet and shell.
 
@@ -489,3 +499,4 @@ For shell-owned sessions:
 
 - `df41999` - Adopted injected-domain availability and clarified mediated artwork loading and optional-resource fallback.
 - `bd521c6` - Added playback and command reasons, terminal session notifications, stale-command rejection, ordered retirement delivery, and audio-focus resumption rules; aligned the operations table with the wire contract.
+- `41ad416` - Listed `source unavailable` and the meaning of each shell-owned creation error, kept the list open-ended, and allowed an optional `<error> (<cause>)` suffix bounded by what the napplet could learn itself.
